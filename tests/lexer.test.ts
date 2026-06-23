@@ -66,3 +66,22 @@ test("operators tokenize distinctly", () => {
 	const types = tokens.map((t) => t.type).filter((t) => t !== "IDENT" && t !== "NEWLINE" && t !== "EOF");
 	assert.deepEqual(types, ["EQEQ", "NEQ", "ANDAND", "OROR", "BANG"]);
 });
+
+test("a template string splits into text and expr segments", () => {
+	const tokens = tokenize("x = `hello ${name}, you are ${age} years old`\n");
+	const tmpl = tokens.find((t) => t.type === "TEMPLATE_STRING")!;
+	assert.deepEqual(
+		tmpl.segments!.map((s) => (s.kind === "text" ? s.value : `expr:${s.raw}`)),
+		["hello ", "expr:name", ", you are ", "expr:age", " years old"],
+	);
+});
+
+test("a template string with no interpolation has a single text segment", () => {
+	const tokens = tokenize("x = `plain text`\n");
+	const tmpl = tokens.find((t) => t.type === "TEMPLATE_STRING")!;
+	assert.deepEqual(tmpl.segments, [{ kind: "text", value: "plain text" }]);
+});
+
+test("an unterminated template string raises a LexError", () => {
+	assert.throws(() => tokenize("x = `unterminated\n"), LexError);
+});

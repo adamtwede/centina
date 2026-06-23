@@ -64,9 +64,14 @@ export interface MatchCase {
 	line: number;
 }
 
+export type TemplatePart =
+	| { kind: "Text"; value: string }
+	| { kind: "Expr"; expr: Expr };
+
 export type Expr =
 	| { kind: "Ident"; name: string; line: number }
 	| { kind: "StringLit"; value: string; line: number }
+	| { kind: "TemplateStr"; parts: TemplatePart[]; line: number }
 	| { kind: "NumberLit"; value: number; line: number }
 	| { kind: "BoolLit"; value: boolean; line: number }
 	| { kind: "Binary"; op: "+" | "==" | "!=" | "&&" | "||"; left: Expr; right: Expr; line: number }

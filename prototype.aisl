@@ -22,10 +22,10 @@ function implementation_loop(implementation_step: Step, supervisor_model: Agent,
 	implementation_step_complete = false
 
 	do
-		step_prompt = supervisor_model.prompt("Generate a prompt for " + target_model.specification + " to implement: " + implementation_step) as String
+		step_prompt = supervisor_model.prompt(`Generate a prompt for ${target_model.specification} to implement: ${implementation_step}`) as String
 		additional_context = task_matcher(step_prompt, supervisor_model, target_model)
 
-		target_model_output = target_model.prompt(step_prompt + additional_context) as Unspecified
+		target_model_output = target_model.prompt(`${step_prompt}${additional_context}`)
 
 		verdict = supervisor_model.review(target_model_output) as Verdict
 
@@ -45,15 +45,15 @@ function implementation_loop(implementation_step: Step, supervisor_model: Agent,
 
 function escalate(implementation_step: Step, step_prompt: String, supervisor_model: Agent, target_model: Agent):
 	if target_model == escalation_model:
-		supervisor_model.prompt("Please implement the following: " + step_prompt) # if escalation model can't handle it, have supervisor do it
+		supervisor_model.prompt(`Please implement the following: ${step_prompt}`) # if escalation model can't handle it, have supervisor do it
 	else:
 		implementation_loop(implementation_step, supervisor_model, escalation_model)
 
 function decompose_stage(high_level_step: Step, supervisor_model: Agent) -> Step[]:
-	return supervisor_model.prompt("Break this down into simpler steps: " + high_level_step) as Step[]
+	return supervisor_model.prompt(`Break this down into simpler steps: ${high_level_step}`) as Step[]
 
 function propose_feedback(implementation_step: Step, target_model_output: Unspecified, supervisor_model: Agent, target_model: Agent) -> Feedback:
-	return supervisor_model.prompt("Review this code for " + implementation_step + " and provide structured feedback: " + target_model_output) as Feedback
+	return supervisor_model.prompt(`Review this code for ${implementation_step} and provide structured feedback: ${target_model_output}`) as Feedback
 
 function encode_feedback_into_loop(structured_feedback: Feedback):
 	# @prompt: supervisor model incorporates feedback into loop by checking structured feedback for various properties on the structured_feedback object that indicate where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.

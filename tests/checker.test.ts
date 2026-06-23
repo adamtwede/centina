@@ -174,3 +174,53 @@ test("the built-in human_intervened() function is recognized", () => {
 	const diags = diagnosticsFor("function f():\n\treturn human_intervened()\n");
 	assert.equal(errorsOf(diags).length, 0);
 });
+
+test("a template string types as String and satisfies a String-typed slot", () => {
+	const diags = diagnosticsFor('function f(name: String):\n\tgreeting: String = `hello ${name}`\n\treturn greeting\n');
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("an undefined identifier inside a template expression is still flagged", () => {
+	const diags = diagnosticsFor("function f():\n\treturn `value is ${unknown_name}`\n");
+	const errors = errorsOf(diags);
+	assert.ok(errors.some((e) => /not defined in this scope/.test(e.message)));
+});
+
+test("accessing a property directly on an Unspecified-typed param warns", () => {
+	const diags = diagnosticsFor("function f(x):\n\treturn x.foo\n");
+	assert.equal(errorsOf(diags).length, 0);
+	const warnings = warningsOf(diags);
+	assert.ok(warnings.some((w) => /accessed on a value of type 'Unspecified'/.test(w.message)));
+});
+
+test("accessing a property on an uncast Agent.prompt() result warns", () => {
+	const diags = diagnosticsFor(
+		"function f(a: Agent):\n\treturn a.prompt(\"hi\").foo\n",
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(warnings.some((w) => /accessed on a value of type 'Unspecified'/.test(w.message)));
+});
+
+test("chained dynamic property access on a named type is not re-flagged as Unspecified", () => {
+	const diags = diagnosticsFor(
+		"type Step\nfunction f(a: Agent):\n\treturn a.spec.nested\n",
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(!warnings.some((w) => /accessed on a value of type 'Unspecified'/.test(w.message)));
+});
+
+test("a misspelled property close to a far more common one is flagged as a likely typo", () => {
+	const diags = diagnosticsFor(
+		"function f(a: Agent):\n\tx = a.specification\n\ty = a.specification\n\tz = a.specification\n\tw = a.spexification\n",
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(warnings.some((w) => /'\.spexification'.*close to '\.specification'/.test(w.message)));
+});
+
+test("two equally common property spellings are not flagged against each other", () => {
+	const diags = diagnosticsFor(
+		"function f(a: Agent):\n\tx = a.spec\n\ty = a.specs\n",
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(!warnings.some((w) => /possible typo/.test(w.message)));
+});

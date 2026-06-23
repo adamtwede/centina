@@ -1,10 +1,15 @@
 export type TokenType =
 	| "ENUM" | "TYPE" | "FUNCTION" | "RETURN" | "IF" | "ELSE" | "MATCH" | "CASE"
 	| "FOREACH" | "IN" | "DO" | "WHILE" | "AS" | "TRUE" | "FALSE"
-	| "IDENT" | "STRING" | "NUMBER"
+	| "IDENT" | "STRING" | "TEMPLATE_STRING" | "NUMBER"
 	| "COLON" | "COMMA" | "DOT" | "LPAREN" | "RPAREN" | "LBRACKET" | "RBRACKET"
 	| "ARROW" | "PIPE" | "EQUALS" | "EQEQ" | "NEQ" | "PLUS" | "BANG" | "ANDAND" | "OROR"
 	| "COMMENT" | "NEWLINE" | "INDENT" | "DEDENT" | "EOF";
+
+/** A piece of a backtick-delimited template string: literal text, or a raw `${...}` expression awaiting parsing. */
+export type TemplateSegment =
+	| { kind: "text"; value: string }
+	| { kind: "expr"; raw: string; line: number; col: number };
 
 export interface Token {
 	type: TokenType;
@@ -13,6 +18,8 @@ export interface Token {
 	col: number;
 	/** Only set for COMMENT tokens whose text matches `# @prompt: ...` */
 	isPrompt?: boolean;
+	/** Only set for TEMPLATE_STRING tokens. */
+	segments?: TemplateSegment[];
 }
 
 const KEYWORDS: Record<string, TokenType> = {
@@ -139,6 +146,52 @@ function tokenizeLine(text: string, line: number, colOffset: number, out: Token[
 				throw new LexError("unterminated string literal", line, col);
 			}
 			out.push({ type: "STRING", value, line, col });
+			i = j + 1;
+			continue;
+		}
+
+		if (c === "`") {
+			const segments: TemplateSegment[] = [];
+			let textBuf = "";
+			let j = i + 1;
+			while (j < text.length && text[j] !== "`") {
+				if (text[j] === "\\" && j + 1 < text.length) {
+					textBuf += text[j + 1];
+					j += 2;
+					continue;
+				}
+				if (text[j] === "$" && text[j + 1] === "{") {
+					if (textBuf) {
+						segments.push({ kind: "text", value: textBuf });
+						textBuf = "";
+					}
+					const exprCol = colOffset + j + 2;
+					j += 2;
+					const exprStart = j;
+					let depth = 1;
+					while (j < text.length && depth > 0) {
+						if (text[j] === "{") depth++;
+						else if (text[j] === "}") {
+							depth--;
+							if (depth === 0) break;
+						}
+						j++;
+					}
+					if (depth !== 0) {
+						throw new LexError("unterminated template expression", line, col);
+					}
+					segments.push({ kind: "expr", raw: text.slice(exprStart, j), line, col: exprCol });
+					j++; // skip closing '}'
+					continue;
+				}
+				textBuf += text[j];
+				j++;
+			}
+			if (text[j] !== "`") {
+				throw new LexError("unterminated template string literal", line, col);
+			}
+			if (textBuf) segments.push({ kind: "text", value: textBuf });
+			out.push({ type: "TEMPLATE_STRING", value: text.slice(i, j + 1), segments, line, col });
 			i = j + 1;
 			continue;
 		}

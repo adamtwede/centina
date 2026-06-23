@@ -1,4 +1,4 @@
-import { Token, TokenType } from "./lexer.js";
+import { Token, TokenType, tokenize } from "./lexer.js";
 import {
 	EnumDecl,
 	Expr,
@@ -8,6 +8,7 @@ import {
 	Param,
 	Program,
 	Stmt,
+	TemplatePart,
 	TypeDecl,
 	TypeRef,
 } from "./ast.js";
@@ -380,6 +381,20 @@ class Parser {
 		if (t.type === "STRING") {
 			this.advance();
 			return { kind: "StringLit", value: t.value, line: t.line };
+		}
+		if (t.type === "TEMPLATE_STRING") {
+			this.advance();
+			const parts: TemplatePart[] = (t.segments ?? []).map((seg) => {
+				if (seg.kind === "text") return { kind: "Text", value: seg.value };
+				const subTokens = tokenize(seg.raw + "\n").map((tok) => ({ ...tok, line: seg.line }));
+				const subParser = new Parser(subTokens);
+				const expr = subParser.parseExpr();
+				if (!subParser.check("NEWLINE") || subParser.peek(1).type !== "EOF") {
+					throw new ParseError(`unexpected token in template expression`, seg.line);
+				}
+				return { kind: "Expr", expr };
+			});
+			return { kind: "TemplateStr", parts, line: t.line };
 		}
 		if (t.type === "NUMBER") {
 			this.advance();

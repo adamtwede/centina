@@ -4,6 +4,7 @@
 	"scopeName": "source.aisl",
 	"patterns": [
 		{ "include": "#comments" },
+		{ "include": "#template-strings" },
 		{ "include": "#strings" },
 		{ "include": "#numbers" },
 		{ "include": "#decl-names" },
@@ -19,8 +20,12 @@
 		"comments": {
 			"patterns": [
 				{
-					"name": "comment.block.documentation.prompt.aisl",
-					"match": "#\\s*@prompt:.*$"
+					"name": "comment.line.number-sign.prompt.aisl",
+					"begin": "#\\s*(@prompt:)",
+					"beginCaptures": {
+						"1": { "name": "keyword.other.prompt.aisl" }
+					},
+					"end": "$"
 				},
 				{
 					"name": "comment.line.number-sign.aisl",
@@ -36,6 +41,29 @@
 				{
 					"name": "constant.character.escape.aisl",
 					"match": "\\\\."
+				}
+			]
+		},
+		"template-strings": {
+			"name": "string.template.aisl",
+			"begin": "`",
+			"end": "`",
+			"patterns": [
+				{
+					"name": "constant.character.escape.aisl",
+					"match": "\\\\."
+				},
+				{
+					"name": "meta.embedded.line.aisl",
+					"begin": "\\$\\{",
+					"beginCaptures": {
+						"0": { "name": "punctuation.definition.template-expression.begin.aisl" }
+					},
+					"end": "\\}",
+					"endCaptures": {
+						"0": { "name": "punctuation.definition.template-expression.end.aisl" }
+					},
+					"patterns": [{ "include": "$self" }]
 				}
 			]
 		},
