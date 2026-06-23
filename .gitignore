@@ -1,0 +1,23 @@
+node_modules/
+dist/
+runs/
+!runs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Env files that might contain secrets
+.env
+.env.*
+harness-config.json
+
+# Eval task fixtures live in their own nested git repo, never the main one
+# (see src/sandbox.ts, AGENTS.md "Sandbox workflow")
+/sandbox/

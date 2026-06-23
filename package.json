@@ -1,0 +1,24 @@
+{
+  "name": "aisl",
+  "version": "1.0.0",
+  "description": "This project lays out a formal description/specification for the creation of a domain specific language (DSL) for use with agentic (LLM-assisted) coding, specifically for high-level planning and architecture. As a DSL, it is concerned more with the *what* rather than the *how*.",
+  "main": "dist/cli.js",
+  "bin": {
+    "aisl-check": "dist/cli.js"
+  },
+  "scripts": {
+    "check": "tsx src/cli.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

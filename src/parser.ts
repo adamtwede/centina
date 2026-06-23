@@ -1,0 +1,404 @@
+import { Token, TokenType } from "./lexer.js";
+import {
+	EnumDecl,
+	Expr,
+	FunctionDecl,
+	GlobalVarDecl,
+	MatchCase,
+	Param,
+	Program,
+	Stmt,
+	TypeDecl,
+	TypeRef,
+} from "./ast.js";
+
+export class ParseError extends Error {
+	constructor(message: string, public line: number) {
+		super(`${message} (line ${line})`);
+	}
+}
+
+export function parse(tokens: Token[]): Program {
+	return new Parser(tokens).parseProgram();
+}
+
+class Parser {
+	private pos = 0;
+
+	constructor(private tokens: Token[]) {}
+
+	private peek(offset = 0): Token {
+		return this.tokens[Math.min(this.pos + offset, this.tokens.length - 1)];
+	}
+
+	private advance(): Token {
+		const t = this.tokens[this.pos];
+		if (this.pos < this.tokens.length - 1) this.pos++;
+		return t;
+	}
+
+	private check(type: TokenType): boolean {
+		return this.peek().type === type;
+	}
+
+	private match(type: TokenType): Token | undefined {
+		if (this.check(type)) return this.advance();
+		return undefined;
+	}
+
+	private expect(type: TokenType, context: string): Token {
+		if (!this.check(type)) {
+			const t = this.peek();
+			throw new ParseError(`expected ${type} ${context}, got ${t.type} '${t.value}'`, t.line);
+		}
+		return this.advance();
+	}
+
+	/** Skips blank NEWLINE-only lines and non-prompt comment lines between declarations/statements. */
+	private skipTrivia(): void {
+		for (;;) {
+			if (this.check("NEWLINE")) {
+				this.advance();
+				continue;
+			}
+			if (this.check("COMMENT") && !this.peek().isPrompt) {
+				this.advance();
+				continue;
+			}
+			break;
+		}
+	}
+
+	parseProgram(): Program {
+		const program: Program = { kind: "Program", enums: [], types: [], globals: [], functions: [] };
+		this.skipTrivia();
+		while (!this.check("EOF")) {
+			if (this.check("ENUM")) {
+				program.enums.push(this.parseEnumDecl());
+			} else if (this.check("TYPE")) {
+				program.types.push(this.parseTypeDecl());
+			} else if (this.check("FUNCTION")) {
+				program.functions.push(this.parseFunctionDecl());
+			} else if (this.check("IDENT")) {
+				program.globals.push(this.parseGlobalVarDecl());
+			} else {
+				const t = this.peek();
+				throw new ParseError(`unexpected token '${t.value}' at top level`, t.line);
+			}
+			this.skipTrivia();
+		}
+		return program;
+	}
+
+	private parseEnumDecl(): EnumDecl {
+		const start = this.expect("ENUM", "to start enum declaration");
+		const name = this.expect("IDENT", "for enum name").value;
+		this.expect("EQUALS", "after enum name");
+		const members = [this.expect("IDENT", "as enum member").value];
+		while (this.match("PIPE")) {
+			members.push(this.expect("IDENT", "as enum member").value);
+		}
+		this.expect("NEWLINE", "after enum declaration");
+		return { kind: "EnumDecl", name, members, line: start.line };
+	}
+
+	private parseTypeDecl(): TypeDecl {
+		const start = this.expect("TYPE", "to start type declaration");
+		const name = this.expect("IDENT", "for type name").value;
+		this.expect("NEWLINE", "after type declaration");
+		return { kind: "TypeDecl", name, line: start.line };
+	}
+
+	private parseTypeRef(): TypeRef {
+		const start = this.expect("IDENT", "for type name");
+		let ref: TypeRef = { kind: "named", name: start.value, line: start.line };
+		while (this.check("LBRACKET")) {
+			this.advance();
+			this.expect("RBRACKET", "to close array type suffix '[]'");
+			ref = { kind: "array", element: ref, line: start.line };
+		}
+		return ref;
+	}
+
+	private parseGlobalVarDecl(): GlobalVarDecl {
+		const nameTok = this.expect("IDENT", "for global variable name");
+		let typeAnnotation: TypeRef | undefined;
+		if (this.match("COLON")) {
+			typeAnnotation = this.parseTypeRef();
+		}
+		this.expect("EQUALS", "in global variable declaration");
+		const init = this.parseExpr();
+		this.expect("NEWLINE", "after global variable declaration");
+		return { kind: "GlobalVarDecl", name: nameTok.value, typeAnnotation, init, line: nameTok.line };
+	}
+
+	private parseFunctionDecl(): FunctionDecl {
+		const start = this.expect("FUNCTION", "to start function declaration");
+		const name = this.expect("IDENT", "for function name").value;
+		this.expect("LPAREN", "after function name");
+		const params: Param[] = [];
+		if (!this.check("RPAREN")) {
+			params.push(this.parseParam());
+			while (this.match("COMMA")) {
+				params.push(this.parseParam());
+			}
+		}
+		this.expect("RPAREN", "to close parameter list");
+		let returnType: TypeRef | undefined;
+		if (this.match("ARROW")) {
+			returnType = this.parseTypeRef();
+		}
+		this.expect("COLON", "after function signature");
+		this.expect("NEWLINE", "after function signature");
+		const body = this.parseBlock();
+		return { kind: "FunctionDecl", name, params, returnType, body, line: start.line };
+	}
+
+	private parseParam(): Param {
+		const nameTok = this.expect("IDENT", "for parameter name");
+		let typeAnnotation: TypeRef | undefined;
+		if (this.match("COLON")) {
+			typeAnnotation = this.parseTypeRef();
+		}
+		return { name: nameTok.value, typeAnnotation, line: nameTok.line };
+	}
+
+	/** Expects the current position to be just after a NEWLINE that opens a block; consumes INDENT ... DEDENT. */
+	private parseBlock(): Stmt[] {
+		this.expect("INDENT", "to begin indented block");
+		const stmts: Stmt[] = [];
+		this.skipTrivia();
+		while (!this.check("DEDENT") && !this.check("EOF")) {
+			stmts.push(this.parseStmt());
+			this.skipTrivia();
+		}
+		this.expect("DEDENT", "to end indented block");
+		return stmts;
+	}
+
+	private parseStmt(): Stmt {
+		const t = this.peek();
+
+		if (t.type === "COMMENT") {
+			this.advance();
+			this.expect("NEWLINE", "after comment");
+			return { kind: "PromptComment", text: t.value, line: t.line };
+		}
+
+		if (t.type === "IF") return this.parseIf();
+		if (t.type === "FOREACH") return this.parseForeach();
+		if (t.type === "DO") return this.parseDoWhile();
+		if (t.type === "MATCH") return this.parseMatch();
+		if (t.type === "RETURN") return this.parseReturn();
+
+		if (t.type === "IDENT" && this.peek(1).type === "COLON") {
+			return this.parseVarDecl();
+		}
+		if (t.type === "IDENT" && this.peek(1).type === "EQUALS") {
+			return this.parseVarDecl();
+		}
+
+		const expr = this.parseExpr();
+		this.expect("NEWLINE", "after expression statement");
+		return { kind: "ExprStmt", expr, line: t.line };
+	}
+
+	private parseVarDecl(): Stmt {
+		const nameTok = this.expect("IDENT", "for variable name");
+		let typeAnnotation: TypeRef | undefined;
+		if (this.match("COLON")) {
+			typeAnnotation = this.parseTypeRef();
+		}
+		this.expect("EQUALS", "in variable declaration/assignment");
+		const init = this.parseExpr();
+		this.expect("NEWLINE", "after variable declaration/assignment");
+		return { kind: "VarDecl", name: nameTok.value, typeAnnotation, init, line: nameTok.line };
+	}
+
+	private parseIf(): Stmt {
+		const start = this.expect("IF", "to start if statement");
+		const cond = this.parseExpr();
+		this.expect("COLON", "after if condition");
+		this.expect("NEWLINE", "after if condition");
+		const then = this.parseBlock();
+		let elseBody: Stmt[] | undefined;
+		this.skipTrivia();
+		if (this.check("ELSE")) {
+			this.advance();
+			this.expect("COLON", "after else");
+			this.expect("NEWLINE", "after else");
+			elseBody = this.parseBlock();
+		}
+		return { kind: "If", cond, then, else: elseBody, line: start.line };
+	}
+
+	private parseForeach(): Stmt {
+		const start = this.expect("FOREACH", "to start foreach statement");
+		const varName = this.expect("IDENT", "as foreach loop variable").value;
+		this.expect("IN", "in foreach statement");
+		const iterable = this.parseExpr();
+		this.expect("COLON", "after foreach iterable");
+		this.expect("NEWLINE", "after foreach iterable");
+		const body = this.parseBlock();
+		return { kind: "Foreach", varName, iterable, body, line: start.line };
+	}
+
+	private parseDoWhile(): Stmt {
+		const start = this.expect("DO", "to start do-while statement");
+		this.expect("NEWLINE", "after 'do'");
+		const body = this.parseBlock();
+		this.skipTrivia();
+		this.expect("WHILE", "to close do-while statement");
+		const cond = this.parseExpr();
+		this.expect("NEWLINE", "after while condition");
+		return { kind: "DoWhile", body, cond, line: start.line };
+	}
+
+	private parseMatch(): Stmt {
+		const start = this.expect("MATCH", "to start match statement");
+		const subject = this.parseExpr();
+		this.expect("COLON", "after match subject");
+		this.expect("NEWLINE", "after match subject");
+		this.expect("INDENT", "to begin match body");
+		const cases: MatchCase[] = [];
+		this.skipTrivia();
+		while (this.check("CASE")) {
+			const caseStart = this.advance();
+			const label = this.expect("IDENT", "as match case label").value;
+			this.expect("COLON", "after match case label");
+			this.expect("NEWLINE", "after match case label");
+			const body = this.parseBlock();
+			cases.push({ label, body, line: caseStart.line });
+			this.skipTrivia();
+		}
+		this.expect("DEDENT", "to end match body");
+		return { kind: "Match", subject, cases, line: start.line };
+	}
+
+	private parseReturn(): Stmt {
+		const start = this.expect("RETURN", "to start return statement");
+		let expr: Expr | undefined;
+		if (!this.check("NEWLINE")) {
+			expr = this.parseExpr();
+		}
+		this.expect("NEWLINE", "after return statement");
+		return { kind: "Return", expr, line: start.line };
+	}
+
+	// Expression precedence, low to high:
+	// ||  &&  ==/!=  +  unary !  as-cast  call/member postfix  primary
+	private parseExpr(): Expr {
+		return this.parseOr();
+	}
+
+	private parseOr(): Expr {
+		let left = this.parseAnd();
+		while (this.check("OROR")) {
+			const t = this.advance();
+			const right = this.parseAnd();
+			left = { kind: "Binary", op: "||", left, right, line: t.line };
+		}
+		return left;
+	}
+
+	private parseAnd(): Expr {
+		let left = this.parseEquality();
+		while (this.check("ANDAND")) {
+			const t = this.advance();
+			const right = this.parseEquality();
+			left = { kind: "Binary", op: "&&", left, right, line: t.line };
+		}
+		return left;
+	}
+
+	private parseEquality(): Expr {
+		let left = this.parseAdditive();
+		while (this.check("EQEQ") || this.check("NEQ")) {
+			const t = this.advance();
+			const right = this.parseAdditive();
+			left = { kind: "Binary", op: t.type === "EQEQ" ? "==" : "!=", left, right, line: t.line };
+		}
+		return left;
+	}
+
+	private parseAdditive(): Expr {
+		let left = this.parseUnary();
+		while (this.check("PLUS")) {
+			const t = this.advance();
+			const right = this.parseUnary();
+			left = { kind: "Binary", op: "+", left, right, line: t.line };
+		}
+		return left;
+	}
+
+	private parseUnary(): Expr {
+		if (this.check("BANG")) {
+			const t = this.advance();
+			const expr = this.parseUnary();
+			return { kind: "Unary", op: "!", expr, line: t.line };
+		}
+		return this.parseCast();
+	}
+
+	private parseCast(): Expr {
+		let expr = this.parsePostfix();
+		while (this.check("AS")) {
+			this.advance();
+			const typeAnnotation = this.parseTypeRef();
+			expr = { kind: "Cast", expr, typeAnnotation, line: expr.line };
+		}
+		return expr;
+	}
+
+	private parsePostfix(): Expr {
+		let expr = this.parsePrimary();
+		for (;;) {
+			if (this.check("DOT")) {
+				this.advance();
+				const prop = this.expect("IDENT", "after '.'").value;
+				expr = { kind: "Member", obj: expr, prop, line: expr.line };
+			} else if (this.check("LPAREN")) {
+				this.advance();
+				const args: Expr[] = [];
+				if (!this.check("RPAREN")) {
+					args.push(this.parseExpr());
+					while (this.match("COMMA")) {
+						args.push(this.parseExpr());
+					}
+				}
+				this.expect("RPAREN", "to close call arguments");
+				expr = { kind: "Call", callee: expr, args, line: expr.line };
+			} else {
+				break;
+			}
+		}
+		return expr;
+	}
+
+	private parsePrimary(): Expr {
+		const t = this.peek();
+		if (t.type === "STRING") {
+			this.advance();
+			return { kind: "StringLit", value: t.value, line: t.line };
+		}
+		if (t.type === "NUMBER") {
+			this.advance();
+			return { kind: "NumberLit", value: parseFloat(t.value), line: t.line };
+		}
+		if (t.type === "TRUE" || t.type === "FALSE") {
+			this.advance();
+			return { kind: "BoolLit", value: t.type === "TRUE", line: t.line };
+		}
+		if (t.type === "IDENT") {
+			this.advance();
+			return { kind: "Ident", name: t.value, line: t.line };
+		}
+		if (t.type === "LPAREN") {
+			this.advance();
+			const expr = this.parseExpr();
+			this.expect("RPAREN", "to close parenthesized expression");
+			return expr;
+		}
+		throw new ParseError(`unexpected token '${t.value}' in expression`, t.line);
+	}
+}

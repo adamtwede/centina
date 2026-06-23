@@ -1,0 +1,95 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "AISL",
+	"scopeName": "source.aisl",
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#strings" },
+		{ "include": "#numbers" },
+		{ "include": "#decl-names" },
+		{ "include": "#keywords" },
+		{ "include": "#booleans" },
+		{ "include": "#builtin-types" },
+		{ "include": "#enum-members" },
+		{ "include": "#type-names" },
+		{ "include": "#operators" },
+		{ "include": "#punctuation" }
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.block.documentation.prompt.aisl",
+					"match": "#\\s*@prompt:.*$"
+				},
+				{
+					"name": "comment.line.number-sign.aisl",
+					"match": "#.*$"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.aisl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.aisl",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"name": "constant.numeric.aisl",
+			"match": "\\b\\d+(\\.\\d+)?\\b"
+		},
+		"booleans": {
+			"name": "constant.language.boolean.aisl",
+			"match": "\\b(true|false)\\b"
+		},
+		"keywords": {
+			"name": "keyword.control.aisl",
+			"match": "\\b(enum|type|function|return|if|else|match|case|foreach|in|do|while|as)\\b"
+		},
+		"builtin-types": {
+			"name": "support.type.builtin.aisl",
+			"match": "\\b(Agent|Unspecified|String|Bool|Number)\\b"
+		},
+		"decl-names": {
+			"patterns": [
+				{
+					"match": "\\b(function)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+					"captures": {
+						"1": { "name": "keyword.control.aisl" },
+						"2": { "name": "entity.name.function.aisl" }
+					}
+				},
+				{
+					"match": "\\b(enum|type)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+					"captures": {
+						"1": { "name": "keyword.control.aisl" },
+						"2": { "name": "entity.name.type.aisl" }
+					}
+				}
+			]
+		},
+		"enum-members": {
+			"comment": "Heuristic: bare ALL_CAPS identifiers are enum members by AISL convention.",
+			"name": "constant.other.enummember.aisl",
+			"match": "\\b[A-Z][A-Z0-9_]*\\b"
+		},
+		"type-names": {
+			"comment": "Heuristic: PascalCase identifiers are type references (enum/type/Agent/array element types).",
+			"name": "entity.name.type.aisl",
+			"match": "\\b[A-Z][A-Za-z0-9]*\\b"
+		},
+		"operators": {
+			"name": "keyword.operator.aisl",
+			"match": "->|==|!=|&&|\\|\\||[!=+:|]"
+		},
+		"punctuation": {
+			"name": "punctuation.aisl",
+			"match": "[(),.\\[\\]]"
+		}
+	}
+}

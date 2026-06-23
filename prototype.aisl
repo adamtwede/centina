@@ -1,0 +1,62 @@
+enum ModelId = CLAUDE_OPUS | QWEN_LOCAL | MINIMAX_OPENROUTER
+enum Verdict = SUCCESS | MODEL_INCAPABLE | STEP_TOO_COMPLEX | FEEDBACK_REQUIRED
+
+type Step
+type Feedback
+
+cloud_model: Agent = Agent(CLAUDE_OPUS)
+local_model: Agent = Agent(QWEN_LOCAL)
+escalation_model: Agent = Agent(MINIMAX_OPENROUTER)
+
+function main():
+	supervisor_model = cloud_model
+	human_input = "Draft an implementation plan to ..."
+	implementation_plan = supervisor_model.prompt(human_input) as Step[]
+	start_implementation(implementation_plan, supervisor_model, local_model)
+
+function start_implementation(implementation_plan: Step[], supervisor_model: Agent, target_model: Agent):
+	foreach implementation_stage in implementation_plan:
+		implementation_loop(implementation_stage, supervisor_model, target_model)
+
+function implementation_loop(implementation_step: Step, supervisor_model: Agent, target_model: Agent):
+	implementation_step_complete = false
+
+	do
+		step_prompt = supervisor_model.prompt("Generate a prompt for " + target_model.specification + " to implement: " + implementation_step) as String
+		additional_context = task_matcher(step_prompt, supervisor_model, target_model)
+
+		target_model_output = target_model.prompt(step_prompt + additional_context) as Unspecified
+
+		verdict = supervisor_model.review(target_model_output) as Verdict
+
+		match verdict:
+			case MODEL_INCAPABLE:
+				escalate(implementation_step, step_prompt, supervisor_model, target_model)
+			case STEP_TOO_COMPLEX:
+				start_implementation(decompose_stage(implementation_step, supervisor_model), supervisor_model, target_model)
+			case FEEDBACK_REQUIRED:
+				structured_feedback = propose_feedback(implementation_step, target_model_output, supervisor_model, target_model)
+				encode_feedback_into_loop(structured_feedback)
+				implementation_loop(implementation_step, supervisor_model, target_model)
+			case SUCCESS:
+				implementation_step_complete = true
+
+	while !implementation_step_complete && !human_intervened()
+
+function escalate(implementation_step: Step, step_prompt: String, supervisor_model: Agent, target_model: Agent):
+	if target_model == escalation_model:
+		supervisor_model.prompt("Please implement the following: " + step_prompt) # if escalation model can't handle it, have supervisor do it
+	else:
+		implementation_loop(implementation_step, supervisor_model, escalation_model)
+
+function decompose_stage(high_level_step: Step, supervisor_model: Agent) -> Step[]:
+	return supervisor_model.prompt("Break this down into simpler steps: " + high_level_step) as Step[]
+
+function propose_feedback(implementation_step: Step, target_model_output: Unspecified, supervisor_model: Agent, target_model: Agent) -> Feedback:
+	return supervisor_model.prompt("Review this code for " + implementation_step + " and provide structured feedback: " + target_model_output) as Feedback
+
+function encode_feedback_into_loop(structured_feedback: Feedback):
+	# @prompt: supervisor model incorporates feedback into loop by checking structured feedback for various properties on the structured_feedback object that indicate where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
+
+function task_matcher(step_prompt: String, supervisor_model: Agent, target_model: Agent):
+	# @prompt: essentially reverses the encode_feedback_into_loop process, matching the step prompt with earlier feedback, returning it so that it can be combined with the step prompt.

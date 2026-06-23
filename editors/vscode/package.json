@@ -1,0 +1,28 @@
+{
+	"name": "aisl-language",
+	"displayName": "AISL Language Support",
+	"description": "Syntax highlighting for Agent-Interpreted Specification Language (.aisl) files.",
+	"version": "0.0.1",
+	"private": true,
+	"engines": {
+		"vscode": "^1.85.0"
+	},
+	"categories": ["Programming Languages"],
+	"contributes": {
+		"languages": [
+			{
+				"id": "aisl",
+				"aliases": ["AISL"],
+				"extensions": [".aisl"],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "aisl",
+				"scopeName": "source.aisl",
+				"path": "./syntaxes/aisl.tmLanguage.json"
+			}
+		]
+	}
+}
