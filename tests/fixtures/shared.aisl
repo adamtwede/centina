@@ -1,0 +1,10 @@
+type Step
+
+enum Status = PENDING | DONE
+
+function decompose(s: Step) -> String:
+	return "x"
+
+count: Number = 1
+
+external object lodash from "lodash"

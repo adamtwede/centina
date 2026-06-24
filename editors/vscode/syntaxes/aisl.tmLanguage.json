@@ -77,11 +77,11 @@
 		},
 		"keywords": {
 			"name": "keyword.control.aisl",
-			"match": "\\b(enum|type|function|return|if|else|match|case|foreach|in|do|while|as)\\b"
+			"match": "\\b(enum|type|function|return|if|else|match|case|foreach|in|do|while|as|external|object|from|renamed|was)\\b"
 		},
 		"builtin-types": {
 			"name": "support.type.builtin.aisl",
-			"match": "\\b(Agent|Unspecified|String|Bool|Number)\\b"
+			"match": "\\b(Agent|Unspecified|Unknown|String|Bool|Number)\\b"
 		},
 		"decl-names": {
 			"patterns": [

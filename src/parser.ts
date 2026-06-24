@@ -116,6 +116,7 @@ class Parser {
 
 	private parseExternalDecl(): ExternalDecl {
 		const start = this.expect("EXTERNAL", "to start external declaration");
+		const isRenamed = !!this.match("RENAMED");
 
 		let symbolKind: ExternalSymbolKind;
 		if (this.match("TYPE")) symbolKind = "type";
@@ -123,16 +124,20 @@ class Parser {
 		else if (this.match("OBJECT")) symbolKind = "object";
 		else {
 			const t = this.peek();
-			throw new ParseError(`expected 'type', 'function', or 'object' after 'external', got ${t.type} '${t.value}'`, t.line);
+			throw new ParseError(
+				`expected 'type', 'function', or 'object' after 'external'${isRenamed ? " renamed" : ""}, got ${t.type} '${t.value}'`,
+				t.line,
+			);
 		}
 
 		const name = this.expect("IDENT", "for external symbol name").value;
-		this.expect("EQUALS", "after external symbol name");
+		this.expect("FROM", "after external symbol name");
 		const path = this.expect("STRING", "for external symbol's source path").value;
 
 		let realName = name;
-		if (this.match("RENAMED")) {
-			realName = this.expect("IDENT", "for renamed external symbol name").value;
+		if (isRenamed) {
+			this.expect("WAS", "after external symbol path in a 'renamed' declaration");
+			realName = this.expect("IDENT", "for the real (pre-rename) external symbol name").value;
 		}
 
 		this.expect("NEWLINE", "after external declaration");

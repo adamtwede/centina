@@ -1,7 +1,7 @@
 export type TokenType =
 	| "ENUM" | "TYPE" | "FUNCTION" | "RETURN" | "IF" | "ELSE" | "MATCH" | "CASE"
 	| "FOREACH" | "IN" | "DO" | "WHILE" | "AS" | "TRUE" | "FALSE"
-	| "EXTERNAL" | "OBJECT" | "RENAMED"
+	| "EXTERNAL" | "OBJECT" | "RENAMED" | "FROM" | "WAS"
 	| "IDENT" | "STRING" | "TEMPLATE_STRING" | "NUMBER"
 	| "COLON" | "COMMA" | "DOT" | "LPAREN" | "RPAREN" | "LBRACKET" | "RBRACKET"
 	| "ARROW" | "PIPE" | "EQUALS" | "EQEQ" | "NEQ" | "PLUS" | "BANG" | "ANDAND" | "OROR"
@@ -42,6 +42,8 @@ const KEYWORDS: Record<string, TokenType> = {
 	external: "EXTERNAL",
 	object: "OBJECT",
 	renamed: "RENAMED",
+	from: "FROM",
+	was: "WAS",
 };
 
 export class LexError extends Error {

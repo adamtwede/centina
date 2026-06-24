@@ -2,6 +2,8 @@
 
 This project lays out a formal description/specification for the creation of a domain specific language (DSL) for use with agentic (LLM-assisted) coding, specifically for high-level planning and architecture. As a DSL, it is concerned more with the *what* rather than the *how*.
 
+In the fewest words, it's **type-checked  pseudocode**.
+
 ## Enabling syntax highlighting (development phase)
 
 1. In VS Code: File > Open Folder... (or Cmd+O)

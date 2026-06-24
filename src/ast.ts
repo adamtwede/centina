@@ -18,11 +18,18 @@ export interface TypeDecl {
 export type ExternalSymbolKind = "type" | "function" | "object";
 
 /**
- * Points an AISL-facing name at a real symbol in an external file or library,
- * e.g. `external type Step = "src/models.ts" renamed ModelStep`. `path` is
- * either a relative/absolute file path (heuristically verifiable against the
- * real file) or a bare library specifier (never verified, see resolveExternals.ts).
- * `realName` defaults to `name` when no `renamed` clause is present.
+ * Points an AISL-facing name at a real symbol in another file or library,
+ * e.g. `external type Step from "src/models.ts"`, or with a renamed real
+ * symbol: `external renamed type ModelStep from "src/models.ts" was Step`.
+ * `path` is a relative/absolute file path or a bare library specifier.
+ * `realName` defaults to `name` when no `renamed`/`was` clause is present.
+ *
+ * Resolution branches on `path`'s extension (see resolveLocalExternals.ts
+ * and resolveExternals.ts): a `.aisl` target is parsed and checked directly,
+ * so the symbol is treated exactly as though declared natively in this
+ * document (full nominal typing, never `Unknown`). Anything else (real-code
+ * files or bare library specifiers) is only heuristically verified and always
+ * types as `Unknown`, since its real shape can't be parsed with confidence.
  */
 export interface ExternalDecl {
 	kind: "ExternalDecl";

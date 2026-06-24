@@ -88,7 +88,7 @@ test("throws ParseError on malformed input", () => {
 });
 
 test("parses an external type declaration with the alias as the real name by default", () => {
-	const program = parseSource('external type Step = "src/models.ts"\n');
+	const program = parseSource('external type Step from "src/models.ts"\n');
 	assert.equal(program.externals.length, 1);
 	const ext = program.externals[0];
 	assert.equal(ext.symbolKind, "type");
@@ -98,15 +98,15 @@ test("parses an external type declaration with the alias as the real name by def
 });
 
 test("parses an external declaration with a `renamed` clause", () => {
-	const program = parseSource('external type Step = "src/models.ts" renamed ModelStep\n');
+	const program = parseSource('external renamed type ModelStep from "src/models.ts" was Step\n');
 	const ext = program.externals[0];
-	assert.equal(ext.name, "Step");
-	assert.equal(ext.realName, "ModelStep");
+	assert.equal(ext.name, "ModelStep");
+	assert.equal(ext.realName, "Step");
 });
 
 test("parses external function and object declarations", () => {
 	const program = parseSource(
-		'external function debounce = "lodash" renamed debounce\nexternal object lodash = "lodash"\n',
+		'external renamed function debounce from "lodash" was debounce\nexternal object lodash from "lodash"\n',
 	);
 	assert.equal(program.externals.length, 2);
 	assert.equal(program.externals[0].symbolKind, "function");

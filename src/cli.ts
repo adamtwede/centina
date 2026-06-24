@@ -5,6 +5,7 @@ import { tokenize, LexError } from "./lexer.js";
 import { parse, ParseError } from "./parser.js";
 import { check } from "./checker.js";
 import { resolveExternals } from "./resolveExternals.js";
+import { resolveLocalExternals } from "./resolveLocalExternals.js";
 
 function main(): void {
 	const file = process.argv[2];
@@ -19,7 +20,12 @@ function main(): void {
 	try {
 		const tokens = tokenize(source);
 		const program = parse(tokens);
-		const diagnostics = [...check(program), ...resolveExternals(program, dirname(file))];
+		const { program: resolvedProgram, diagnostics: localExternalDiagnostics } = resolveLocalExternals(program, dirname(file));
+		const diagnostics = [
+			...localExternalDiagnostics,
+			...check(resolvedProgram),
+			...resolveExternals(resolvedProgram, dirname(file)),
+		];
 
 		if (diagnostics.length === 0) {
 			console.log(`${file}: no issues found`);

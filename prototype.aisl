@@ -4,6 +4,12 @@ enum Verdict = SUCCESS | MODEL_INCAPABLE | STEP_TOO_COMPLEX | FEEDBACK_REQUIRED
 type Step
 type Feedback
 
+# external import examples:
+# external type Expr from "./src/ast.ts"
+# external type Something from "./feature.aisl"
+# external renamed type SomethingElse from "./feature.aisl" was Something
+# external function Expr from "./src/ast.ts"
+
 cloud_model: Agent = Agent(CLAUDE_OPUS)
 local_model: Agent = Agent(QWEN_LOCAL)
 escalation_model: Agent = Agent(MINIMAX_OPENROUTER)
