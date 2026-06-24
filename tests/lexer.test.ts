@@ -61,6 +61,33 @@ test("inconsistent indentation raises a LexError", () => {
 	assert.throws(() => tokenize("function f():\n\treturn 1\n  return 2\n"), LexError);
 });
 
+test("indentation is style-agnostic: 2-space, 4-space, and tabs all tokenize identically", () => {
+	const expected = [
+		"FUNCTION", "IDENT", "LPAREN", "IDENT", "RPAREN", "COLON", "NEWLINE",
+		"INDENT",
+		"IF", "IDENT", "EQEQ", "IDENT", "COLON", "NEWLINE",
+		"INDENT", "RETURN", "IDENT", "NEWLINE",
+		"DEDENT",
+		"RETURN", "IDENT", "NEWLINE",
+		"DEDENT", "EOF",
+	];
+
+	const twoSpace = tokenize("function f(x):\n  if x == x:\n    return x\n  return x\n");
+	const fourSpace = tokenize("function f(x):\n    if x == x:\n        return x\n    return x\n");
+	const tabs = tokenize("function f(x):\n\tif x == x:\n\t\treturn x\n\treturn x\n");
+
+	for (const tokens of [twoSpace, fourSpace, tabs]) {
+		assert.deepEqual(tokens.map((t) => t.type), expected);
+	}
+});
+
+test("a sibling line whose indent string isn't a match for its peer is inconsistent, even at equal column width", () => {
+	// the nested line establishes "\t" as one level in; a later line at the same
+	// visual depth but spelled as two spaces doesn't share that prefix, so it's
+	// flagged even though a naive column-width count might treat both as "1 level in"
+	assert.throws(() => tokenize("function f():\n\treturn 1\n  return 2\n"), LexError);
+});
+
 test("operators tokenize distinctly", () => {
 	const tokens = tokenize("a == b != c && d || !e\n");
 	const types = tokens.map((t) => t.type).filter((t) => t !== "IDENT" && t !== "NEWLINE" && t !== "EOF");

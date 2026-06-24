@@ -8,13 +8,15 @@ This repository is in its earliest pre-implementation stage. There is no source 
 
 ## What this project is
 
-AISL (Agent-Interpreted Specification Language) is a proposed DSL for writing high-level, structured pseudocode that a human authors and a coding model (e.g. Claude) iterates on with them until it reaches a shared understanding, which is then turned into an implementation plan. The goal is to replace ad-hoc conversation-first planning with a more structured artifact that:
+AISL (Agent-Interpreted Specification Language) is a DSL for writing high-level, structured pseudocode that a human authors and a coding model (e.g. Claude) iterates on with them until it reaches a shared understanding, which is then turned into an implementation plan. The goal is to replace ad-hoc conversation-first planning with a more structured artifact that:
 
 - enforces naming consistency and reduces ambiguity in the pseudocode itself
 - gives the coding model clearer guardrails to interpret correctly
 - pushes the human to think through design decisions up front rather than offloading that thinking to the model
 
-A DSL of this kind implies the eventual need for a basic type-checker or linter for AISL documents — this is referenced in the original project prompt (see `README.md`) but not yet designed or built.
+## How to run
+
+`npm run check spec_file.aisl`
 
 ## Working in this repo
 
