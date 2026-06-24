@@ -86,3 +86,29 @@ test("a @prompt comment as the sole function body becomes a PromptComment statem
 test("throws ParseError on malformed input", () => {
 	assert.throws(() => parseSource("function f(:\n"), ParseError);
 });
+
+test("parses an external type declaration with the alias as the real name by default", () => {
+	const program = parseSource('external type Step = "src/models.ts"\n');
+	assert.equal(program.externals.length, 1);
+	const ext = program.externals[0];
+	assert.equal(ext.symbolKind, "type");
+	assert.equal(ext.name, "Step");
+	assert.equal(ext.path, "src/models.ts");
+	assert.equal(ext.realName, "Step");
+});
+
+test("parses an external declaration with a `renamed` clause", () => {
+	const program = parseSource('external type Step = "src/models.ts" renamed ModelStep\n');
+	const ext = program.externals[0];
+	assert.equal(ext.name, "Step");
+	assert.equal(ext.realName, "ModelStep");
+});
+
+test("parses external function and object declarations", () => {
+	const program = parseSource(
+		'external function debounce = "lodash" renamed debounce\nexternal object lodash = "lodash"\n',
+	);
+	assert.equal(program.externals.length, 2);
+	assert.equal(program.externals[0].symbolKind, "function");
+	assert.equal(program.externals[1].symbolKind, "object");
+});

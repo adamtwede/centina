@@ -15,6 +15,24 @@ export interface TypeDecl {
 	line: number;
 }
 
+export type ExternalSymbolKind = "type" | "function" | "object";
+
+/**
+ * Points an AISL-facing name at a real symbol in an external file or library,
+ * e.g. `external type Step = "src/models.ts" renamed ModelStep`. `path` is
+ * either a relative/absolute file path (heuristically verifiable against the
+ * real file) or a bare library specifier (never verified, see resolveExternals.ts).
+ * `realName` defaults to `name` when no `renamed` clause is present.
+ */
+export interface ExternalDecl {
+	kind: "ExternalDecl";
+	symbolKind: ExternalSymbolKind;
+	name: string;
+	path: string;
+	realName: string;
+	line: number;
+}
+
 export interface Param {
 	name: string;
 	typeAnnotation?: TypeRef;
@@ -38,7 +56,7 @@ export interface GlobalVarDecl {
 	line: number;
 }
 
-export type TopLevel = EnumDecl | TypeDecl | FunctionDecl | GlobalVarDecl;
+export type TopLevel = EnumDecl | TypeDecl | FunctionDecl | GlobalVarDecl | ExternalDecl;
 
 export interface Program {
 	kind: "Program";
@@ -46,6 +64,7 @@ export interface Program {
 	types: TypeDecl[];
 	globals: GlobalVarDecl[];
 	functions: FunctionDecl[];
+	externals: ExternalDecl[];
 }
 
 export type Stmt =

@@ -2,6 +2,8 @@ import { Token, TokenType, tokenize } from "./lexer.js";
 import {
 	EnumDecl,
 	Expr,
+	ExternalDecl,
+	ExternalSymbolKind,
 	FunctionDecl,
 	GlobalVarDecl,
 	MatchCase,
@@ -71,7 +73,7 @@ class Parser {
 	}
 
 	parseProgram(): Program {
-		const program: Program = { kind: "Program", enums: [], types: [], globals: [], functions: [] };
+		const program: Program = { kind: "Program", enums: [], types: [], globals: [], functions: [], externals: [] };
 		this.skipTrivia();
 		while (!this.check("EOF")) {
 			if (this.check("ENUM")) {
@@ -80,6 +82,8 @@ class Parser {
 				program.types.push(this.parseTypeDecl());
 			} else if (this.check("FUNCTION")) {
 				program.functions.push(this.parseFunctionDecl());
+			} else if (this.check("EXTERNAL")) {
+				program.externals.push(this.parseExternalDecl());
 			} else if (this.check("IDENT")) {
 				program.globals.push(this.parseGlobalVarDecl());
 			} else {
@@ -108,6 +112,31 @@ class Parser {
 		const name = this.expect("IDENT", "for type name").value;
 		this.expect("NEWLINE", "after type declaration");
 		return { kind: "TypeDecl", name, line: start.line };
+	}
+
+	private parseExternalDecl(): ExternalDecl {
+		const start = this.expect("EXTERNAL", "to start external declaration");
+
+		let symbolKind: ExternalSymbolKind;
+		if (this.match("TYPE")) symbolKind = "type";
+		else if (this.match("FUNCTION")) symbolKind = "function";
+		else if (this.match("OBJECT")) symbolKind = "object";
+		else {
+			const t = this.peek();
+			throw new ParseError(`expected 'type', 'function', or 'object' after 'external', got ${t.type} '${t.value}'`, t.line);
+		}
+
+		const name = this.expect("IDENT", "for external symbol name").value;
+		this.expect("EQUALS", "after external symbol name");
+		const path = this.expect("STRING", "for external symbol's source path").value;
+
+		let realName = name;
+		if (this.match("RENAMED")) {
+			realName = this.expect("IDENT", "for renamed external symbol name").value;
+		}
+
+		this.expect("NEWLINE", "after external declaration");
+		return { kind: "ExternalDecl", symbolKind, name, path, realName, line: start.line };
 	}
 
 	private parseTypeRef(): TypeRef {

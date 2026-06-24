@@ -1,6 +1,7 @@
 import {
   EnumDecl,
   Expr,
+  ExternalDecl,
   FunctionDecl,
   Program,
   Stmt,
@@ -20,9 +21,21 @@ export interface Diagnostic {
 type Ty =
   | { kind: "named"; name: string }
   | { kind: "array"; element: Ty }
-  | { kind: "unspecified" };
+  | { kind: "unspecified" }
+  | { kind: "unknown" };
 
 const UNSPECIFIED: Ty = { kind: "unspecified" };
+/**
+ * The type of any reference to an `external` symbol — deliberately distinct
+ * from `Unspecified`. Both require an explicit cast before flowing into a
+ * concrete slot, but `Unknown` additionally warns on that cast: the shape
+ * being assumed has never been verified against the real symbol, so the risk
+ * is "wrong cast," not just "missing cast." Member access on `Unknown` is NOT
+ * flagged the way it is on `Unspecified` — an external symbol's members are
+ * expected to be accessed freely (that's the whole point of referencing it),
+ * the risk lives specifically in casting it into one of this document's own types.
+ */
+const UNKNOWN: Ty = { kind: "unknown" };
 const BUILTIN_SCALARS = new Set(["String", "Bool", "Number"]);
 const AGENT_TYPE = "Agent";
 /** Methods on Agent that route text to a model and must always type as Unspecified. */
@@ -57,20 +70,22 @@ function maxTypoDistance(a: string, b: string): number {
 
 function tyToString(t: Ty): string {
   if (t.kind === "unspecified") return "Unspecified";
+  if (t.kind === "unknown") return "Unknown";
   if (t.kind === "array") return `${tyToString(t.element)}[]`;
   return t.name;
 }
 
 /**
- * Directional, not symmetric: an `Unspecified` value (e.g. an uncast
- * Agent.prompt()/.review() result, or a dynamic property access) is never
- * automatically usable as a concrete type — it must go through an explicit
- * `as` cast first. A concrete value, on the other hand, is always usable
- * where `Unspecified` is expected, since that slot hasn't committed to a type.
+ * Directional, not symmetric: an `Unspecified`/`Unknown` value (e.g. an
+ * uncast Agent.prompt()/.review() result, a dynamic property access, or an
+ * external symbol reference) is never automatically usable as a concrete
+ * type — it must go through an explicit `as` cast first. A concrete value,
+ * on the other hand, is always usable where `Unspecified`/`Unknown` is
+ * expected, since that slot hasn't committed to (or can't verify) a type.
  */
 function isAssignable(expected: Ty, actual: Ty): boolean {
-  if (expected.kind === "unspecified") return true;
-  if (actual.kind === "unspecified") return false;
+  if (expected.kind === "unspecified" || expected.kind === "unknown") return true;
+  if (actual.kind === "unspecified" || actual.kind === "unknown") return false;
   if (expected.kind === "array" && actual.kind === "array")
     return isAssignable(expected.element, actual.element);
   if (expected.kind === "named" && actual.kind === "named")
@@ -118,6 +133,10 @@ class Checker {
   private globalScope = new Scope();
   /** typeName -> propName -> every line it was accessed on, for cross-document typo detection. */
   private propertyUsage = new Map<string, Map<string, number[]>>();
+  /** `external type` aliases — resolve to Unknown rather than a real shape. */
+  private externalTypes = new Map<string, ExternalDecl>();
+  /** `external function` aliases — callable, return Unknown, args unchecked (no param info is tracked). */
+  private externalFunctions = new Map<string, ExternalDecl>();
 
   constructor(private program: Program) {}
 
@@ -168,8 +187,28 @@ class Checker {
       this.types.set(t.name, t);
     }
 
+    for (const ext of this.program.externals) {
+      const alreadyDeclared =
+        ext.symbolKind === "type"
+          ? this.isKnownTypeName(ext.name)
+          : ext.symbolKind === "function"
+            ? this.functions.has(ext.name) || this.externalFunctions.has(ext.name)
+            : this.globalScope.lookup(ext.name) !== undefined;
+      if (alreadyDeclared) {
+        this.error(`'${ext.name}' is already declared`, ext.line);
+        continue;
+      }
+      if (ext.symbolKind === "type") {
+        this.externalTypes.set(ext.name, ext);
+      } else if (ext.symbolKind === "function") {
+        this.externalFunctions.set(ext.name, ext);
+      } else {
+        this.globalScope.declare(ext.name, UNKNOWN);
+      }
+    }
+
     for (const fn of this.program.functions) {
-      if (this.functions.has(fn.name)) {
+      if (this.functions.has(fn.name) || this.externalFunctions.has(fn.name)) {
         this.error(`function '${fn.name}' is already declared`, fn.line);
         continue;
       }
@@ -195,9 +234,11 @@ class Checker {
     return (
       this.enums.has(name) ||
       this.types.has(name) ||
+      this.externalTypes.has(name) ||
       BUILTIN_SCALARS.has(name) ||
       name === AGENT_TYPE ||
-      name === "Unspecified"
+      name === "Unspecified" ||
+      name === "Unknown"
     );
   }
 
@@ -207,6 +248,7 @@ class Checker {
       return { kind: "array", element: this.resolveTypeRef(ref.element) };
     }
     if (ref.name === "Unspecified") return UNSPECIFIED;
+    if (ref.name === "Unknown" || this.externalTypes.has(ref.name)) return UNKNOWN;
     if (!this.isKnownTypeName(ref.name)) {
       this.error(`unknown type '${ref.name}'`, ref.line);
     }
@@ -367,6 +409,7 @@ class Checker {
         const ty = scope.lookup(expr.name);
         if (ty === undefined) {
           if (this.functions.has(expr.name)) return UNSPECIFIED;
+          if (this.externalFunctions.has(expr.name)) return UNKNOWN;
           this.error(`'${expr.name}' is not defined in this scope`, expr.line);
           return UNSPECIFIED;
         }
@@ -404,8 +447,15 @@ class Checker {
       case "Member":
         return this.checkMemberAccess(expr.obj, expr.prop, scope, expr.line);
       case "Cast": {
-        this.checkExpr(expr.expr, scope);
-        return this.resolveTypeRef(expr.typeAnnotation);
+        const fromTy = this.checkExpr(expr.expr, scope);
+        const toTy = this.resolveTypeRef(expr.typeAnnotation);
+        if (fromTy.kind === "unknown" && toTy.kind === "named") {
+          this.warn(
+            `casting a value of external type 'Unknown' to '${tyToString(toTy)}' assumes a shape that hasn't been verified against the real symbol — confirm this is correct`,
+            expr.line,
+          );
+        }
+        return toTy;
       }
       case "Call":
         return this.checkCall(expr, scope);
@@ -497,7 +547,10 @@ class Checker {
       ) {
         return UNSPECIFIED;
       }
-      return UNSPECIFIED;
+      // A method call chained off an external (Unknown) object stays Unknown,
+      // so the "unverified shape" risk survives the chain instead of quietly
+      // downgrading to the less-suspicious Unspecified.
+      return objTy.kind === "unknown" ? UNKNOWN : UNSPECIFIED;
     }
 
     if (expr.callee.kind === "Ident" && expr.callee.name === AGENT_TYPE) {
@@ -509,6 +562,11 @@ class Checker {
         );
       }
       return { kind: "named", name: AGENT_TYPE };
+    }
+
+    if (expr.callee.kind === "Ident" && this.externalFunctions.has(expr.callee.name)) {
+      for (const a of expr.args) this.checkExpr(a, scope);
+      return UNKNOWN;
     }
 
     if (expr.callee.kind === "Ident" && BUILTIN_FUNCTIONS[expr.callee.name]) {

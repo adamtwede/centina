@@ -224,3 +224,52 @@ test("two equally common property spellings are not flagged against each other",
 	const warnings = warningsOf(diags);
 	assert.ok(!warnings.some((w) => /possible typo/.test(w.message)));
 });
+
+test("an external type alias resolves to Unknown and requires a cast into a concrete slot", () => {
+	const diags = diagnosticsFor(
+		'external type Step = "src/models.ts"\nfunction f(s: Step):\n\tx: String = s\n',
+	);
+	const errors = errorsOf(diags);
+	assert.ok(errors.some((e) => /expected 'String', got 'Unknown'/.test(e.message)));
+});
+
+test("casting an Unknown value to a concrete type warns about the unverified assumption", () => {
+	const diags = diagnosticsFor(
+		'external type Step = "src/models.ts"\nfunction f(s: Step):\n\treturn s as String\n',
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(warnings.some((w) => /external type 'Unknown' to 'String'.*hasn't been verified/.test(w.message)));
+});
+
+test("property access on an Unknown value is not flagged, unlike Unspecified", () => {
+	const diags = diagnosticsFor(
+		'external type Step = "src/models.ts"\nfunction f(s: Step):\n\treturn s.title\n',
+	);
+	const warnings = warningsOf(diags);
+	assert.ok(!warnings.some((w) => /accessed on a value of type/.test(w.message)));
+});
+
+test("an external function call returns Unknown regardless of argument count", () => {
+	const diags = diagnosticsFor(
+		'external function debounce = "lodash"\nfunction f():\n\treturn debounce(1, 2, 3)\n',
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("an external object is a global binding typed Unknown", () => {
+	const diags = diagnosticsFor('external object lodash = "lodash"\nfunction f():\n\treturn lodash.debounce(1)\n');
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("an external symbol name colliding with an existing declaration is an error", () => {
+	const diags = diagnosticsFor('type Step\nexternal type Step = "src/models.ts"\n');
+	const errors = errorsOf(diags);
+	assert.ok(errors.some((e) => /'Step' is already declared/.test(e.message)));
+});
+
+test("a `renamed` clause lets the AISL-facing alias differ from the real symbol name", () => {
+	const program_diags = diagnosticsFor(
+		'external type Step = "src/models.ts" renamed ModelStep\nfunction f(s: Step):\n\treturn s\n',
+	);
+	assert.equal(errorsOf(program_diags).length, 0);
+});

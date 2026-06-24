@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { tokenize, LexError } from "./lexer.js";
 import { parse, ParseError } from "./parser.js";
 import { check } from "./checker.js";
+import { resolveExternals } from "./resolveExternals.js";
 
 function main(): void {
 	const file = process.argv[2];
@@ -17,7 +19,7 @@ function main(): void {
 	try {
 		const tokens = tokenize(source);
 		const program = parse(tokens);
-		const diagnostics = check(program);
+		const diagnostics = [...check(program), ...resolveExternals(program, dirname(file))];
 
 		if (diagnostics.length === 0) {
 			console.log(`${file}: no issues found`);
