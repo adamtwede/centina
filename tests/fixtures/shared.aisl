@@ -1,7 +1,7 @@
 type Step
 type Feedback
-external type C from "./library.aisl" # actually a re-export from ./library.aisl
-external type D from "./library2.aisl" # actually a re-export from ./library2.aisl
+import type C from "./library.aisl"
+import type D from "./library2.aisl"
 
 enum Status = PENDING | DONE
 

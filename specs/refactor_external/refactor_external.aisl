@@ -4,22 +4,43 @@
 ## Description: Right now, referencing external symbols in an AISL document is done using the 'external' keyword. Two types of external symbols are allowed: those from other (local) AISL specs and those from actual source files of other languages (e.g. TypeScript). However, each is treated slightly differently by the AISL checker. External AISL functions and types are treated like internal, locally scoped ones, which means "ad hoc" functions called by using dot-notation always return Unprivileged. Ad hoc functions on non-AISL external functions and types, however, are the only ones which do not behave this way. Instead, they always return Unknown. This exception is to allow for the possibility that such a function does actually exist on a real result of a real function call, so while we cannot verify that it does exist, it also cannot verify that it does not.
 ## The design change laid out by this spec is not to change the functionality just described, but rather to split the shared syntax to make it clearer that they are different.
 
+# this line would have ERRORED before the changes described in this spec were implemented:
+# external function resolve_external_symbol from "./pretend_aisl_checker.aisl"
+# after the changes in this spec were implemented, this became the correct form:
+import function resolve_external_symbol from "./pretend_aisl_checker.aisl"
+
+# this line should NOT error once the changes described in this spec are implemented:
+external function resolve_symbol from "./pretend_ts_checker.ts"
+# once the changes in this spec are implemented, the line below SHOULD error:
+# import function resolve_symbol from "./pretend_ts_checker.ts"
+
+external type CheckerResult from "../../src/checker.ts" # stand-in for unknown details about how the checker functions
+
 enum AISL_LINE_TYPES = EXTERNAL | IMPORT | EVERYTHING_ELSE
-type CheckerResult
+
 type LineOfAISL
+
+function import_resolver_aisl(statement: LineOfAISL):
+    checker_result = import_syntax_checker(statement)
+    if !checker_result.error:
+        resolve_external_symbol(statement)
+
+function import_resolver_ts(statement: LineOfAISL):
+    checker_result = import_syntax_checker(statement)
+    if !checker_result.error:
+        resolve_symbol(statement)
 
 function import_syntax_checker(statement: LineOfAISL) -> CheckerResult:
     statement_ok_not_import = "" as CheckerResult
-    # match statement.type(): # valid
-    # match statement as AISL_LINE_TYPES: # valid
-    match statement.type: # valid
+    no_error = "" as CheckerResult
+
+    match statement.type as AISL_LINE_TYPES:
         case EXTERNAL:
             if statement.source_file.is_aisl_spec:
-                return "Error: References to symbols in other AISL files must use the 'import' keyword" as CheckerResult
+                # @prompt: return a checker diagnostics error with a message like "References to AISL files must use 'import'"
         case IMPORT:
             if statement.source_file.is_external_source:
-                return "Error: References to symbols in external source files must use the 'external' keyword" as CheckerResult
+                # @prompt: return a checker diagnostics error with a message like: "References to real-code source files must use 'external'"
         case EVERYTHING_ELSE:
-            return statement_ok_not_import # line is not an import or external statement, so ignore and continue on
-    # necessary because AISL doesn't analyze execution path, requires last line to be a return statement if the function signature declares a return type
-    return statement_ok_not_import
+            return no_error
+    return no_error

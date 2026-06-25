@@ -1,1 +1,1 @@
-external type Step from "./shared.aisl"
+import type Step from "./shared.aisl"

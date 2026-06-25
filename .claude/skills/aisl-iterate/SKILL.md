@@ -1,6 +1,6 @@
 ---
 name: aisl-iterate
-description: Drives the interactive AISL spec-refinement loop. Runs the AISL checker (src/cli.ts) against a .aisl file, walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. Use when the user wants to iterate on, check, fix, or resolve errors in an .aisl file, or references AISL checker/linter/type-checker output.
+description: Drives the interactive AISL spec-refinement loop. Runs the AISL checker (src/cli.ts) against a .aisl file, walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. When the document is clean, derives an implementation plan and writes it to PLAN.md alongside the spec. Use when the user wants to iterate on, check, fix, or resolve errors in an .aisl file, or references AISL checker/linter/type-checker output.
 ---
 
 # AISL Iterate
@@ -15,9 +15,11 @@ plan.
 ## Process
 
 1. **Run the checker** against the target file:
+
    ```
    npx tsx src/cli.ts <file.aisl>
    ```
+
    If no file is specified and there's only one `.aisl` file in the project, use
    that. If there are several, ask which one.
 
@@ -28,7 +30,6 @@ plan.
 3. **If there are diagnostics**, take them one at a time, in the order the CLI
    reports them (lowest line number first). For each one, classify it before
    doing anything:
-
    - **Mechanical fix** — the diagnostic has one obviously-correct resolution
      given everything already established in the document and the
      conversation (a typo matching an existing identifier, a missing `as`
@@ -37,7 +38,7 @@ plan.
      way earlier scope bugs in this project were fixed without back-and-forth.
 
    - **Genuine ambiguity** — the diagnostic reveals that the pseudocode's
-     *intent* isn't actually settled (e.g. a type mismatch that traces back to
+     _intent_ isn't actually settled (e.g. a type mismatch that traces back to
      an unresolved question about what a function is supposed to do, not just
      a typo). Do not guess. Lay out the tension plainly — what the checker
      found, why it's not just a mechanical fix — and either ask a direct
@@ -56,15 +57,87 @@ plan.
    loop "done" — confirm with the human whether they want to address open
    warnings now or leave them.
 
+## Writing the implementation plan
+
+When the checker is clean and the human is satisfied with the spec, derive an
+implementation plan and write it as a PLAN.md file alongside the spec:
+
+- **Location**: same directory as the `.aisl` file. If a `PLAN.md` already
+  exists there, name it `PLAN_<spec_name>.md` (e.g. `PLAN_refactor_external.md`).
+  If `PLAN_<spec_name>.md` also already exists, ask the human developer how they
+  would like to proceed rather than overwriting existing contents.
+- **Provenance**: the first section must name the spec file that produced it,
+  e.g. `**Spec source**: specs/refactor_external/refactor_external.aisl`. This
+  makes the plan's origin traceable.
+- **Completeness**: the plan must be self-contained enough that a capable coding
+  agent can implement the feature with little or no additional input from the
+  human. It should name every file that changes, describe each change precisely
+  (not just "update X"), call out any cascade effects across the pipeline, and
+  list concrete completion criteria (commands that should pass, behaviors that
+  should be observable).
+- **No implementation context in the session**: the implementation plan is the
+  deliverable. The agent implementing it works from the plan, not from any
+  in-session context — write the plan as if it will be handed to someone who
+  wasn't in the room.
+
+## After implementation
+
+Once an implementation plan has been executed and the human approves the
+outcome, update the PLAN.md (or whatever name was chosen, see **Location** above)
+to reflect the completed status:
+
+- Add `**Status**: Implemented ✓` (or a failure note) near the top.
+- Record any deviations from the plan that arose during implementation (e.g.
+  an additional message string that needed updating, a fixture file that also
+  needed migration). These deviations are signal about where the spec was
+  underspecified — useful for improving future specs.
+
 ## What NOT to do
 
 - Don't silently resolve a genuine ambiguity just to make the checker pass.
-  The checker is a tool for *finding* underspecified intent, not a target to
+  The checker is a tool for _finding_ underspecified intent, not a target to
   satisfy by any available typing trick (e.g. don't just change a param's type
   to `Unspecified` to make a mismatch disappear unless that's actually what
   the human decides).
+- Don't fix checker errors or warnings yourself unless explicitly instructed or
+  given approval to do so. AISL diagnostics are explicitly designed indicate places
+  where the human developer's intent is unclear or underspecified. The human developer
+  should be the one to decide how to resolve those ambiguities, not the coding agent.
+- Do not ever make edits directly to AISL spec files prior to plan draft without
+  explicit instructions from the human developer to do so. The human developer
+  should be the primary architect of the spec file in order to ensure they remain
+  in the loop and do not rely on the coding agent to do their thinking for them.
 - Don't fix multiple unrelated diagnostics in one pass without re-running the
   checker in between.
-- Don't add structure to the document (new types, enums, casts) beyond what's
-  needed to resolve the diagnostic at hand — bigger syntax/structure changes go
-  through the normal design discussion, not this loop.
+- If explicitly instructed by the human to make AISL spec file edits, don't add
+  structure to the document (new types, enums, casts) beyond what's needed to
+  resolve the diagnostic at hand — bigger syntax/structure changes go through
+  the normal design discussion, not this loop.
+
+## Lessons from use
+
+### Warning triage is design discussion, not cleanup
+
+Warnings that survive checker cleanup often reveal genuine language design
+questions — e.g. a `String → CheckerResult` cast warning exposed the question
+of whether `CheckerResult` was a new type or a stand-in for an existing
+codebase type. Treat lingering warnings as prompts for design conversation, not
+noise to suppress.
+
+### `external type` for stand-in types, `@prompt:` for stand-in values
+
+When a spec references a type that already exists in the real codebase but
+whose internal structure the author doesn't want to prescribe, use
+`external type X from "path/to/real/file"` rather than `type X`. This
+communicates intent ("this belongs to the implementation") and types the value
+as `Unknown` — honest about what the spec doesn't commit to. Where a function
+body needs to construct or return a value of such a type, use a `@prompt:`
+stub comment instead of a string-literal cast; the stub carries semantic intent
+without manufacturing a value of a type the spec doesn't own.
+
+### Inline cast in `match` subject enables exhaustiveness checking
+
+When matching on a property of an opaque type against a known enum, cast the
+subject inline: `match statement.type as MY_ENUM:`. This tells the checker
+which enum to check exhaustiveness against and eliminates the "match subject
+has type Unspecified" warning in a single, readable line.

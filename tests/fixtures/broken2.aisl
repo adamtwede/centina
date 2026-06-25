@@ -4,13 +4,13 @@ external type Feedback from "./models.ts"
 enum ModelId = CLAUDE_OPUS | QWEN_LOCAL | MINIMAX_OPENROUTER
 
 type Stage
-external type Step from "./shared.aisl"
-# external type Feedback from "./shared.aisl"
-external type C from "./library.aisl"
-# external type C from "./library2.aisl" # incorrect import due to re-export
-external type D from "./library2.aisl"
-# external type D from "./library.aisl" # incorrect import due to re-export
-external renamed function aisl_decompose from "./shared.aisl" was decompose
+import type Step from "./shared.aisl"
+# import type Feedback from "./shared.aisl"
+import type C from "./library.aisl"
+# import type C from "./library2.aisl" # incorrect import due to re-export
+import type D from "./library2.aisl"
+# import type D from "./library.aisl" # incorrect import due to re-export
+import renamed function aisl_decompose from "./shared.aisl" was decompose
 
 # function external_aisl_function_use() -> Unspecified:
 # 	decomposed = aisl_decompose("step" as Step, "feedback" as Feedback, "c" as C, "d" as D)

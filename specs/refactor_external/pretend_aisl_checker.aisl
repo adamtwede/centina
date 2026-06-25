@@ -1,0 +1,4 @@
+
+function resolve_external_symbol(checker_result: Unspecified):
+    # this function represents a hook into the actual AISL external symbol resolver but in an AISL file instead of a real source file (such as a .ts file).
+    # both ways are valid

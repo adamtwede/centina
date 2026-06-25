@@ -7,7 +7,7 @@ const PROPERTY_NAME_TOKENS = new Set<TokenType>([
 	"IDENT",
 	"ENUM", "TYPE", "FUNCTION", "RETURN", "IF", "ELIF", "ELSE", "MATCH", "CASE",
 	"FOREACH", "IN", "DO", "WHILE", "AS", "TRUE", "FALSE",
-	"EXTERNAL", "OBJECT", "RENAMED", "FROM", "WAS",
+	"EXTERNAL", "IMPORT", "OBJECT", "RENAMED", "FROM", "WAS",
 ]);
 import {
 	EnumDecl,
@@ -103,7 +103,7 @@ class Parser {
 				program.types.push(this.parseTypeDecl());
 			} else if (this.check("FUNCTION")) {
 				program.functions.push(this.parseFunctionDecl());
-			} else if (this.check("EXTERNAL")) {
+			} else if (this.check("EXTERNAL") || this.check("IMPORT")) {
 				program.externals.push(this.parseExternalDecl());
 			} else if (this.check("IDENT")) {
 				program.globals.push(this.parseGlobalVarDecl());
@@ -136,7 +136,8 @@ class Parser {
 	}
 
 	private parseExternalDecl(): ExternalDecl {
-		const start = this.expect("EXTERNAL", "to start external declaration");
+		const startTok = this.check("IMPORT") ? this.advance() : this.expect("EXTERNAL", "to start external declaration");
+		const keyword = startTok.type === "IMPORT" ? "import" : "external";
 		const isRenamed = !!this.match("RENAMED");
 
 		let symbolKind: ExternalSymbolKind;
@@ -146,7 +147,7 @@ class Parser {
 		else {
 			const t = this.peek();
 			throw new ParseError(
-				`expected 'type', 'function', or 'object' after 'external'${isRenamed ? " renamed" : ""}, got ${t.type} '${t.value}'`,
+				`expected 'type', 'function', or 'object' after '${keyword}'${isRenamed ? " renamed" : ""}, got ${t.type} '${t.value}'`,
 				t.line,
 			);
 		}
@@ -162,7 +163,7 @@ class Parser {
 		}
 
 		this.expect("NEWLINE", "after external declaration");
-		return { kind: "ExternalDecl", symbolKind, name, path, realName, line: start.line };
+		return { kind: "ExternalDecl", keyword, symbolKind, name, path, realName, line: startTok.line };
 	}
 
 	private parseTypeRef(): TypeRef {

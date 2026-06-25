@@ -33,6 +33,8 @@ export type ExternalSymbolKind = "type" | "function" | "object";
  */
 export interface ExternalDecl {
 	kind: "ExternalDecl";
+	/** `"import"` for `.aisl`-targeting declarations; `"external"` for real-code/library targets. */
+	keyword: "external" | "import";
 	symbolKind: ExternalSymbolKind;
 	name: string;
 	path: string;

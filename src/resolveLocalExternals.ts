@@ -224,8 +224,32 @@ export function resolveLocalExternals(
   baseDir: string,
 ): { program: Program; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
-  const aislExternals = program.externals.filter((e) => isAislTarget(e.path));
-  const otherExternals = program.externals.filter((e) => !isAislTarget(e.path));
+
+  // Validate keyword/path consistency before routing.
+  for (const e of program.externals) {
+    if (e.keyword === "external" && isAislTarget(e.path)) {
+      diagnostics.push({
+        severity: "error",
+        message: `references to symbols in other AISL files must use the 'import' keyword`,
+        line: e.line,
+      });
+    } else if (e.keyword === "import" && !isAislTarget(e.path)) {
+      diagnostics.push({
+        severity: "error",
+        message: `references to symbols in real-code source files must use the 'external' keyword`,
+        line: e.line,
+      });
+    }
+  }
+
+  // Valid routing: 'import' + .aisl path → resolve here; 'external' + non-.aisl → pass to resolveExternals.
+  // Mismatched entries are already diagnosed above and excluded from both paths.
+  const aislExternals = program.externals.filter(
+    (e) => e.keyword === "import" && isAislTarget(e.path),
+  );
+  const otherExternals = program.externals.filter(
+    (e) => e.keyword === "external" && !isAislTarget(e.path),
+  );
 
   const resolved: Program = {
     ...program,
@@ -310,7 +334,7 @@ export function resolveLocalExternals(
       const target = found.decl as ExternalDecl;
       diagnostics.push({
         severity: "error",
-        message: `'${ext.realName}' in '${ext.path}' is itself declared as external, pointing at '${target.path}' — reference '${target.path}' directly instead of chaining through '${ext.path}'`,
+        message: `'${ext.realName}' in '${ext.path}' is itself declared as '${target.keyword}', pointing at '${target.path}' — reference '${target.path}' directly instead of chaining through '${ext.path}'`,
         line: ext.line,
       });
       continue;
@@ -319,7 +343,7 @@ export function resolveLocalExternals(
     if (!symbolKindMatches(ext.symbolKind, found.nativeKind)) {
       diagnostics.push({
         severity: "warning",
-        message: `'${ext.realName}' is declared as external '${ext.symbolKind}', but '${ext.path}' declares it as a '${nativeKindLabel(found.nativeKind)}'`,
+        message: `'${ext.realName}' is declared as ${ext.keyword} '${ext.symbolKind}', but '${ext.path}' declares it as a '${nativeKindLabel(found.nativeKind)}'`,
         line: ext.line,
       });
     }
@@ -339,7 +363,7 @@ export function resolveLocalExternals(
             );
             if (src.nativeKind === "external") {
               if (src.realName === n) {
-                const firstPart = `external type ${n} from "${src.path}"`;
+                const firstPart = `import type ${n} from "${src.path}"`;
                 const underline = "^".repeat(src.path.length);
                 const offset = " ".repeat(
                   firstPart.length - underline.length - 1,
@@ -347,7 +371,7 @@ export function resolveLocalExternals(
                 const secondPart = `\n${offset}${underline} WARNING: '${n}' WAS FOUND TO ALSO BE AN EXTERNAL DECLARATION IN ${src.path}. THIS IS NOT THE CORRECT PATH.`;
                 return firstPart + secondPart;
               } else {
-                const firstPart = `external renamed type ${n} from "${src.path}"`;
+                const firstPart = `import renamed type ${n} from "${src.path}"`;
                 const middlePart = ` was ${src.realName}`;
                 const underline = "^".repeat(src.path.length);
                 const offset = " ".repeat(
@@ -356,14 +380,10 @@ export function resolveLocalExternals(
                 const secondPart = `\n${offset}${underline} WARNING: '${n}' WAS FOUND TO ALSO BE AN EXTERNAL DECLARATION IN ${src.path}. THIS IS NOT THE CORRECT PATH.`;
                 return firstPart + middlePart + secondPart;
               }
-              //   return src.realName === n
-              //     ? `external type ${n} from "${src.path}"` +
-              //         `\n^^^^ WARNING: '${n}' WAS FOUND TO ALSO BE AN EXTERNAL DECLARATION IN ${src.path}. THIS IS NOT THE CORRECT PATH.`
-              //     : `external renamed type ${n} from "${src.path}" was ${src.realName} # WARNING: '${n}' WAS FOUND TO ALSO BE AN EXTERNAL DECLARATION IN ${src.path}. THIS IS NOT THE CORRECT PATH.`;
             } else {
               return src.realName === n
-                ? `external type ${n} from "${src.path}"`
-                : `external renamed type ${n} from "${src.path}" was ${src.realName}`;
+                ? `import type ${n} from "${src.path}"`
+                : `import renamed type ${n} from "${src.path}" was ${src.realName}`;
             }
           })
           .join("\n");
