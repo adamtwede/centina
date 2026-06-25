@@ -1,9 +1,13 @@
 export interface Step {
-	title: string;
+  title: string;
 }
 
+export type Feedback = {
+  content: string;
+};
+
 export function decompose(step: Step): Step[] {
-	return [];
+  return [];
 }
 
 export const config = { retries: 3 };

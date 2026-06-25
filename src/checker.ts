@@ -417,6 +417,11 @@ class Checker {
         this.checkExpr(stmt.expr, scope);
         return;
       case "If": {
+        // Condition type is intentionally unconstrained: Unprivileged/Unspecified
+        // values used as if-conditions are valid AISL (describing when a branch
+        // fires), just as equality comparisons are — neither manufactures a
+        // concrete value into a typed slot.  If a "must be Bool" enforcement is
+        // added here in the future, those cases must remain explicitly allowed.
         this.checkExpr(stmt.cond, scope);
         const thenScope = scope.child();
         for (const s of stmt.then) this.checkStmt(s, thenScope, sig);
@@ -523,7 +528,9 @@ class Checker {
       );
     } else if (subjectTy.kind === "unprivileged") {
       this.warn(
-        `match subject has type 'Unprivileged' (the result of an undeclared method call) and can't be cast to an enum type for exhaustiveness checking; source it from a privileged path instead (a parameter, 'Agent.prompt()' or 'Agent.review()', or an 'external' reference)`,
+        `match subject has type 'Unprivileged' (the result of an undeclared method call) and cannot be cast to an enum for exhaustiveness checking; ` +
+        `if you mean to match on a discriminant attribute of the object (not call a computation), ` +
+        `use bare property access — 'obj.prop' without the '()' — which types as Unspecified and can be cast: 'match obj.prop as EnumType:'`,
         stmt.line,
       );
     }
@@ -575,8 +582,20 @@ class Checker {
         }
         return UNSPECIFIED;
       }
-      case "Member":
-        return this.checkMemberAccess(expr.obj, expr.prop, scope, expr.line);
+      case "Member": {
+        const ty = this.checkMemberAccess(expr.obj, expr.prop, scope, expr.line);
+        // Property access on a concrete named type types as Unspecified: the
+        // property is a dynamic data read ("an attribute that's there on the
+        // object"), not a computation, so it's castable like any other
+        // Unspecified value but doesn't carry the object's own nominal type
+        // forward. This is deliberately distinct from method calls (obj.prop()),
+        // which type as Unprivileged and cannot be cast — method calls are
+        // described as producing a computed result, while property reads are
+        // described as accessing existing data whose type we haven't pinned down.
+        // checkCall calls checkMemberAccess directly (not through this case) to
+        // preserve the raw object type for Agent.prompt/review dispatch.
+        return ty.kind === "named" ? UNSPECIFIED : ty;
+      }
       case "Cast": {
         const fromTy = this.checkExpr(expr.expr, scope);
         const toTy = this.resolveTypeRef(expr.typeAnnotation);
@@ -585,8 +604,16 @@ class Checker {
         // hatches) — laundering it into anything castable would defeat the
         // whole "AISL never manufactures data" principle.
         if (fromTy.kind === "unprivileged") {
+          const hintProp =
+            expr.expr.kind === "Call" && expr.expr.callee.kind === "Member"
+              ? expr.expr.callee.prop
+              : "prop";
           this.error(
-            `cannot cast the result of an undeclared method call to '${tyToString(toTy)}' — AISL never manufactures data, so only 'Agent.prompt()' or 'Agent.review()', function parameters, and 'external' references may produce a concrete value; ad-hoc method calls are descriptive only`,
+            `cannot cast the result of an undeclared method call to '${tyToString(toTy)}' — ` +
+            `AISL never manufactures data, so only 'Agent.prompt()'/'Agent.review()', function parameters, ` +
+            `and 'external' references may produce a concrete value; ad-hoc method calls are descriptive only. ` +
+            `If '${hintProp}' describes a data attribute (not a computation), ` +
+            `use bare property access — 'obj.${hintProp}' without the '()' — which types as Unspecified and is castable`,
             expr.line,
           );
           return toTy;
@@ -753,7 +780,7 @@ class Checker {
       }
       // A method call chained off an external (Unknown) object stays Unknown,
       // so the "unverified shape" risk survives the chain instead of quietly
-      // downgrading to the less-suspicious Unspecified. Every other method
+      // downgrading to the less-suspicious Unprivileged. Every other method
       // call is undeclared by construction (no custom type has real methods),
       // so it returns Unprivileged: usable descriptively, but never castable
       // into a concrete type — otherwise it would be an unprivileged way to

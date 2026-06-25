@@ -1,5 +1,5 @@
 export type TokenType =
-	| "ENUM" | "TYPE" | "FUNCTION" | "RETURN" | "IF" | "ELSE" | "MATCH" | "CASE"
+	| "ENUM" | "TYPE" | "FUNCTION" | "RETURN" | "IF" | "ELIF" | "ELSE" | "MATCH" | "CASE"
 	| "FOREACH" | "IN" | "DO" | "WHILE" | "AS" | "TRUE" | "FALSE"
 	| "EXTERNAL" | "OBJECT" | "RENAMED" | "FROM" | "WAS"
 	| "IDENT" | "STRING" | "TEMPLATE_STRING" | "NUMBER"
@@ -29,6 +29,7 @@ const KEYWORDS: Record<string, TokenType> = {
 	function: "FUNCTION",
 	return: "RETURN",
 	if: "IF",
+	elif: "ELIF",
 	else: "ELSE",
 	match: "MATCH",
 	case: "CASE",

@@ -112,3 +112,65 @@ test("parses external function and object declarations", () => {
 	assert.equal(program.externals[0].symbolKind, "function");
 	assert.equal(program.externals[1].symbolKind, "object");
 });
+
+test("parses elif chain (single keyword form)", () => {
+	const program = parseSource([
+		"function f(a, b):",
+		"\tif a:",
+		"\t\treturn a",
+		"\telif b:",
+		"\t\treturn b",
+		"\telse:",
+		"\t\treturn a",
+	].join("\n") + "\n");
+	const stmt = program.functions[0].body[0];
+	assert.equal(stmt.kind, "If");
+	// The elif becomes a nested If in the else branch
+	assert.ok(stmt.else !== undefined);
+	const elif = stmt.else![0];
+	assert.equal(elif.kind, "If");
+	assert.ok(elif.else !== undefined); // has the final else
+});
+
+test("parses else-if chain (two-keyword form)", () => {
+	const program = parseSource([
+		"function f(a, b):",
+		"\tif a:",
+		"\t\treturn a",
+		"\telse if b:",
+		"\t\treturn b",
+		"\telse:",
+		"\t\treturn a",
+	].join("\n") + "\n");
+	const stmt = program.functions[0].body[0];
+	assert.equal(stmt.kind, "If");
+	assert.ok(stmt.else !== undefined);
+	const elseIf = stmt.else![0];
+	assert.equal(elseIf.kind, "If");
+	assert.ok(elseIf.else !== undefined);
+});
+
+test("parses multiple elif branches terminating without else", () => {
+	const program = parseSource([
+		"function f(a, b, c):",
+		"\tif a:",
+		"\t\treturn a",
+		"\telif b:",
+		"\t\treturn b",
+		"\telif c:",
+		"\t\treturn c",
+	].join("\n") + "\n");
+	const stmt = program.functions[0].body[0];
+	assert.equal(stmt.kind, "If");
+	const second = stmt.else![0];
+	assert.equal(second.kind, "If");
+	const third = second.else![0];
+	assert.equal(third.kind, "If");
+	assert.equal(third.else, undefined); // no terminal else
+});
+
+test("parses keyword as object property name", () => {
+	const program = parseSource("type Foo\nfunction f(x: Foo):\n\ty = x.type\n");
+	// Should parse without throwing
+	assert.equal(program.functions[0].body[0].kind, "VarDecl");
+});

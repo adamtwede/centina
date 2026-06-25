@@ -1,4 +1,14 @@
 import { Token, TokenType, tokenize } from "./lexer.js";
+
+// Token types that are valid as object property names after '.'.
+// All keywords are allowed in property position — only punctuation and
+// structural tokens are excluded.
+const PROPERTY_NAME_TOKENS = new Set<TokenType>([
+	"IDENT",
+	"ENUM", "TYPE", "FUNCTION", "RETURN", "IF", "ELIF", "ELSE", "MATCH", "CASE",
+	"FOREACH", "IN", "DO", "WHILE", "AS", "TRUE", "FALSE",
+	"EXTERNAL", "OBJECT", "RENAMED", "FROM", "WAS",
+]);
 import {
 	EnumDecl,
 	Expr,
@@ -55,6 +65,17 @@ class Parser {
 			throw new ParseError(`expected ${type} ${context}, got ${t.type} '${t.value}'`, t.line);
 		}
 		return this.advance();
+	}
+
+	// Like expect("IDENT", ...) but also accepts keyword tokens in property
+	// position — e.g. obj.type, obj.function are valid in AISL.
+	private expectIdentOrKeyword(context: string): Token {
+		const t = this.peek();
+		if (PROPERTY_NAME_TOKENS.has(t.type)) return this.advance();
+		throw new ParseError(
+			`expected IDENT ${context}, got ${t.type} '${t.value}'`,
+			t.line,
+		);
 	}
 
 	/** Skips blank NEWLINE-only lines and non-prompt comment lines between declarations/statements. */
@@ -256,15 +277,45 @@ class Parser {
 		this.expect("COLON", "after if condition");
 		this.expect("NEWLINE", "after if condition");
 		const then = this.parseBlock();
-		let elseBody: Stmt[] | undefined;
 		this.skipTrivia();
+		return { kind: "If", cond, then, else: this.parseElseChain(), line: start.line };
+	}
+
+	// Parses the optional elif/else-if/else tail after an if or elif body.
+	// Called after skipTrivia(), so the current token is the first on the
+	// next logical line (ELIF, ELSE, or the start of the next statement).
+	private parseElseChain(): Stmt[] | undefined {
+		// elif <cond>: — single keyword form
+		if (this.check("ELIF")) {
+			const tok = this.advance();
+			return [this.parseElifRest(tok.line)];
+		}
+		// else if <cond>: — two-keyword form; IF must immediately follow ELSE
+		// on the same line (no tokens between them after skipTrivia)
+		if (this.check("ELSE") && this.peek(1).type === "IF") {
+			const tok = this.advance(); // consume ELSE
+			this.advance(); // consume IF
+			return [this.parseElifRest(tok.line)];
+		}
+		// else: — plain else block
 		if (this.check("ELSE")) {
 			this.advance();
 			this.expect("COLON", "after else");
 			this.expect("NEWLINE", "after else");
-			elseBody = this.parseBlock();
+			return this.parseBlock();
 		}
-		return { kind: "If", cond, then, else: elseBody, line: start.line };
+		return undefined;
+	}
+
+	// Parses the condition, body, and optional tail of an elif branch, given
+	// that the elif/else-if keyword(s) have already been consumed.
+	private parseElifRest(line: number): Stmt {
+		const cond = this.parseExpr();
+		this.expect("COLON", "after elif condition");
+		this.expect("NEWLINE", "after elif condition");
+		const then = this.parseBlock();
+		this.skipTrivia();
+		return { kind: "If", cond, then, else: this.parseElseChain(), line };
 	}
 
 	private parseForeach(): Stmt {
@@ -390,7 +441,7 @@ class Parser {
 		for (;;) {
 			if (this.check("DOT")) {
 				this.advance();
-				const prop = this.expect("IDENT", "after '.'").value;
+				const prop = this.expectIdentOrKeyword("after '.'").value;
 				expr = { kind: "Member", obj: expr, prop, line: expr.line };
 			} else if (this.check("LPAREN")) {
 				this.advance();

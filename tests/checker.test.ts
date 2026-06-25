@@ -548,3 +548,101 @@ test("casting an Unprivileged value to Unspecified or Unknown is an error (no la
 		);
 	}
 });
+
+// ---- obj.prop vs obj.fn() distinction ----
+
+test("bare property access on a named local type types as Unspecified, not the named type", () => {
+	// The property read describes "a data attribute that exists on the object"
+	// — its type is unknown/dynamic (Unspecified), not the object's own type.
+	const diags = diagnosticsFor(
+		"type Foo\ntype Bar\nfunction f(x: Foo) -> Bar:\n\treturn x.kind as Bar\n",
+	);
+	// cast from Unspecified to Bar: should be accepted silently (Unspecified is
+	// the intentional escape hatch, unlike Unknown whose casts warn)
+	assert.equal(errorsOf(diags).length, 0);
+	assert.equal(warningsOf(diags).length, 0);
+});
+
+test("bare property access enables cast-and-match flow that method call blocks", () => {
+	// obj.prop as Enum + match — valid when the property is described as a
+	// discriminant; the equivalent obj.prop() would be Unprivileged and block the cast.
+	const diags = diagnosticsFor([
+		"enum Kind = A | B | C",
+		"type Foo",
+		"type Bar",
+		"function f(x: Foo) -> Bar:",
+		"\tmatch x.kind as Kind:",
+		"\t\tcase A:",
+		"\t\t\treturn \"x\" as Bar",
+		"\t\tcase B:",
+		"\t\t\treturn \"y\" as Bar",
+		"\t\tcase C:",
+		"\t\t\treturn \"z\" as Bar",
+		"\treturn \"\" as Bar",
+	].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("method call on local named type is Unprivileged; cast to concrete type is an error with a helpful hint", () => {
+	const diags = diagnosticsFor(
+		"type Foo\ntype Bar\nfunction f(x: Foo):\n\tx.kind() as Bar\n",
+	);
+	const errors = errorsOf(diags);
+	assert.ok(errors.some((e) => /cannot cast the result of an undeclared method call/.test(e.message)));
+	// Hint should point toward bare property access
+	assert.ok(errors.some((e) => /bare property access.*without the/.test(e.message)));
+});
+
+test("keyword used as property name is valid (e.g. obj.type, obj.function)", () => {
+	// Keywords are allowed after '.' in property/method position.
+	const diags = diagnosticsFor(
+		"type Foo\nfunction f(x: Foo):\n\ty = x.type\n\tz = x.function\n",
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("keyword used as method name is valid (e.g. obj.type())", () => {
+	const diags = diagnosticsFor(
+		"type Foo\nfunction f(x: Foo):\n\tx.type()\n",
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+// Equality and implied-bool conditions are intentionally unconstrained by type.
+// These document that Unprivileged/Unspecified in condition position is valid
+// AISL — describing when a branch fires is not "manufacturing" a concrete value.
+
+test("equality comparison between two Unprivileged method-call results is allowed", () => {
+	const diags = diagnosticsFor(
+		"type Foo\nfunction f(a: Foo, b: Foo) -> Bool:\n\treturn a.kind() == b.kind()\n",
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("bare property access used as implied-true condition is allowed", () => {
+	const diags = diagnosticsFor(
+		"type Foo\nfunction f(x: Foo):\n\tif x.ready:\n\t\tx.run()\n",
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("method call used as implied-true condition is allowed", () => {
+	const diags = diagnosticsFor(
+		"type Foo\nfunction f(x: Foo):\n\tif x.is_ready():\n\t\tx.run()\n",
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("negated implied-bool condition with ! is allowed for both prop and call", () => {
+	const diags = diagnosticsFor([
+		"type Foo",
+		"function f(x: Foo):",
+		"\tif !x.ready:",
+		"\t\tx.skip()",
+		"\tif !x.is_ready():",
+		"\t\tx.skip()",
+	].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});

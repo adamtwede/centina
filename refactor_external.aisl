@@ -1,0 +1,25 @@
+## AISL SPEC
+## Type: Design change
+## Name: Refactor external symbols
+## Description: Right now, referencing external symbols in an AISL document is done using the 'external' keyword. Two types of external symbols are allowed: those from other (local) AISL specs and those from actual source files of other languages (e.g. TypeScript). However, each is treated slightly differently by the AISL checker. External AISL functions and types are treated like internal, locally scoped ones, which means "ad hoc" functions called by using dot-notation always return Unprivileged. Ad hoc functions on non-AISL external functions and types, however, are the only ones which do not behave this way. Instead, they always return Unknown. This exception is to allow for the possibility that such a function does actually exist on a real result of a real function call, so while we cannot verify that it does exist, it also cannot verify that it does not.
+## The design change laid out by this spec is not to change the functionality just described, but rather to split the shared syntax to make it clearer that they are different.
+
+enum AISL_LINE_TYPES = EXTERNAL | IMPORT | EVERYTHING_ELSE
+type CheckerResult
+type LineOfAISL
+
+function import_syntax_checker(statement: LineOfAISL) -> CheckerResult:
+    statement_ok_not_import = "" as CheckerResult
+    # match statement.type(): # valid
+    # match statement as AISL_LINE_TYPES: # valid
+    match statement.type: # valid
+        case EXTERNAL:
+            if statement.source_file.is_aisl_spec:
+                return "Error: References to symbols in other AISL files must use the 'import' keyword" as CheckerResult
+        case IMPORT:
+            if statement.source_file.is_external_source:
+                return "Error: References to symbols in external source files must use the 'external' keyword" as CheckerResult
+        case EVERYTHING_ELSE:
+            return statement_ok_not_import # line is not an import or external statement, so ignore and continue on
+    # necessary because AISL doesn't analyze execution path, requires last line to be a return statement if the function signature declares a return type
+    return statement_ok_not_import

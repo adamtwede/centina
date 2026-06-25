@@ -127,3 +127,9 @@ test("a template string with no interpolation has a single text segment", () => 
 test("an unterminated template string raises a LexError", () => {
 	assert.throws(() => tokenize("x = `unterminated\n"), LexError);
 });
+
+test("elif is tokenized as ELIF keyword", () => {
+	const tokens = tokenize("elif\n");
+	assert.equal(tokens[0].type, "ELIF");
+	assert.equal(tokens[0].value, "elif");
+});
