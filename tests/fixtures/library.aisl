@@ -1,0 +1,2 @@
+type C
+# external type D from "./library2.aisl"

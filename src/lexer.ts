@@ -62,6 +62,10 @@ export function tokenize(source: string): Token[] {
 	const tokens: Token[] = [];
 	const lines = source.split(/\r\n|\r|\n/);
 	const indentStack: string[] = [""];
+	// Whether the previous non-blank line ended with COLON, i.e. genuinely opened a
+	// block. Only such a line entitles the next line — including a comment-only one,
+	// for the `# @prompt: ...`-as-sole-body case — to push a deeper indent level.
+	let prevLineOpensBlock = false;
 
 	for (let lineNo = 0; lineNo < lines.length; lineNo++) {
 		const raw = lines[lineNo];
@@ -78,8 +82,21 @@ export function tokenize(source: string): Token[] {
 		// Comment-only lines participate in indentation just like code lines: a
 		// `# @prompt: ...` comment can be the sole statement in a function body, so it
 		// must be able to open/close blocks the same way a real statement would.
+		const isCommentOnly = rest[0] === "#";
 		const current = indentStack[indentStack.length - 1];
 		if (leading.length > current.length) {
+			// A comment-only line indented deeper than the current block, with no
+			// preceding line that actually opened one, has nothing real to belong to —
+			// e.g. a function header and its body commented out on separate lines,
+			// leaving the body's original indentation dangling. Treat it as staying at
+			// the current level instead of phantom-opening a block the parser never
+			// asked for.
+			if (isCommentOnly && !prevLineOpensBlock) {
+				tokenizeLine(rest, line, leading.length + 1, tokens);
+				tokens.push({ type: "NEWLINE", value: "", line, col: raw.length + 1 });
+				prevLineOpensBlock = false;
+				continue;
+			}
 			if (!leading.startsWith(current)) {
 				throw new LexError("inconsistent indentation", line, 1);
 			}
@@ -99,6 +116,7 @@ export function tokenize(source: string): Token[] {
 
 		tokenizeLine(rest, line, leading.length + 1, tokens);
 		tokens.push({ type: "NEWLINE", value: "", line, col: raw.length + 1 });
+		prevLineOpensBlock = tokens[tokens.length - 2]?.type === "COLON";
 	}
 
 	while (indentStack.length > 1) {

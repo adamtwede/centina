@@ -22,9 +22,25 @@ type Ty =
   | { kind: "named"; name: string }
   | { kind: "array"; element: Ty }
   | { kind: "unspecified" }
+  | { kind: "unprivileged" }
   | { kind: "unknown" };
 
 const UNSPECIFIED: Ty = { kind: "unspecified" };
+/**
+ * AISL never manufactures data — every concrete value in a document has to
+ * trace back to a privileged source: a function parameter, `Agent.prompt()`/
+ * `.review()`, or an `external` reference. Calling an undeclared method on an
+ * arbitrary object doesn't qualify (custom types have no real methods to call
+ * in the first place), so its result gets this type instead of `Unspecified`:
+ * usable descriptively — passed around, chained, called again — but a
+ * deliberately separate `kind` so that casting or assigning it into a
+ * concrete type has to be rejected explicitly wherever `Unspecified` is
+ * otherwise accepted, rather than relying on every such place remembering to
+ * check a flag. Forgetting to handle `"unprivileged"` somewhere should fail
+ * closed (rejected as a type mismatch), not fail open (silently treated like
+ * the castable `Unspecified`).
+ */
+const UNPRIVILEGED: Ty = { kind: "unprivileged" };
 /**
  * The type of any reference to an `external` symbol — deliberately distinct
  * from `Unspecified`. Both require an explicit cast before flowing into a
@@ -38,6 +54,20 @@ const UNSPECIFIED: Ty = { kind: "unspecified" };
 const UNKNOWN: Ty = { kind: "unknown" };
 const BUILTIN_SCALARS = new Set(["String", "Bool", "Number"]);
 const AGENT_TYPE = "Agent";
+/**
+ * Every type name the language owns — scalars, the privileged `Agent`, and the
+ * three gradual/internal kinds. None may be redefined by a `type` declaration.
+ * `Unprivileged` is included even though it can never be *written* in source
+ * (see `resolveTypeRef`): listing it here makes `type Unprivileged` fail with a
+ * "redefine a built-in" message rather than silently succeeding.
+ */
+export const BUILTIN_TYPE_NAMES = new Set([
+  ...BUILTIN_SCALARS,
+  AGENT_TYPE,
+  "Unspecified",
+  "Unknown",
+  "Unprivileged",
+]);
 /** Methods on Agent that route text to a model and must always type as Unspecified. */
 const AGENT_PROMPT_METHODS = new Set(["prompt", "review"]);
 /** Free functions provided by the runtime rather than declared in the document itself. */
@@ -47,7 +77,9 @@ const BUILTIN_FUNCTIONS: Record<string, { params: Ty[]; returnType: Ty }> = {
 
 /** Plain Levenshtein edit distance, used to flag likely property-name typos. */
 function levenshtein(a: string, b: string): number {
-  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () =>
+    new Array(b.length + 1).fill(0),
+  );
   for (let i = 0; i <= a.length; i++) dp[i][0] = i;
   for (let j = 0; j <= b.length; j++) dp[0][j] = j;
   for (let i = 1; i <= a.length; i++) {
@@ -70,21 +102,32 @@ function maxTypoDistance(a: string, b: string): number {
 
 function tyToString(t: Ty): string {
   if (t.kind === "unspecified") return "Unspecified";
+  if (t.kind === "unprivileged") return "Unprivileged";
   if (t.kind === "unknown") return "Unknown";
   if (t.kind === "array") return `${tyToString(t.element)}[]`;
   return t.name;
 }
 
 /**
- * Directional, not symmetric: an `Unspecified`/`Unknown` value (e.g. an
- * uncast Agent.prompt()/.review() result, a dynamic property access, or an
- * external symbol reference) is never automatically usable as a concrete
- * type — it must go through an explicit `as` cast first. A concrete value,
- * on the other hand, is always usable where `Unspecified`/`Unknown` is
- * expected, since that slot hasn't committed to (or can't verify) a type.
+ * Directional, not symmetric. The three special kinds are deliberately NOT
+ * interchangeable with each other (mirroring the Cast rule that forbids casting
+ * between `Unspecified` and `Unknown`):
+ *
+ * - An ad-hoc (`Unprivileged`) result never flows into any typed slot — it is
+ *   descriptive only.
+ * - `Unspecified` is the "type not committed yet" escape hatch: a concrete
+ *   value (or another `Unspecified`) may flow in with no cast, but an `Unknown`
+ *   may not — an unverified external value isn't the same as an uncommitted one.
+ * - `Unknown` is not a general top type. Its only legitimate source is an
+ *   `external` real-code reference, so only another `Unknown` satisfies an
+ *   `Unknown`-typed slot; a concrete or `Unspecified` value would have to be
+ *   cast first (and casting between `Unspecified`/`Unknown` is itself an error).
+ * - A concrete slot never accepts a gradual value without an explicit `as`.
  */
 function isAssignable(expected: Ty, actual: Ty): boolean {
-  if (expected.kind === "unspecified" || expected.kind === "unknown") return true;
+  if (actual.kind === "unprivileged") return false;
+  if (expected.kind === "unspecified") return actual.kind !== "unknown";
+  if (expected.kind === "unknown") return actual.kind === "unknown";
   if (actual.kind === "unspecified" || actual.kind === "unknown") return false;
   if (expected.kind === "array" && actual.kind === "array")
     return isAssignable(expected.element, actual.element);
@@ -97,6 +140,14 @@ interface FunctionSig {
   name: string;
   params: { name: string; type: Ty }[];
   returnType: Ty;
+  /**
+   * Whether `returnType` came from an explicit `-> T` annotation. When false,
+   * `returnType` is the defaulted `Unspecified`, which must NOT be enforced
+   * against returned values: a function that returns an `Unknown` param would
+   * otherwise be wrongly flagged (defaulted Unspecified ≠ Unknown), even though
+   * the author never committed to a return type. Real inference here is backlog.
+   */
+  returnAnnotated: boolean;
   line: number;
 }
 
@@ -180,6 +231,10 @@ class Checker {
     }
 
     for (const t of this.program.types) {
+      if (BUILTIN_TYPE_NAMES.has(t.name)) {
+        this.error(`cannot redefine built-in type '${t.name}'`, t.line);
+        continue;
+      }
       if (this.isKnownTypeName(t.name)) {
         this.error(`type '${t.name}' is already declared`, t.line);
         continue;
@@ -192,7 +247,8 @@ class Checker {
         ext.symbolKind === "type"
           ? this.isKnownTypeName(ext.name)
           : ext.symbolKind === "function"
-            ? this.functions.has(ext.name) || this.externalFunctions.has(ext.name)
+            ? this.functions.has(ext.name) ||
+              this.externalFunctions.has(ext.name)
             : this.globalScope.lookup(ext.name) !== undefined;
       if (alreadyDeclared) {
         this.error(`'${ext.name}' is already declared`, ext.line);
@@ -225,6 +281,7 @@ class Checker {
         name: fn.name,
         params,
         returnType,
+        returnAnnotated: fn.returnType !== undefined,
         line: fn.line,
       });
     }
@@ -248,7 +305,18 @@ class Checker {
       return { kind: "array", element: this.resolveTypeRef(ref.element) };
     }
     if (ref.name === "Unspecified") return UNSPECIFIED;
-    if (ref.name === "Unknown" || this.externalTypes.has(ref.name)) return UNKNOWN;
+    if (ref.name === "Unprivileged") {
+      this.error(
+        `'Unprivileged' cannot be written in source — it is an internal type produced only by ad-hoc method calls, whose results are descriptive and may never flow into a typed slot (so it is not a valid annotation, return type, or cast target)`,
+        ref.line,
+      );
+      // Recover as Unspecified so the surrounding annotation/cast/return is
+      // checked as if the writable escape hatch had been used, avoiding a
+      // confusing second diagnostic on the same construct.
+      return UNSPECIFIED;
+    }
+    if (ref.name === "Unknown" || this.externalTypes.has(ref.name))
+      return UNKNOWN;
     if (!this.isKnownTypeName(ref.name)) {
       this.error(`unknown type '${ref.name}'`, ref.line);
     }
@@ -260,12 +328,33 @@ class Checker {
   private checkGlobals(): void {
     for (const g of this.program.globals) {
       const initTy = this.checkExpr(g.init, this.globalScope);
+      if (this.rejectsUnprivilegedBinding(initTy, g.name, g.line)) {
+        this.globalScope.declare(g.name, UNSPECIFIED);
+        continue;
+      }
       const declaredTy = g.typeAnnotation
         ? this.resolveTypeRef(g.typeAnnotation)
         : initTy;
       this.checkNominalAssignable(declaredTy, initTy, g.line, g.name);
       this.globalScope.declare(g.name, declaredTy);
     }
+  }
+
+  /**
+   * An `Unprivileged` value (the result of an ad-hoc method call) may be used
+   * descriptively — chained, called again, passed where `Unspecified` is
+   * expected — but never given a stable home by being bound to a variable/global
+   * or returned, since that would let it stand in for data only a privileged
+   * source (a parameter, `Agent.prompt()`/`.review()`, or an `external`) may
+   * produce. Reports a dedicated error and returns true when `ty` is unprivileged.
+   */
+  private rejectsUnprivilegedBinding(ty: Ty, name: string, line: number): boolean {
+    if (ty.kind !== "unprivileged") return false;
+    this.error(
+      `cannot bind the result of an undeclared method call to '${name}' — it is unprivileged (descriptive only) and may not be stored; source the value from a parameter, 'Agent.prompt()'/'Agent.review()', or an 'external' reference instead`,
+      line,
+    );
+    return true;
   }
 
   // ---- functions ------------------------------------------------------------------
@@ -284,6 +373,22 @@ class Checker {
     for (const stmt of fn.body) {
       this.checkStmt(stmt, scope, sig);
     }
+
+    // A declared `-> T` is a promise the body must keep explicitly: its last
+    // top-level statement must itself be a `return`, not merely reachable
+    // through every branch of a trailing `if`/`match`. This is a literal,
+    // syntactic check (no control-flow/exhaustiveness analysis) — consistent
+    // with AISL pushing the author toward writing the explicit shape rather
+    // than relying on the reader (or checker) to prove completeness.
+    if (sig.returnAnnotated) {
+      const last = fn.body[fn.body.length - 1];
+      if (!last || last.kind !== "Return") {
+        this.error(
+          `function '${sig.name}' declares return type '${tyToString(sig.returnType)}' but its body does not end in a 'return' statement — make the final statement an explicit 'return <value>'`,
+          last ? last.line : fn.line,
+        );
+      }
+    }
   }
 
   /** A function body consisting solely of `@prompt:` comments is an intentionally unimplemented stub. */
@@ -297,6 +402,10 @@ class Checker {
     switch (stmt.kind) {
       case "VarDecl": {
         const initTy = this.checkExpr(stmt.init, scope);
+        if (this.rejectsUnprivilegedBinding(initTy, stmt.name, stmt.line)) {
+          scope.declare(stmt.name, UNSPECIFIED);
+          return;
+        }
         const declaredTy = stmt.typeAnnotation
           ? this.resolveTypeRef(stmt.typeAnnotation)
           : initTy;
@@ -337,15 +446,32 @@ class Checker {
         return;
       }
       case "Return": {
+        if (stmt.expr && !sig.returnAnnotated) {
+          this.error(
+            `function '${sig.name}' has no declared return type, so 'return <value>' is not allowed — add '-> Type' to its signature to return a value (a bare 'return' with no value is still fine)`,
+            stmt.line,
+          );
+          this.checkExpr(stmt.expr, scope);
+          return;
+        }
         const actual = stmt.expr
           ? this.checkExpr(stmt.expr, scope)
           : UNSPECIFIED;
-        this.checkNominalAssignable(
-          sig.returnType,
-          actual,
-          stmt.line,
-          `return value of '${sig.name}'`,
-        );
+        if (actual.kind === "unprivileged") {
+          this.error(
+            `cannot return the result of an undeclared method call from '${sig.name}' — it is unprivileged (descriptive only); returning it would manufacture a '${tyToString(sig.returnType)}' from nothing. Source the value from a parameter, 'Agent.prompt()'/'Agent.review()', or an 'external' reference instead`,
+            stmt.line,
+          );
+          return;
+        }
+        if (sig.returnAnnotated) {
+          this.checkNominalAssignable(
+            sig.returnType,
+            actual,
+            stmt.line,
+            `return value of '${sig.name}'`,
+          );
+        }
         return;
       }
       case "PromptComment":
@@ -393,6 +519,11 @@ class Checker {
     } else if (subjectTy.kind === "unspecified") {
       this.warn(
         `match subject has type 'Unspecified'; cast it to an enum type to enable exhaustiveness checking`,
+        stmt.line,
+      );
+    } else if (subjectTy.kind === "unprivileged") {
+      this.warn(
+        `match subject has type 'Unprivileged' (the result of an undeclared method call) and can't be cast to an enum type for exhaustiveness checking; source it from a privileged path instead (a parameter, 'Agent.prompt()' or 'Agent.review()', or an 'external' reference)`,
         stmt.line,
       );
     }
@@ -449,9 +580,60 @@ class Checker {
       case "Cast": {
         const fromTy = this.checkExpr(expr.expr, scope);
         const toTy = this.resolveTypeRef(expr.typeAnnotation);
+        // Casting *off* an unprivileged value is prohibited regardless of the
+        // target (concrete, array, or even the Unspecified/Unknown escape
+        // hatches) — laundering it into anything castable would defeat the
+        // whole "AISL never manufactures data" principle.
+        if (fromTy.kind === "unprivileged") {
+          this.error(
+            `cannot cast the result of an undeclared method call to '${tyToString(toTy)}' — AISL never manufactures data, so only 'Agent.prompt()' or 'Agent.review()', function parameters, and 'external' references may produce a concrete value; ad-hoc method calls are descriptive only`,
+            expr.line,
+          );
+          return toTy;
+        }
+        // No cast can produce a privileged built-in: an `Agent` exists only via
+        // its constructor `Agent(ModelId)`, so a cast would yield a value that
+        // breaks the moment `.prompt()`/`.review()` is called on it.
+        if (toTy.kind === "named" && toTy.name === AGENT_TYPE) {
+          this.error(
+            `cannot cast to built-in type 'Agent' — an Agent can only be produced by its constructor 'Agent(ModelId)', so a cast would yield a value that breaks on '.prompt()'/'.review()'`,
+            expr.line,
+          );
+          return toTy;
+        }
+        // `Unspecified` and `Unknown` are distinct escape hatches (a value
+        // nothing has committed a type to yet vs. an unverified external
+        // symbol); casting directly between them is meaningless — go through a
+        // concrete type instead.
+        if (
+          (fromTy.kind === "unspecified" && toTy.kind === "unknown") ||
+          (fromTy.kind === "unknown" && toTy.kind === "unspecified")
+        ) {
+          this.error(
+            `cannot cast between 'Unspecified' and 'Unknown' — they are not interchangeable; one marks a value whose type is not yet committed, the other an unverified external symbol. Cast to a concrete type instead`,
+            expr.line,
+          );
+          return toTy;
+        }
         if (fromTy.kind === "unknown" && toTy.kind === "named") {
           this.warn(
             `casting a value of external type 'Unknown' to '${tyToString(toTy)}' assumes a shape that hasn't been verified against the real symbol — confirm this is correct`,
+            expr.line,
+          );
+        }
+        // Two concrete named types (custom or built-in) have no subtyping
+        // relationship in this language, so casting between two different
+        // ones is almost always a mistake — unlike the Unspecified/Unknown
+        // escape hatches, there's no designed use case for it. Kept a
+        // warning, not an error: rare legitimate "treat this opaque blob as
+        // a different opaque blob" cases exist.
+        if (
+          fromTy.kind === "named" &&
+          toTy.kind === "named" &&
+          fromTy.name !== toTy.name
+        ) {
+          this.warn(
+            `casting '${tyToString(fromTy)}' to '${tyToString(toTy)}' — these are unrelated concrete types with no subtyping relationship; confirm this is intentional`,
             expr.line,
           );
         }
@@ -471,12 +653,24 @@ class Checker {
    * flagged unless the access is itself chained off another property access
    * (which is already-accepted dynamic-property territory, not re-flagged).
    */
-  private checkMemberAccess(obj: Expr, prop: string, scope: Scope, line: number): Ty {
+  private checkMemberAccess(
+    obj: Expr,
+    prop: string,
+    scope: Scope,
+    line: number,
+  ): Ty {
     const objTy = this.checkExpr(obj, scope);
     if (objTy.kind === "unspecified") {
       if (obj.kind !== "Member") {
         this.warn(
           `property '.${prop}' accessed on a value of type 'Unspecified'; cast it to a concrete type first to resolve what '${prop}' refers to`,
+          line,
+        );
+      }
+    } else if (objTy.kind === "unprivileged") {
+      if (obj.kind !== "Member") {
+        this.warn(
+          `property '.${prop}' accessed on a value of type 'Unprivileged' (the result of an undeclared method call); it can't be cast to resolve what '${prop}' refers to, since it didn't come from a privileged source`,
           line,
         );
       }
@@ -486,7 +680,11 @@ class Checker {
     return objTy;
   }
 
-  private recordPropertyUsage(typeName: string, prop: string, line: number): void {
+  private recordPropertyUsage(
+    typeName: string,
+    prop: string,
+    line: number,
+  ): void {
     let props = this.propertyUsage.get(typeName);
     if (!props) {
       props = new Map();
@@ -519,7 +717,8 @@ class Checker {
           if (propName === otherName) continue;
           if (otherLines.length <= lines.length) continue;
           const dist = levenshtein(propName, otherName);
-          if (dist === 0 || dist > maxTypoDistance(propName, otherName)) continue;
+          if (dist === 0 || dist > maxTypoDistance(propName, otherName))
+            continue;
           if (!best || dist < best.dist) {
             best = { name: otherName, count: otherLines.length, dist };
           }
@@ -538,7 +737,12 @@ class Checker {
 
   private checkCall(expr: Extract<Expr, { kind: "Call" }>, scope: Scope): Ty {
     if (expr.callee.kind === "Member") {
-      const objTy = this.checkMemberAccess(expr.callee.obj, expr.callee.prop, scope, expr.callee.line);
+      const objTy = this.checkMemberAccess(
+        expr.callee.obj,
+        expr.callee.prop,
+        scope,
+        expr.callee.line,
+      );
       for (const a of expr.args) this.checkExpr(a, scope);
       if (
         objTy.kind === "named" &&
@@ -549,8 +753,13 @@ class Checker {
       }
       // A method call chained off an external (Unknown) object stays Unknown,
       // so the "unverified shape" risk survives the chain instead of quietly
-      // downgrading to the less-suspicious Unspecified.
-      return objTy.kind === "unknown" ? UNKNOWN : UNSPECIFIED;
+      // downgrading to the less-suspicious Unspecified. Every other method
+      // call is undeclared by construction (no custom type has real methods),
+      // so it returns Unprivileged: usable descriptively, but never castable
+      // into a concrete type — otherwise it would be an unprivileged way to
+      // "manufacture" data identical in effect to Agent.prompt()/.review(),
+      // just without going through them.
+      return objTy.kind === "unknown" ? UNKNOWN : UNPRIVILEGED;
     }
 
     if (expr.callee.kind === "Ident" && expr.callee.name === AGENT_TYPE) {
@@ -564,7 +773,10 @@ class Checker {
       return { kind: "named", name: AGENT_TYPE };
     }
 
-    if (expr.callee.kind === "Ident" && this.externalFunctions.has(expr.callee.name)) {
+    if (
+      expr.callee.kind === "Ident" &&
+      this.externalFunctions.has(expr.callee.name)
+    ) {
       for (const a of expr.args) this.checkExpr(a, scope);
       return UNKNOWN;
     }

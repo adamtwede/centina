@@ -45,6 +45,21 @@ test("a comment-only line can open and close a block on its own", () => {
 	assert.equal(comment.isPrompt, true);
 });
 
+test("a deeper-indented comment with no preceding colon stays at the current level, not a phantom block", () => {
+	// Simulates commenting out a header line and its (separately indented) body line
+	// one at a time, e.g. via an editor's line-comment toggle: the body comment keeps
+	// its original deeper indentation even though nothing real opened a block for it.
+	const tokens = tokenize("# function f():\n\t# return 1\nfunction g():\n\treturn 2\n");
+	const types = tokens.map((t) => t.type);
+	assert.deepEqual(types, [
+		"COMMENT", "NEWLINE",
+		"COMMENT", "NEWLINE",
+		"FUNCTION", "IDENT", "LPAREN", "RPAREN", "COLON", "NEWLINE",
+		"INDENT", "RETURN", "NUMBER", "NEWLINE",
+		"DEDENT", "EOF",
+	]);
+});
+
 test("a plain comment is not flagged as a prompt comment", () => {
 	const tokens = tokenize("# just a note\n");
 	const comment = tokens.find((t) => t.type === "COMMENT")!;

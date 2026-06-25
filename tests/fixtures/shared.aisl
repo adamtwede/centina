@@ -1,8 +1,14 @@
 type Step
+type Feedback
+external type C from "./library.aisl" # actually a re-export from ./library.aisl
+external type D from "./library2.aisl" # actually a re-export from ./library2.aisl
 
 enum Status = PENDING | DONE
 
-function decompose(s: Step) -> String:
+function compose(s: Step) -> String:
+	return "y"
+
+function decompose(s: Step, f: Feedback, c: C, d: D) -> String:
 	return "x"
 
 count: Number = 1
