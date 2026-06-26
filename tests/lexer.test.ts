@@ -35,14 +35,14 @@ test("blank lines do not affect indentation", () => {
 });
 
 test("a comment-only line can open and close a block on its own", () => {
-	const tokens = tokenize("function f():\n\t# @prompt: fill me in\n");
+	const tokens = tokenize("function f():\n\t# @agent: fill me in\n");
 	const types = tokens.map((t) => t.type);
 	assert.deepEqual(types, [
 		"FUNCTION", "IDENT", "LPAREN", "RPAREN", "COLON", "NEWLINE",
 		"INDENT", "COMMENT", "NEWLINE", "DEDENT", "EOF",
 	]);
 	const comment = tokens.find((t) => t.type === "COMMENT")!;
-	assert.equal(comment.isPrompt, true);
+	assert.equal(comment.isAgent, true);
 });
 
 test("a deeper-indented comment with no preceding colon stays at the current level, not a phantom block", () => {
@@ -60,10 +60,10 @@ test("a deeper-indented comment with no preceding colon stays at the current lev
 	]);
 });
 
-test("a plain comment is not flagged as a prompt comment", () => {
+test("a plain comment is not flagged as an agent comment", () => {
 	const tokens = tokenize("# just a note\n");
 	const comment = tokens.find((t) => t.type === "COMMENT")!;
-	assert.equal(comment.isPrompt, false);
+	assert.equal(comment.isAgent, false);
 });
 
 test("trailing inline comments after code are discarded, not tokenized", () => {

@@ -56,7 +56,7 @@ function propose_feedback(implementation_step: Step, target_model_output: Unspec
 	return supervisor_model.prompt(`Review this code for ${implementation_step} and provide structured feedback: ${target_model_output}`) as Feedback
 
 function encode_feedback_into_loop(structured_feedback: Feedback):
-	# @prompt: supervisor model incorporates feedback into loop by checking structured feedback for various properties on the structured_feedback object that indicate where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
+	# @agent: supervisor model incorporates feedback into loop by checking structured feedback for various properties on the structured_feedback object that indicate where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
 
 function task_matcher(step_prompt: String, supervisor_model: Agent, target_model: Agent):
-	# @prompt: essentially reverses the encode_feedback_into_loop process, matching the step prompt with earlier feedback, returning it so that it can be combined with the step prompt.
+	# @agent: essentially reverses the encode_feedback_into_loop process, matching the step prompt with earlier feedback, returning it so that it can be combined with the step prompt.

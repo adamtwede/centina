@@ -17,8 +17,8 @@ export interface Token {
 	value: string;
 	line: number;
 	col: number;
-	/** Only set for COMMENT tokens whose text matches `# @prompt: ...` */
-	isPrompt?: boolean;
+	/** Only set for COMMENT tokens whose text matches `# @agent: ...` */
+	isAgent?: boolean;
 	/** Only set for TEMPLATE_STRING tokens. */
 	segments?: TemplateSegment[];
 }
@@ -67,7 +67,7 @@ export function tokenize(source: string): Token[] {
 	const indentStack: string[] = [""];
 	// Whether the previous non-blank line ended with COLON, i.e. genuinely opened a
 	// block. Only such a line entitles the next line — including a comment-only one,
-	// for the `# @prompt: ...`-as-sole-body case — to push a deeper indent level.
+	// for the `# @agent: ...`-as-sole-body case — to push a deeper indent level.
 	let prevLineOpensBlock = false;
 
 	for (let lineNo = 0; lineNo < lines.length; lineNo++) {
@@ -83,7 +83,7 @@ export function tokenize(source: string): Token[] {
 		}
 
 		// Comment-only lines participate in indentation just like code lines: a
-		// `# @prompt: ...` comment can be the sole statement in a function body, so it
+		// `# @agent: ...` comment can be the sole statement in a function body, so it
 		// must be able to open/close blocks the same way a real statement would.
 		const isCommentOnly = rest[0] === "#";
 		const current = indentStack[indentStack.length - 1];
@@ -131,8 +131,8 @@ export function tokenize(source: string): Token[] {
 }
 
 function makeCommentToken(text: string, line: number, col: number): Token {
-	const isPrompt = /^#\s*@prompt:/.test(text);
-	return { type: "COMMENT", value: text, line, col, isPrompt };
+	const isAgent = /^#\s*@agent:/.test(text);
+	return { type: "COMMENT", value: text, line, col, isAgent };
 }
 
 function tokenizeLine(text: string, line: number, colOffset: number, out: Token[]): void {
@@ -148,7 +148,7 @@ function tokenizeLine(text: string, line: number, colOffset: number, out: Token[
 
 		if (c === "#") {
 			// A comment that is the only content on its line is a real statement (it can be
-			// the sole `@prompt:`-tagged body of a stub function), so it gets a token. A
+			// the sole `@agent:`-tagged body of a stub function), so it gets a token. A
 			// trailing comment after code on the same line is just a human aside and is
 			// discarded outright.
 			if (i === 0) {

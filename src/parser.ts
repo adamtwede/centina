@@ -78,14 +78,14 @@ class Parser {
 		);
 	}
 
-	/** Skips blank NEWLINE-only lines and non-prompt comment lines between declarations/statements. */
+	/** Skips blank NEWLINE-only lines and non-agent comment lines between declarations/statements. */
 	private skipTrivia(): void {
 		for (;;) {
 			if (this.check("NEWLINE")) {
 				this.advance();
 				continue;
 			}
-			if (this.check("COMMENT") && !this.peek().isPrompt) {
+			if (this.check("COMMENT") && !this.peek().isAgent) {
 				this.advance();
 				continue;
 			}
@@ -249,7 +249,7 @@ class Parser {
 		if (t.type === "COMMENT") {
 			this.advance();
 			this.expect("NEWLINE", "after comment");
-			return { kind: "PromptComment", text: t.value, line: t.line };
+			return { kind: "AgentComment", text: t.value, line: t.line };
 		}
 
 		if (t.type === "IF") return this.parseIf();

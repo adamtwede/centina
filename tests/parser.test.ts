@@ -77,10 +77,10 @@ test("parses an `as` cast and member/call chaining", () => {
 	}
 });
 
-test("a @prompt comment as the sole function body becomes a PromptComment statement", () => {
-	const program = parseSource("function f():\n\t# @prompt: figure this out\n");
+test("a @agent comment as the sole function body becomes an AgentComment statement", () => {
+	const program = parseSource("function f():\n\t# @agent: figure this out\n");
 	assert.equal(program.functions[0].body.length, 1);
-	assert.equal(program.functions[0].body[0].kind, "PromptComment");
+	assert.equal(program.functions[0].body[0].kind, "AgentComment");
 });
 
 test("throws ParseError on malformed input", () => {

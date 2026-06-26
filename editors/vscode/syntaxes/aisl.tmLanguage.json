@@ -20,10 +20,10 @@
 		"comments": {
 			"patterns": [
 				{
-					"name": "comment.line.number-sign.prompt.aisl",
-					"begin": "#\\s*(@prompt:)",
+					"name": "comment.line.number-sign.agent.aisl",
+					"begin": "#\\s*(@agent:)",
 					"beginCaptures": {
-						"1": { "name": "keyword.other.prompt.aisl" }
+						"1": { "name": "keyword.other.agent.aisl" }
 					},
 					"end": "$"
 				},

@@ -12,6 +12,32 @@ of each loop iteration is not just a passing checker run — it's a more
 precisely specified `.aisl` document that's closer to a real implementation
 plan.
 
+## How to interpret an AISL spec
+
+AISL is structured pseudocode — read it like conversational prose that has been
+organized into typed declarations, not like executable code with precise
+semantics. Keep these distinctions in mind when reading a spec:
+
+- **AISL pseudocode itself** is a general description of implementation intent,
+  presented in a structured format but semantically equivalent to well-organized
+  prose. Interpret it as authorial intent, not a contract. The types, control
+  flow, and structure are guides, not specifications to be followed literally.
+
+- **Plain `#` comments** (without a preamble) potentially add context but
+  should be treated with some degree of suspicion as to their relevance and
+  accuracy. They may reflect an earlier design state, a reminder to the human
+  author, or context that has since changed. Don't let them override what the
+  pseudocode itself clearly expresses.
+
+- **`@agent:` comments** are direct messages from the human developer to the
+  coding agent reading the spec. They are the equivalent of injecting
+  conversation into the spec — explicit intent, clarifications, questions, or
+  instructions that the human wants the agent to notice. Treat these as authoritative
+  context, not as ordinary comments. During `/aisl-iterate`, try to work with the human
+  to convert `@agent:` stubs into proper AISL pseudocode where possible — if
+  the intent is clear enough to express in the language, it should be. If it
+  isn't, flag it as a genuine ambiguity and discuss.
+
 ## Process
 
 1. **Run the checker** against the target file:
@@ -25,7 +51,7 @@ plan.
 
 2. **If there are zero diagnostics**, say so plainly and ask whether the human
    wants to keep refining (e.g. tighten a type that's currently `Unspecified`,
-   flesh out a `@prompt:` stub) or stop here.
+   flesh out an `@agent:` stub) or stop here.
 
 3. **If there are diagnostics**, take them one at a time, in the order the CLI
    reports them (lowest line number first). For each one, classify it before
@@ -124,14 +150,14 @@ of whether `CheckerResult` was a new type or a stand-in for an existing
 codebase type. Treat lingering warnings as prompts for design conversation, not
 noise to suppress.
 
-### `external type` for stand-in types, `@prompt:` for stand-in values
+### `external type` for stand-in types, `@agent:` for stand-in values
 
 When a spec references a type that already exists in the real codebase but
 whose internal structure the author doesn't want to prescribe, use
 `external type X from "path/to/real/file"` rather than `type X`. This
 communicates intent ("this belongs to the implementation") and types the value
 as `Unknown` — honest about what the spec doesn't commit to. Where a function
-body needs to construct or return a value of such a type, use a `@prompt:`
+body needs to construct or return a value of such a type, use an `@agent:`
 stub comment instead of a string-literal cast; the stub carries semantic intent
 without manufacturing a value of a type the spec doesn't own.
 

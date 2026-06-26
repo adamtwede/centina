@@ -90,7 +90,7 @@ export type Stmt =
 	| { kind: "DoWhile"; body: Stmt[]; cond: Expr; line: number }
 	| { kind: "Match"; subject: Expr; cases: MatchCase[]; line: number }
 	| { kind: "Return"; expr?: Expr; line: number }
-	| { kind: "PromptComment"; text: string; line: number };
+	| { kind: "AgentComment"; text: string; line: number };
 
 export interface MatchCase {
 	label: string;

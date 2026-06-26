@@ -70,6 +70,8 @@ export const BUILTIN_TYPE_NAMES = new Set([
 ]);
 /** Methods on Agent that route text to a model and must always type as Unspecified. */
 const AGENT_PROMPT_METHODS = new Set(["prompt", "review"]);
+/** Methods on array-typed values that return the element type. */
+const ARRAY_ELEMENT_METHODS = new Set(["any", "first", "last"]);
 /** Free functions provided by the runtime rather than declared in the document itself. */
 const BUILTIN_FUNCTIONS: Record<string, { params: Ty[]; returnType: Ty }> = {
   human_intervened: { params: [], returnType: { kind: "named", name: "Bool" } },
@@ -379,7 +381,7 @@ class Checker {
       scope.declare(p.name, p.type);
     }
 
-    if (this.isPromptOnlyStub(fn.body)) {
+    if (this.isAgentOnlyStub(fn.body)) {
       return;
     }
 
@@ -404,9 +406,9 @@ class Checker {
     }
   }
 
-  /** A function body consisting solely of `@prompt:` comments is an intentionally unimplemented stub. */
-  private isPromptOnlyStub(body: Stmt[]): boolean {
-    return body.length > 0 && body.every((s) => s.kind === "PromptComment");
+  /** A function body consisting solely of `@agent:` comments is an intentionally unimplemented stub. */
+  private isAgentOnlyStub(body: Stmt[]): boolean {
+    return body.length > 0 && body.every((s) => s.kind === "AgentComment");
   }
 
   // ---- statements ------------------------------------------------------------------
@@ -500,7 +502,7 @@ class Checker {
         }
         return;
       }
-      case "PromptComment":
+      case "AgentComment":
         return;
     }
   }
@@ -800,6 +802,12 @@ class Checker {
         AGENT_PROMPT_METHODS.has(expr.callee.prop)
       ) {
         return UNSPECIFIED;
+      }
+      if (objTy.kind === "array" && ARRAY_ELEMENT_METHODS.has(expr.callee.prop)) {
+        if (expr.args.length !== 0) {
+          this.error(`'${expr.callee.prop}()' takes no arguments`, expr.line);
+        }
+        return objTy.element;
       }
       // A method call chained off an external (Unknown) object stays Unknown,
       // so the "unverified shape" risk survives the chain instead of quietly

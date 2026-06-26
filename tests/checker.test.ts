@@ -151,8 +151,8 @@ test("matching on an Unspecified subject warns instead of erroring, since exhaus
 	assert.ok(warningsOf(diags).some((w) => /cast it to an enum type/.test(w.message)));
 });
 
-test("a function body that is only @prompt comments is treated as an intentional stub, not flagged", () => {
-	const diags = diagnosticsFor("function f():\n\t# @prompt: figure this out later\n");
+test("a function body that is only @agent comments is treated as an intentional stub, not flagged", () => {
+	const diags = diagnosticsFor("function f():\n\t# @agent: figure this out later\n");
 	assert.equal(diags.length, 0);
 });
 
@@ -531,8 +531,8 @@ test("a function with a declared return type ending in an `if` (even if every br
 	assert.ok(errors.some((e) => /does not end in a 'return' statement/.test(e.message)));
 });
 
-test("a function body consisting solely of @prompt comments is exempt from the must-end-in-return rule", () => {
-	const diags = diagnosticsFor("function f() -> String:\n\t# @prompt: figure this out later\n");
+test("a function body consisting solely of @agent comments is exempt from the must-end-in-return rule", () => {
+	const diags = diagnosticsFor("function f() -> String:\n\t# @agent: figure this out later\n");
 	assert.equal(diags.length, 0);
 });
 

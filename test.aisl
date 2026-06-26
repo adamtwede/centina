@@ -1,13 +1,12 @@
 
 
 assumed external function start_todo_listener from "./external_ui_library.ts"
-assumed external function interrupted from "./external_ui_library.ts"
 assumed external type Event from "./external_ui_library.ts"
 
 type Todo
 
 function on_todo_event(todo_event: Event, todos: Todo[]) -> Todo[]:
-    # @prompt: this is a handler registered with the UI that gets called with the addition of a new todo item
+    # @agent: this is a handler registered with the UI that gets called with the addition of a new todo item
 
     todo = convert_payload_to_todo(todo_event.payload)
     match todo_event.event_type:
@@ -23,22 +22,22 @@ function on_todo_event(todo_event: Event, todos: Todo[]) -> Todo[]:
     return todos
 
 function convert_payload_to_todo(payload: Unknown) -> Todo:
-    # @prompt: this function converts the payload from the event into a Todo object.
+    # this function converts the payload from the event into a Todo object.
     return payload as Todo # this is pseudocode so we can cheat.
 
 function handle_new_todo(todo: Todo, todos: Todo[]):
     todos.push(todo)
 
 function handle_completed_todo(todo: Todo, todos: Todo[]):
-    # @prompt: called when a todo is marked as completed. It should update the status of the todo in the todos array.
+    # called when a todo is marked as completed. It should update the status of the todo in the todos array.
     todos.delete_by_id(todo.id)
     todo.status = "complete"
     todos.insert(todo)
 
 function handle_updated_todo(todo: Todo, todos: Todo[]):
-    # @prompt: called when a todo is updated. It should update the corresponding todo in the todos array with the new information
+    # called when a todo is updated. It should update the corresponding todo in the todos array with the new information
     todos.merge_by_id(todo.id, todo) # again, cheating is allowed. the more succinct, the better.
 
 function handle_deleted_todo(todo: Todo, todos: Todo[]):
-    # @prompt: called when a todo is deleted. It should remove the todo from the todos array.
+    # called when a todo is deleted. It should remove the todo from the todos array.
     todos.delete_by_id(todo.id)

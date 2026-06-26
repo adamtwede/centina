@@ -40,13 +40,31 @@ function inferType(identifier: string, docText: string, st: SymbolTable): string
   const re = new RegExp(`\\b${identifier}\\s*:\\s*([\\w]+(?:\\[\\])?)`, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(docText)) !== null) {
-    const t = m[1].replace("[]", "");
-    if (st.types[t] || st.builtins[t] || st.enums[t]) return t;
+    const fullType = m[1];
+    if (fullType.endsWith("[]")) return fullType;
+    if (st.types[fullType] || st.builtins[fullType] || st.enums[fullType]) return fullType;
   }
   return undefined;
 }
 
+const ARRAY_METHODS = [
+  { name: "any", documentation: "Returns whether any element in the collection exists (non-empty check). Returns the element type." },
+  { name: "first", documentation: "Returns the first element in the collection." },
+  { name: "last", documentation: "Returns the last element in the collection." },
+];
+
 function memberCompletions(typeName: string, st: SymbolTable): vscode.CompletionItem[] {
+  if (typeName.endsWith("[]")) {
+    const elementType = typeName.slice(0, -2);
+    return ARRAY_METHODS.map((method) => {
+      const item = new vscode.CompletionItem(method.name, vscode.CompletionItemKind.Method);
+      item.detail = `(method) ${typeName}.${method.name}(): ${elementType}`;
+      item.insertText = new vscode.SnippetString(`${method.name}()`);
+      item.documentation = new vscode.MarkdownString(method.documentation);
+      return item;
+    });
+  }
+
   const items: vscode.CompletionItem[] = [];
 
   const typeEntry = st.types[typeName];
@@ -89,6 +107,17 @@ function buildHover(word: string, textBeforeWord: string, docText: string, st: S
     const identifier = memberMatch[1];
     const typeName = inferType(identifier, docText, st);
     if (!typeName) return undefined;
+
+    if (typeName.endsWith("[]")) {
+      const elementType = typeName.slice(0, -2);
+      const arrayMethod = ARRAY_METHODS.find((m) => m.name === word);
+      if (arrayMethod) {
+        md.appendCodeblock(`(method) ${typeName}.${word}(): ${elementType}`, "typescript");
+        md.appendMarkdown(`\n\n${arrayMethod.documentation}`);
+        return new vscode.Hover(md);
+      }
+      return undefined;
+    }
 
     const builtin = st.builtins[typeName];
     if (builtin) {
@@ -206,15 +235,7 @@ export function activate(context: vscode.ExtensionContext): void {
           const identifier = memberMatch[1];
           const typeName = inferType(identifier, document.getText(), st);
           if (typeName) return memberCompletions(typeName, st);
-
-          // Unknown type — offer all known properties/methods as a fallback.
-          const allProps = new Set<string>();
-          for (const t of Object.values(st.types)) t.properties.forEach((p) => allProps.add(p));
-          for (const b of Object.values(st.builtins)) {
-            b.methods.forEach((m) => allProps.add(m.name));
-            b.properties.forEach((p) => allProps.add(p));
-          }
-          return [...allProps].map((p) => new vscode.CompletionItem(p, vscode.CompletionItemKind.Property));
+          return [];
         }
 
         // Type annotation context: after `:`, `->`, or `as`

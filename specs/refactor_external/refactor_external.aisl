@@ -37,10 +37,10 @@ function import_syntax_checker(statement: LineOfAISL) -> CheckerResult:
     match statement.type as AISL_LINE_TYPES:
         case EXTERNAL:
             if statement.source_file.is_aisl_spec:
-                # @prompt: return a checker diagnostics error with a message like "References to AISL files must use 'import'"
+                # @agent: return a checker diagnostics error with a message like "References to AISL files must use 'import'"
         case IMPORT:
             if statement.source_file.is_external_source:
-                # @prompt: return a checker diagnostics error with a message like: "References to real-code source files must use 'external'"
+                # @agent: return a checker diagnostics error with a message like: "References to real-code source files must use 'external'"
         case EVERYTHING_ELSE:
             return no_error
     return no_error
