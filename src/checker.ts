@@ -429,6 +429,14 @@ class Checker {
       case "ExprStmt":
         this.checkExpr(stmt.expr, scope);
         return;
+      case "FieldAssign": {
+        const objTy = this.checkExpr(stmt.obj, scope);
+        if (objTy.kind === "named") {
+          this.recordPropertyUsage(objTy.name, stmt.field, stmt.line);
+        }
+        this.checkExpr(stmt.value, scope);
+        return;
+      }
       case "If": {
         // Condition type is intentionally unconstrained: Unprivileged/Unspecified
         // values used as if-conditions are valid AISL (describing when a branch
@@ -511,14 +519,16 @@ class Checker {
       }
       seen.add(c.label);
 
-      const owner = this.enumMemberOwner.get(c.label);
-      if (!owner) {
-        this.error(`'${c.label}' is not a member of any declared enum`, c.line);
-      } else if (subjectTy.kind === "named" && subjectTy.name !== owner) {
-        this.error(
-          `case '${c.label}' belongs to enum '${owner}', but match subject has type '${tyToString(subjectTy)}'`,
-          c.line,
-        );
+      if (c.labelKind === "ident") {
+        const owner = this.enumMemberOwner.get(c.label);
+        if (!owner) {
+          this.error(`'${c.label}' is not a member of any declared enum`, c.line);
+        } else if (subjectTy.kind === "named" && subjectTy.name !== owner) {
+          this.error(
+            `case '${c.label}' belongs to enum '${owner}', but match subject has type '${tyToString(subjectTy)}'`,
+            c.line,
+          );
+        }
       }
 
       const caseScope = scope.child();

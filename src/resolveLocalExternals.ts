@@ -225,8 +225,12 @@ export function resolveLocalExternals(
 ): { program: Program; diagnostics: Diagnostic[] } {
   const diagnostics: Diagnostic[] = [];
 
+  // assumed entries bypass all validation and resolution — they're Unknown stubs regardless of path or keyword.
+  const assumedExternals = program.externals.filter((e) => e.assumed);
+  const definedExternals = program.externals.filter((e) => !e.assumed);
+
   // Validate keyword/path consistency before routing.
-  for (const e of program.externals) {
+  for (const e of definedExternals) {
     if (e.keyword === "external" && isAislTarget(e.path)) {
       diagnostics.push({
         severity: "error",
@@ -244,10 +248,10 @@ export function resolveLocalExternals(
 
   // Valid routing: 'import' + .aisl path → resolve here; 'external' + non-.aisl → pass to resolveExternals.
   // Mismatched entries are already diagnosed above and excluded from both paths.
-  const aislExternals = program.externals.filter(
+  const aislExternals = definedExternals.filter(
     (e) => e.keyword === "import" && isAislTarget(e.path),
   );
-  const otherExternals = program.externals.filter(
+  const otherExternals = definedExternals.filter(
     (e) => e.keyword === "external" && !isAislTarget(e.path),
   );
 
@@ -257,12 +261,12 @@ export function resolveLocalExternals(
     types: [...program.types],
     functions: [...program.functions],
     globals: [...program.globals],
-    externals: [...otherExternals],
+    externals: [...otherExternals, ...assumedExternals],
   };
 
   const usedNames = collectDeclaredNames({
     ...program,
-    externals: otherExternals,
+    externals: [...otherExternals, ...assumedExternals],
   });
   /**
    * What a cloned signature's type references may resolve against: builtins,

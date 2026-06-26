@@ -7,7 +7,7 @@ const PROPERTY_NAME_TOKENS = new Set<TokenType>([
 	"IDENT",
 	"ENUM", "TYPE", "FUNCTION", "RETURN", "IF", "ELIF", "ELSE", "MATCH", "CASE",
 	"FOREACH", "IN", "DO", "WHILE", "AS", "TRUE", "FALSE",
-	"EXTERNAL", "IMPORT", "OBJECT", "RENAMED", "FROM", "WAS",
+	"EXTERNAL", "IMPORT", "ASSUMED", "OBJECT", "RENAMED", "FROM", "WAS",
 ]);
 import {
 	EnumDecl,
@@ -103,7 +103,7 @@ class Parser {
 				program.types.push(this.parseTypeDecl());
 			} else if (this.check("FUNCTION")) {
 				program.functions.push(this.parseFunctionDecl());
-			} else if (this.check("EXTERNAL") || this.check("IMPORT")) {
+			} else if (this.check("EXTERNAL") || this.check("IMPORT") || this.check("ASSUMED")) {
 				program.externals.push(this.parseExternalDecl());
 			} else if (this.check("IDENT")) {
 				program.globals.push(this.parseGlobalVarDecl());
@@ -136,8 +136,18 @@ class Parser {
 	}
 
 	private parseExternalDecl(): ExternalDecl {
-		const startTok = this.check("IMPORT") ? this.advance() : this.expect("EXTERNAL", "to start external declaration");
-		const keyword = startTok.type === "IMPORT" ? "import" : "external";
+		const startTok = this.peek();
+		const assumed = !!this.match("ASSUMED");
+
+		let keyword: "import" | "external";
+		if (this.check("IMPORT")) {
+			this.advance();
+			keyword = "import";
+		} else {
+			this.expect("EXTERNAL", `to start ${assumed ? "assumed " : ""}external declaration`);
+			keyword = "external";
+		}
+
 		const isRenamed = !!this.match("RENAMED");
 
 		let symbolKind: ExternalSymbolKind;
@@ -147,7 +157,7 @@ class Parser {
 		else {
 			const t = this.peek();
 			throw new ParseError(
-				`expected 'type', 'function', or 'object' after '${keyword}'${isRenamed ? " renamed" : ""}, got ${t.type} '${t.value}'`,
+				`expected 'type', 'function', or 'object' after '${assumed ? "assumed " : ""}${keyword}'${isRenamed ? " renamed" : ""}, got ${t.type} '${t.value}'`,
 				t.line,
 			);
 		}
@@ -163,7 +173,7 @@ class Parser {
 		}
 
 		this.expect("NEWLINE", "after external declaration");
-		return { kind: "ExternalDecl", keyword, symbolKind, name, path, realName, line: startTok.line };
+		return { kind: "ExternalDecl", keyword, symbolKind, name, path, realName, assumed: assumed || undefined, line: startTok.line };
 	}
 
 	private parseTypeRef(): TypeRef {
@@ -256,6 +266,18 @@ class Parser {
 		}
 
 		const expr = this.parseExpr();
+		if (this.check("EQUALS")) {
+			if (expr.kind !== "Member") {
+				throw new ParseError(
+					`left-hand side of '=' must be a field access (e.g. 'obj.field = value')`,
+					expr.line,
+				);
+			}
+			this.advance(); // consume '='
+			const value = this.parseExpr();
+			this.expect("NEWLINE", "after field assignment");
+			return { kind: "FieldAssign", obj: expr.obj, field: expr.prop, value, line: expr.line };
+		}
 		this.expect("NEWLINE", "after expression statement");
 		return { kind: "ExprStmt", expr, line: t.line };
 	}
@@ -351,11 +373,19 @@ class Parser {
 		this.skipTrivia();
 		while (this.check("CASE")) {
 			const caseStart = this.advance();
-			const label = this.expect("IDENT", "as match case label").value;
+			let label: string;
+			let labelKind: "ident" | "string";
+			if (this.check("STRING")) {
+				label = this.advance().value;
+				labelKind = "string";
+			} else {
+				label = this.expect("IDENT", "as match case label").value;
+				labelKind = "ident";
+			}
 			this.expect("COLON", "after match case label");
 			this.expect("NEWLINE", "after match case label");
 			const body = this.parseBlock();
-			cases.push({ label, body, line: caseStart.line });
+			cases.push({ label, labelKind, body, line: caseStart.line });
 			this.skipTrivia();
 		}
 		this.expect("DEDENT", "to end match body");

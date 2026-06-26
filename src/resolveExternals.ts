@@ -73,6 +73,7 @@ export function resolveExternals(program: Program, baseDir: string): Diagnostic[
 }
 
 function verifyOne(ext: ExternalDecl, baseDir: string): Diagnostic[] {
+	if (ext.assumed) return [];
 	if (!isLocalPath(ext.path)) {
 		return [
 			{

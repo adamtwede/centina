@@ -39,6 +39,11 @@ export interface ExternalDecl {
 	name: string;
 	path: string;
 	realName: string;
+	/**
+	 * When true, the backing file is not required to exist. The symbol is treated as an Unknown stub —
+	 * no file-existence check, no verification; useful for sketching dependency graphs before files are created.
+	 */
+	assumed?: boolean;
 	line: number;
 }
 
@@ -79,6 +84,7 @@ export interface Program {
 export type Stmt =
 	| { kind: "VarDecl"; name: string; typeAnnotation?: TypeRef; init: Expr; line: number }
 	| { kind: "ExprStmt"; expr: Expr; line: number }
+	| { kind: "FieldAssign"; obj: Expr; field: string; value: Expr; line: number }
 	| { kind: "If"; cond: Expr; then: Stmt[]; else?: Stmt[]; line: number }
 	| { kind: "Foreach"; varName: string; iterable: Expr; body: Stmt[]; line: number }
 	| { kind: "DoWhile"; body: Stmt[]; cond: Expr; line: number }
@@ -88,6 +94,7 @@ export type Stmt =
 
 export interface MatchCase {
 	label: string;
+	labelKind: "ident" | "string";
 	body: Stmt[];
 	line: number;
 }
