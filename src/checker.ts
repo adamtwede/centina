@@ -174,6 +174,15 @@ export function check(program: Program): Diagnostic[] {
   return new Checker(program).run();
 }
 
+export function checkAndCollect(program: Program): {
+  diagnostics: Diagnostic[];
+  propertyUsage: Map<string, Map<string, number[]>>;
+} {
+  const checker = new Checker(program);
+  const diagnostics = checker.run();
+  return { diagnostics, propertyUsage: checker.getPropertyUsage() };
+}
+
 class Checker {
   private diagnostics: Diagnostic[] = [];
   private enums = new Map<string, EnumDecl>();
@@ -197,6 +206,10 @@ class Checker {
 
   private warn(message: string, line: number): void {
     this.diagnostics.push({ severity: "warning", message, line });
+  }
+
+  getPropertyUsage(): Map<string, Map<string, number[]>> {
+    return this.propertyUsage;
   }
 
   run(): Diagnostic[] {

@@ -77,7 +77,7 @@
 		},
 		"keywords": {
 			"name": "keyword.control.aisl",
-			"match": "\\b(enum|type|function|return|if|else|match|case|foreach|in|do|while|as|external|object|from|renamed|was)\\b"
+			"match": "\\b(enum|^type|function|return|if|else|match|case|foreach|in|do|while|as|external|import|object|from|renamed|was)\\b"
 		},
 		"builtin-types": {
 			"name": "support.type.builtin.aisl",

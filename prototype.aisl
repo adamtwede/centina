@@ -11,7 +11,7 @@ escalation_model: Agent = Agent(MINIMAX_OPENROUTER)
 function main():
 	supervisor_model = cloud_model
 	human_input = "Draft an implementation plan to ..."
-	implementation_plan = supervisor_model.prompt(human_input) as Step[]
+	implementation_plan = supervisor_model.prompt() as Step[]
 	start_implementation(implementation_plan, supervisor_model, local_model)
 
 function start_implementation(implementation_plan: Step[], supervisor_model: Agent, target_model: Agent):

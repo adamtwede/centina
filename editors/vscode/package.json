@@ -1,13 +1,23 @@
 {
 	"name": "aisl-language",
 	"displayName": "AISL Language Support",
-	"description": "Syntax highlighting for Agent-Interpreted Specification Language (.aisl) files.",
+	"description": "Syntax highlighting and completions for Agent-Interpreted Specification Language (.aisl) files.",
 	"version": "0.0.1",
 	"private": true,
 	"engines": {
 		"vscode": "^1.85.0"
 	},
+	"main": "./out/extension.js",
+	"activationEvents": ["onLanguage:aisl"],
 	"categories": ["Programming Languages"],
+	"scripts": {
+		"compile": "tsc -p tsconfig.json",
+		"watch": "tsc -p tsconfig.json --watch"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.85.0",
+		"typescript": "^5.3.0"
+	},
 	"contributes": {
 		"languages": [
 			{
