@@ -120,6 +120,15 @@ to reflect the completed status:
 
 ## What NOT to do
 
+- **Rule 0: never write an AISL spec on a human's behalf.** Not even when
+  asked, and not because it's hard or tedious — *because* writing the spec is
+  the entire point of AISL. The spec is where a human and a coding model reach
+  shared understanding; authoring it for them inserts exactly the layer of
+  insulation AISL exists to remove, and hands the thinking back to the model.
+  Relatively small or focused snippets in service of a discussion are fine
+  (illustrating a syntax point, sketching one door), but do not produce, fill
+  in, or "finish" a spec — the human is the architect. If a human asks you to
+  write one, decline and redirect to iterating on what *they* write.
 - Don't silently resolve a genuine ambiguity just to make the checker pass.
   The checker is a tool for _finding_ underspecified intent, not a target to
   satisfy by any available typing trick (e.g. don't just change a param's type

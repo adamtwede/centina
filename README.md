@@ -10,7 +10,7 @@ Have you ever struggled to explain to your coding agent of choice what you want 
 
 Recently, I wanted a moderately complex process implemented that included escalation paths, loops, recursion, etc. I started typing out my initial prompt and within a few minutes became frustrated that I couldn't explain clearly what I wanted without laborious, tedious back-references, ambiguous terms, and constant parentheticals even to *myself*. After a handful of false starts, I thought to myself, "There has to be a better way!" So, I went looking for one. 
 
-I'm a latecomer to the agentic coding world. A holdout. A rebel turncoat. As such, I figured surely someone smarter than me (many people qualify) had already solved this very obvious problem. Naturally, I first asked some chat agents. They all gave me the same few unsatisfying answers ("Goodness! Nobody has thought of this! You're probably a genius!" shut up, baby, I know it). So I tried an actual search engine, looking for a way to approach my agent's "planning mode" with something more structured, something less haphazardly free-form than \*ugh\* *organic conversation* (I already get enough of this with my kids, you knoe?) but, to my surprise, found nothing I liked. There were some diagramming tools, some hot tips and tricks, and a whole bunch of agent skills that promised to take my confusing, meandering, resignedly self-conscious prose and turn it into an implementation plan good enough to make John Carmack weep with joy. Spoiler: No joy.
+I'm a latecomer to the agentic coding world. A holdout. A rebel turncoat. As such, I figured surely someone smarter than me (many people qualify) had already solved this very obvious problem. Naturally, I first asked some chat agents. They all gave me the same few unsatisfying answers ("Goodness! Nobody has thought of this! You're probably a genius!" shut up, baby, I know it). So I tried an actual search engine, looking for a way to approach my agent's "planning mode" with something more structured, something less haphazardly free-form than \*ugh\* *organic conversation* (I already get enough of this with my kids, you know?) but, to my surprise, found nothing I liked. There were some diagramming tools, some hot tips and tricks, and a whole bunch of agent skills that promised to take my confusing, meandering, resignedly self-conscious prose and turn it into an implementation plan good enough to make John Carmack weep with joy. Spoiler: No joy.
 
 I gave up the search and decided that the best way forward was to simply try and sketch the idea out for myself. I thought if I could get a better handle on exactly what I was planning to ask for, maybe I could write a usable prompt to get things started. Almost without thinking, I started writing psuedocode. I know people are always bullying poor psuedocode, but it's actually pretty great. You can use familiar, structured programming conventions without being hobbled by the requirements of actually producing executable code (totally unreasonable in 2026). However, as I wrote and my pseudocode became more complex, making sure I was maintaining consistency in spelling, local conventions, proposed control flow, etc., started becoming really tedious.
 
@@ -18,11 +18,42 @@ After a handful of false starts, I thought to myself, "There has to be a better 
 
 ## Example
 
-This is a (somewhat truncated and edited for clarity) example of an actual AISL spec written to implement a small feature in this codebase.
+As is tradition, we start with a todo app. Here is a truncated example of an AISL spec for such a thing, leaning on React as the context:
 
 ```
+assumed external type TodoEvent from "./external_ui_library.ts"
 
+# if our boundary is the TodoReactComponent, what are we? we appear to be the "logic" of the todo functionality.
+# if we were the TodoReactComponent itself, our boundary might be the React renderer, or the component hierarchy.
+datasource TodoReactComponent():
+    # we aren't concerned with the details of how todos are made, we let the component handle that, so we just get the type info from it.
+    get_todos() -> Todo[]
+
+todo_component = TodoComponent()
+
+function on_todo_event(todo_event: TodoEvent) -> Todo[]:
+    # @agent: this is a handler registered with the TodoReactComponent that gets called when there is a relevant event.
+
+    todo = convert_payload_to_todo(todo_event.payload)
+    todos = todo_component.get_todos()
+
+    match todo_event.event_type:
+        case "new":
+            handle_new_todo(todo, todos)
+        # other cases follow
+
+    return todos
+
+function convert_payload_to_todo(payload: Unknown) -> Todo:
+    # this function converts the payload from the event into a Todo object.
+    return payload as Todo # this is pseudocode so we can cheat.
+
+function handle_new_todo(todo: Todo, todos: Todo[]):
+    todos.push(todo)
 ```
+## Prior art
+
+If you're at all familiar with Alistair Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture) aka "Ports and Adapters," some of this might feel familiar. It's basically those ideas dropped into a lexer via primitives with a few semantic revisions, featuring constructions meant for both humans and AI coding models to easily understand.
 
 ## PLAN.md
 
@@ -94,6 +125,13 @@ No behavioral changes. Purely syntactic. Each keyword is now validated against i
 If F5 still shows a config picker instead of going straight to "Run AISL Extension," that just means VS Code found multiple/no matching configs — pick "Run AISL Extension" from the dropdown, or check the Run and Debug panel (Cmd+Shift+D) to confirm launch.json was picked up under that window.
 
 # Documentation
+
+> **Forward design:** boundaries (`datasource`/`datasink`/`boundary`) — first-class
+> data sources/sinks meant to make AISL a robust medium beyond the agent-supervisor
+> domain — are designed but **not yet implemented**. See
+> [`docs/boundaries.md`](docs/boundaries.md) for the proposal, syntax, and the
+> affordances-not-transports modeling guidelines. The sections below document
+> currently implemented behavior.
 
 ## Property Access vs. Method Calls in AISL
 

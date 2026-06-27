@@ -85,7 +85,7 @@ Also done:
 
 ## Next up
 
-Nothing actively queued — see Backlog below for what's under discussion.
+- **Boundaries** — first-class user-declared privileged data sources/sinks (`datasource`/`datasink`/`boundary`), the generalization of `Agent` to author-defined data seams, intended to make AISL a robust medium beyond the agent-supervisor domain (web apps, CLIs, servers). **Designed, not yet implemented** — full decisions, syntax, type rules, and the affordances-not-transports modeling guidelines live in `docs/boundaries.md` (the first concrete fragment of the eventual `SPEC.md`). Checker/parser work not started.
 
 ## Deferred
 

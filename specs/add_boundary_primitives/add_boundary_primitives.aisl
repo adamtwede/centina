@@ -1,0 +1,65 @@
+## AISL SPEC
+## Type: Language enhancement
+## Name: Add Boundary Primitives
+## Description: Add boundary primitives. See: ./docs/boundaries.md for context.
+##
+## Proposed ingress boundaries:
+##  Boundary discussion doc: ./docs/boundaries.md
+##
+## Propose egress boundaries:
+##  Relevant AISL source files
+
+external type CheckerResult from "../../src/checker.ts" # stand-in for unknown details about how the checker functions
+
+assumed external type AISLPrimitive from "./aisl_types.ts"
+
+enum DECLARATION_STATEMENT_TYPES = BOUNDARY | DATASOURCE | DATASINK | EVERYTHING_ELSE
+
+datasource BoundaryDiscussion(doc_path: String):
+    get_boundary_declaration_syntax() -> String
+    get_datasource_declaration_syntax() -> String
+    get_datasink_declaration_syntax() -> String
+    set_boundary_declaration_syntax(syntax: String) # @agent: with the datasource boundary type properly implemented (see below), this line would error.
+
+boundary_discussion = BoundaryDiscussion("./docs/boundaries.md")
+
+## boundary types not yet implemented, so these lines will not work until the boundary primitives are implemented in the AISL checker per
+## the not-yet-drafted PLAN.md based on this spec.
+datasink AISLSource():
+    create_primitive(primitive_name: String)
+    get_primitive(primitive_name: String) -> AISLPrimitive # @agent: with the datasink boundary type properly implemented (see below), this line would error.
+    set_primitive_syntax(syntax: String, primitive: AISLPrimitive)
+
+aislSource = AISLSource()
+
+enum Models = ANY
+planning_agent = Agent(ANY)
+
+type AISLDeclarationStatement
+
+function main(): # should consider a convention like main() that indicates the "starting" place if it's not obvious.
+    boundary_primitive = aislSource.create_primitive("boundary")
+    boundary_primitive = aislSource.set_primitive_syntax(boundary_discussion.get_boundary_declaration_syntax(), boundary_primitive)
+
+    datasource_primitive = aislSource.create_primitive("datasource")
+    datasource_primitive = aislSource.set_primitive_syntax(boundary_discussion.get_datasource_declaration_syntax(), datasource_primitive)
+
+    datasink_primitive = aislSource.create_primitive("datasink")
+    datasink_primitive = aislSource.set_primitive_syntax(boundary_discussion.get_datasink_declaration_syntax(), datasink_primitive)
+
+function boundary_declaration_syntax_checker(declaration: AISLDeclarationStatement) -> CheckerResult:
+    usage_ok = "" as CheckerResult
+    no_error_not_boundary_type_declaration = "" as CheckerResult
+
+    match declaration as DECLARATION_STATEMENT_TYPES:
+        case DATASOURCE:
+            if declaration.door_methods.any().returns_void():
+                # @agent: return a checker diagnostics error with a message like "All door methods of datasource boundary types must return a value. Use 'boundary' if you need to read and write on a boundary type."
+        case DATASINK:
+            if declaration.door_methods.any().declares_return_type():
+                # @agent: return a checker diagnostics error with a message like "Door methods of datasink boundary types cannot return a value. Use 'boundary' if you need to read and write on a boundary type."
+        case BOUNDARY:
+            return usage_ok
+        case EVERYTHING_ELSE:
+            return no_error_not_boundary_type_declaration
+    return usage_ok

@@ -14,7 +14,7 @@ AISL (Agent-Interpreted Specification Language) is a DSL for writing high-level,
 
 There is a working TypeScript toolchain (lexer, parser, checker, CLI) implementing the AISL language as it currently stands — see `ROADMAP.md` for what's done, deferred, and backlogged. `prototype.aisl` is the standing worked example and regression fixture; it should stay at zero checker diagnostics (`tests/prototype.test.ts` enforces this). The language's syntax and type rules are still actively changing session-to-session — check `ROADMAP.md` before assuming a feature exists or a piece of syntax is final, and don't build ahead of it (e.g. an LSP) while it's still settling.
 
-`PLAN.md` (the language *spec* itself, via `SPEC.md`/`ARCHITECTURE.md`) is still a placeholder — those documents don't exist yet. Don't assume them.
+`PLAN.md` (the language *spec* itself, via `SPEC.md`/`ARCHITECTURE.md`) is still a placeholder — those documents don't exist yet. Don't assume them. The one piece of forward language design that *is* written down is `docs/boundaries.md` — a design proposal for first-class data boundaries (`datasource`/`datasink`/`boundary`), designed but not yet implemented; treat it as a not-yet-built feature (don't assume checker/parser support), and read it before designing anything in that area.
 
 ## Commands
 

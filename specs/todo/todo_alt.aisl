@@ -1,14 +1,29 @@
+## Alternate version of todo.aisl with TodoReactComponent acting only as a datasource 
+## rather than a full boundary, and with our event handler returning the result of its 
+## operations from the event handler, presumably to the component. The semantics are 
+## different from todo.aisl, and would seem to imply this is meant to point to a more 
+## "pure" implementation.
+##
+## Open question: is the hypothesis above accurate?
 
+assumed external type TodoEvent from "./external_ui_library.ts"
 
-assumed external function start_todo_listener from "./external_ui_library.ts"
-assumed external type Event from "./external_ui_library.ts"
+# if our boundary is the TodoReactComponent, what are we? we appear to be the "logic" of the todo functionality.
+# if we were the TodoReactComponent itself, our boundary might be the React renderer, or the component hierarchy.
+#
+# Open question: does the conversion from boundary to datasource change the implication of what "we" are?
+datasource TodoReactComponent():
+    # we aren't concerned with the details of how todos are made, we let the component handle that, so we just get the type info from it.
+    get_todos() -> Todo[]
 
-type Todo
+todo_component = TodoComponent()
 
-function on_todo_event(todo_event: Event, todos: Todo[]) -> Todo[]:
-    # @agent: this is a handler registered with the UI that gets called with the addition of a new todo item
+function on_todo_event(todo_event: TodoEvent) -> Todo[]:
+    # @agent: this is a handler registered with the TodoReactComponent that gets called when there is a relevant event.
 
     todo = convert_payload_to_todo(todo_event.payload)
+    todos = todo_component.get_todos()
+
     match todo_event.event_type:
         case "new":
             handle_new_todo(todo, todos)
@@ -18,7 +33,7 @@ function on_todo_event(todo_event: Event, todos: Todo[]) -> Todo[]:
             handle_updated_todo(todo, todos)
         case "deleted":
             handle_deleted_todo(todo, todos)
-    
+
     return todos
 
 function convert_payload_to_todo(payload: Unknown) -> Todo:
