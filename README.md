@@ -1,38 +1,52 @@
 # Agent-Interpreted Specification Language
 
-AISL is a domain specific language (DSL) designed specifically for use with agentic (LLM-assisted) coding, specifically for high-level planning and architecture. It is concerned more with the *what* rather than the *how*. In the fewest words I can manage, it's **type-checked  pseudocode**.
+AISL is a domain specific language (DSL) designed specifically for use with agentic (LLM-assisted) coding, specifically for high-level planning and architecture. It is concerned more with the *what* rather than the *how*. 
+
+In the fewest words I can manage, it's **type-checked  pseudocode**. In slightly more words, it's like declarative programming with your coding agent as the runtime.
 
 ## It's what now?
 
 Stick with me a minute. I promise it'll make sense. (I can't promise it'll make sense to *you*, but it does to me.)
 
-Have you ever struggled to explain to your coding agent of choice what you want it to do with the masterful clarity you need? Have you shaken your head in dismay as you burn precious tokens going back and forth trying to articulate what you want it to do? No? Well, I have. Here is my story.
+Have you ever struggled to explain to your coding agent of choice what you want it to do with the masterful clarity you need? Have you shaken your head in dismay as you burn precious tokens going back and forth trying to articulate what you want it to do? Have you ever sent your coding agent off to do something, only to have it produce something that doesn't do what you expected, and you realize you don't even know where to start explaining how to fix it? No? Well, I have. Here is my story.
 
-Recently, I wanted a moderately complex process implemented that included escalation paths, loops, recursion, etc. I started typing out my initial prompt and within a few minutes became frustrated that I couldn't explain clearly what I wanted without laborious, tedious back-references, ambiguous terms, and constant parentheticals even to *myself*. After a handful of false starts, I thought to myself, "There has to be a better way!" So, I went looking for one. 
+Recently, I wanted to implement a moderately complex process that included escalation paths, loops, recursion, etc. I started typing out my initial prompt and within a few minutes became frustrated that I couldn't explain clearly what I wanted without laborious, tedious back-references, ambiguous terms, and constant parentheticals. I couldn't even explain it to *myself*, let alone an agent. After a handful of false starts, I thought to myself, "There has to be a better way!" So, I went looking for one. 
 
-I'm a latecomer to the agentic coding world. A holdout. A rebel turncoat. As such, I figured surely someone smarter than me (many people qualify) had already solved this very obvious problem. Naturally, I first asked some chat agents. They all gave me the same few unsatisfying answers ("Goodness! Nobody has thought of this! You're probably a genius!" shut up, baby, I know it). So I tried an actual search engine, looking for a way to approach my agent's "planning mode" with something more structured, something less haphazardly free-form than \*ugh\* *organic conversation* (I already get enough of this with my kids, you know?) but, to my surprise, found nothing I liked. There were some diagramming tools, some hot tips and tricks, and a whole bunch of agent skills that promised to take my confusing, meandering, resignedly self-conscious prose and turn it into an implementation plan good enough to make John Carmack weep with joy. Spoiler: No joy.
+I'm a latecomer to the agentic coding world. A holdout. A rebel turncoat. As such, I figured surely someone smarter than me (many people qualify) had already solved this problem. Naturally, I first asked the usual suspects: various popular chat agents. They all gave me the same few unsatisfying answers ("Goodness! What a brilliant idea! Nobody has ever thought of this! You're probably a genius!" shut up, baby, I know it). So I deigned to try an actual search engine, looking for a way to approach my agent's "planning mode" with something more structured, something less haphazardly free-form than \*ugh\* *organic conversation* (I already get enough of this with my kids, you know?) but, to my surprise, found nothing I liked. There were some diagramming tools, some hot tips and tricks, and a whole bunch of agent skills that promised to take my confusing, meandering, resignedly self-conscious prose and turn it into an implementation plan good enough to make Linus Torvalds weep with joy. (Spoiler: There's no crying in coding.)
 
-I gave up the search and decided that the best way forward was to simply try and sketch the idea out for myself. I thought if I could get a better handle on exactly what I was planning to ask for, maybe I could write a usable prompt to get things started. Almost without thinking, I started writing psuedocode. I know people are always bullying poor psuedocode, but it's actually pretty great. You can use familiar, structured programming conventions without being hobbled by the requirements of actually producing executable code (totally unreasonable in 2026). However, as I wrote and my pseudocode became more complex, making sure I was maintaining consistency in spelling, local conventions, proposed control flow, etc., started becoming really tedious.
+I gave up the search and decided that the best way forward was to simply try and sketch the idea out for myself without involving the agent at all, as though I were back in the old days where we still wrote code by hand like common people. I thought if I could get a better handle on exactly *what* I was planning to ask for, maybe I could write a usable prompt to get things started on *how*. Almost without thinking, I started writing psuedocode. I know people are always bullying poor psuedocode, but it's actually pretty great. You can use familiar, structured programming conventions without being hobbled by the requirements of actually producing executable code (totally unreasonable in 2026). However, as I wrote and my pseudocode became more complex, making sure I was maintaining consistency in spelling, local conventions, proposed control flow, etc., started becoming really tedious, threatening to undermine the entire reason I was doing it.
 
-After a handful of false starts, I thought to myself, "There has to be a better way!" So, I went looking for one. Just kidding. I already did that. I decided to just make one. The result of that is AISL.
+I thought to myself, "There has to be a better way!" So, I went looking for one. Just kidding. I already did that. I decided to just make one. The result of that is AISL.
 
 ## Example
 
 As is tradition, we start with a todo app. Here is a truncated example of an AISL spec for such a thing, leaning on React as the context:
 
-```
+```python
+# "assumed" means "doesn't have to actually exist." Like a mocked assertion.
 assumed external type TodoEvent from "./external_ui_library.ts"
 
-# if our boundary is the TodoReactComponent, what are we? we appear to be the "logic" of the todo functionality.
-# if we were the TodoReactComponent itself, our boundary might be the React renderer, or the component hierarchy.
-datasource TodoReactComponent():
-    # we aren't concerned with the details of how todos are made, we let the component handle that, so we just get the type info from it.
-    get_todos() -> Todo[]
+# AISL can make use of three distinct "boundary" types, which describe where 
+# you expect data to flow in and out. 'datasource' is the read-only boundary type.
 
-todo_component = TodoComponent()
+# if our datasource is the TodoReactComponent, what are we? we appear to be the 
+# "logic" of the todo functionality. if we were the TodoReactComponent itself, 
+# our boundary might be the React renderer, or the component lifecycle.
+datasource TodoReactComponent():
+    # we aren't concerned with the details of how todos are made, we let the component handle that, 
+    # so we just ascribe the type info (in this case, Todo) directly onto it.
+    get_todos() -> Todo[] # functions on boundary types are called 'door methods' or simply 'doors'.
+
+todo_component = TodoComponent() # boundaries must be "instantiated," it'll be clear why later.
+
+# the other two boundary types are 'datasink' (write only) and 'boundary' (read/write).
+# these conventions are enforced by the AISL checker with a simple structural heuristic:
+# datasource doors must *always* describe a return type, datasink doors *can't* describe a return type.
 
 function on_todo_event(todo_event: TodoEvent) -> Todo[]:
+    # we can directly address the agent/model reading the spec like this:
     # @agent: this is a handler registered with the TodoReactComponent that gets called when there is a relevant event.
+    # ^ this is an escape hatch, so try to minimize its use.
 
     todo = convert_payload_to_todo(todo_event.payload)
     todos = todo_component.get_todos()
@@ -40,89 +54,123 @@ function on_todo_event(todo_event: TodoEvent) -> Todo[]:
     match todo_event.event_type:
         case "new":
             handle_new_todo(todo, todos)
-        # other cases follow
+        # other cases would follow here.
 
     return todos
 
 function convert_payload_to_todo(payload: Unknown) -> Todo:
     # this function converts the payload from the event into a Todo object.
-    return payload as Todo # this is pseudocode so we can cheat.
+    # this is pseudocode so we can "cheat" where it makes sense to let the 
+    # coding agent have some discretion where we're not concerned with the 
+    # details and we've left little ambiguity.
+    return payload as Todo
 
 function handle_new_todo(todo: Todo, todos: Todo[]):
     todos.push(todo)
+  
+# other case handlers would follow here.
 ```
-## Prior art
+## Prior Art
 
-If you're at all familiar with Alistair Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture) aka "Ports and Adapters," some of this might feel familiar. It's basically those ideas dropped into a lexer via primitives with a few semantic revisions, featuring constructions meant for both humans and AI coding models to easily understand.
+If you're at all familiar with Alistair Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture) aka "Ports and Adapters," some of this might feel familiar. It's basically those ideas dropped into a lexer via primitives with a Python-like syntax, a few semantic revisions, and several constructions designed for both humans and AI coding models to easily understand.
 
 ## PLAN.md
 
-The intended result of an AISL spec is a PLAN.md with more detail, less ambiguity, and an easier path toward revision. Here is the PLAN.md that resulted from the above spec:
+The intended result of an AISL spec is a PLAN.md with more detail, less ambiguity, and an easier path toward revision. [Here is the PLAN.md](https://github.com/adamtwede/aisl/blob/main/specs/refactor_external/PLAN.md) that resulted from [this AISL spec](https://github.com/adamtwede/aisl/blob/main/specs/refactor_external/refactor_external.aisl). (This is an example of [dogfooding](https://en.wikipedia.org/wiki/Eating_your_own_dog_food).)
 
----
+## Artifacts
 
-### Implementation Plan: Refactor External Symbols Syntax
+- command line checker that enforces AISL syntax and rules and warns of potential problems in the spec.
+- /aisl-iterate agent skill. Provides guidance to a coding agent for working through an AISL spec with a human (you, probably) until it is ready for an implementation plan doc.
 
-**Spec source**: `specs/refactor_external/refactor_external.aisl`
+## Philosophical Goals and Operating Principles
 
-**Status**: Implemented ✓
+### Mental model
 
-### Summary
+The most challenging aspect of adapting your ideas to AISL is the fact that, superficial similarities notwithstanding, AISL is *not a programming language*. It is *structured psuedocode* that enforces syntax and conventions that encourage activities meant to *expose and ameliorate unknowns, ambiguities, edge cases, and dubious assumptions*. When you are writing AISL pseudocode, you aren't writing imperative instructions for mechanistic execution, you are *describing expectations and intentions* that are meant to be interpreted by machine intelligence. More to the point, you are writing expectations and intentions regarding three crucial aspects of how your idea fits into the rest of the world you anticipate it will inhabit:
 
-Splits the single `external` keyword into two distinct keywords:
-- `import` — for symbols from other `.aisl` files (full nominal typing via `resolveLocalExternals.ts`)
-- `external` — for symbols from real-code/library targets (Unknown typing via `resolveExternals.ts`)
+1. Where does data enter, and what does it look like when it arrives?
+2. How does data change and move as it flows through the functionality the spec describes?
+3. Where does data exit, and what does it look like when it leaves?
 
-No behavioral changes. Purely syntactic. Each keyword is now validated against its target path, and mismatches are hard errors.
+These are more than just inputs and ouputs. They are your boundaries and your data provenance.
 
----
+AISL ships with three core 'boundary' types:
 
-### Changes
+- `boundary` -- fully "encloses" the functionality described by the spec, asserting a "read/write" interface.
+- `datasource` -- sits "over" the functionality described by the spec, asserting a "read-only" interface.
+- `datasink` -- sits "under" the functionality described by the spec, asserting a "write-only" interface.
+  
+These conventions are enforced by the AISL checker with a simple structural heuristic: datasource doors must *always* describe a return type, datasink doors *can't* describe a return type. boundary doors have no restrictions, so should be used with care so as not to become an escape hatch.
 
-#### `src/lexer.ts`
-- Added `"IMPORT"` to the `TokenType` union.
-- Added `import: "IMPORT"` to the keyword-to-token map.
+Boundaries must be instantiated to be used. This is so you can describe two boundaries that differ in configuration as opposed to structure. For example:
 
-#### `src/ast.ts`
-- Added `keyword: "external" | "import"` field to `ExternalDecl`. Updated JSDoc to note that routing is now determined by `keyword`, not solely by path extension.
+```python
+  datasink File(file_path: String):
+    write(file_contents: String)
+  
+  log_file = File("log_file.log")
+  telemetry_file = File("telemetry.log")
 
-#### `src/parser.ts`
-- Added `"IMPORT"` to `PROPERTY_NAME_TOKENS`.
-- Top-level dispatch: now triggers on both `EXTERNAL` and `IMPORT` tokens.
-- `parseExternalDecl()`: consumes whichever token was present and sets `keyword` on the returned `ExternalDecl`.
+  log_file.write("log file contents")
+  # ...
+```
 
-#### `src/resolveLocalExternals.ts`
-- Validates keyword/path consistency up front (before any resolution):
-  - `external ... from "*.aisl"` → hard error: "must use the 'import' keyword"
-  - `import ... from "non-aisl-path"` → hard error: "must use the 'external' keyword"
-- Routing changed from path-extension-based to keyword-based:
-  - `import` + `.aisl` path → existing AISL resolution logic (unchanged)
-  - `external` + non-`.aisl` → passed through to `resolveExternals.ts` (unchanged)
-  - Mismatched entries are excluded from both paths (already errored)
-- Updated diagnostic messages that previously hardcoded `"external"`:
-  - Kind-mismatch warning now uses `ext.keyword` (e.g. "declared as import 'function'")
-  - Forwarding-chain error now uses `target.keyword` (e.g. "declared as 'import', pointing at...")
-- Updated missing-dependency-type suggestion strings from `external type ...` to `import type ...` (these suggestions always point to `.aisl` files)
+However, when you find yourself writing a configurable boundary, it's always worth questioning whether your abstraction might be too general, or at the wrong level. What if you don't want or need to be concerned with filenames? Maybe you want different semantics between the two boundary types, or to describe a different abstraction altogether:
 
-#### `src/resolveExternals.ts`
-- No changes required. Receives only `external`-keyword non-`.aisl` entries from the pre-filtered `resolved.externals`.
+```python
+  datasink LogEngine():
+    write_log_entry(log_entry: LogEntry)
+  
+  datasink TelemetryEngine():
+    write_metrics(metric: Metric)
+  
+  log_engine = LogEngine()
+  telemetry_engine = TelemetryEngine()
 
-#### Tests
-- `tests/resolveLocalExternals.test.ts`: All test source strings migrated from `external ... from "*.aisl"` to `import ... from "*.aisl"`. Assertion regexes updated to match new message text. Three new test cases added for keyword/path validation.
-- `tests/fixtures/shared.aisl`, `reexport.aisl`, `broken2.aisl`: `.aisl`-targeting `external` declarations migrated to `import`.
+  log_engine.write_log_entry("log entry" as LogEntry)
+  # ...
+```
 
-#### Spec file
-- `specs/refactor_external/refactor_external.aisl`: Updated to reflect implemented state (the before-example `external function ... from "*.aisl"` is now a comment; the `import function ...` form is active).
----
+More on this in the next section.
 
-## Enabling syntax highlighting (development phase)
+### Drawing boundaries
 
-1. In VS Code: File > Open Folder... (or Cmd+O)
-2. Navigate to and select ./editors/vscode — open it as its own window (it'll ask "open in new window," say yes if prompted, or just let it replace if you don't mind closing the current one).
-3. In that new window, press F5. It should now find the Run AISL Extension config and launch a separate "Extension Development Host" window — that's a sandboxed VS Code instance with your unpublished extension active.
-4. In that Extension Development Host window, open any .aisl file (e.g. File > Open Folder... and pick the current project, then open a .aisl file) — it should now show syntax highlighting.
+**Principle**: Draw boundaries around *affordances* — what data you get or put, and in what shape — not around technologies or structures that carry them. Lean away from "what is this thing" and toward "what does it give me? / what do I do with it?" This is the hard part for humans writing something that feels like code, and it's the main thing AISL is here to push you toward.
 
-If F5 still shows a config picker instead of going straight to "Run AISL Extension," that just means VS Code found multiple/no matching configs — pick "Run AISL Extension" from the dropdown, or check the Run and Debug panel (Cmd+Shift+D) to confirm launch.json was picked up under that window.
+**Principle**: Model your proposed boundaries as one of the two restricted types first. Only use 'boundary' when it's unambiguous that you need it.
+
+**Principle**: Identify and use datasources over ad hoc types to describe where your data comes from. Boundary types allow you to succinctly describe an interface with the outside world. Use this to your advantage, because more than anything else, boundaries will limit scope, identify roles, inform separation of concerns, etc.
+
+**Principle**: Identify and use datasink "write-through" doors over return statements, especially in "entry point" functions (functions which aren't referenced by name in the spec outside of their definitions).
+
+**Questions to ask, and what the answer tells you**
+
+1. Strip the technology away — what data crosses here, and in what shape? If you can't name it without naming the tech ("it's a webpage", "it's a SQL table"), you haven't found the boundary yet — you've found the wire.
+2. Do my proposed instances share affordances — the same doors and the same data shapes — differing only in configuration?
+  - Yes → one kind, many instances.
+  - No → different boundaries. This is the invariant: "An instance may not add or change doors. Instances differ only in construction config. If two things need different doors, they are different boundaries."
+3. Am I about to add a method that only makes sense for some instances? If yes, you've found a second boundary hiding inside the first. Split it out.
+4. Could I swap one instance's config for another's and have every door still mean the same thing? If putting Reddit's URL into a GoogleSearch makes search() nonsense, they were never one kind.
+5. Is what these things share something my spec actually uses, or just something that's true about them? Shared substrate the spec never touches (HTTP, "both are webpages") is not a reason to share a *kind* of boundary.
+6. Direction: does this seam only give data, only take it, or both? → datasource / datasink / boundary.
+
+**Smells you've drawn the line wrong**
+
+- You have more than one `boundary` declared in a single spec (*not* of the other types, specifically the `boundary` boundary type). That's often an indication your spec is modeling the wrong thing, and your boundaries are porous.
+- You're reaching for a per-instance method override. (→ separate boundary — this is the invariant in #2 above firing)
+- Door names are drifting vague (get_contents, get_data) to span instances that really do different things. (→ split into specific affordances)
+- Your kind names are technology nouns (Webpage, HttpClient, SqlTable) instead of affordance nouns (GoogleSearch, ProductCatalog, UserStore). Not always wrong — sometimes the affordance genuinely is "a page I read and write wholesale" — but it's a yellow flag worth asking question #5 above.
+- One instance only ever touches half the doors. Maybe fine (see narrowing below); maybe it's telling you it's a different boundary.
+
+### Invariants, rules, and things to know
+
+1. Never ask a coding agent to write an AISL spec for you. It defeats the entire purpose. Collaborate. Don't outsource your thinking or you might as well go back to whatever you were doing before.
+2. AISL pseudocode doesn't "manufacture" objects. This is by design. Other than primitives, data in an AISL spec must come from a small selection of "privileged" sources, all semantically *external* to the feature or process being specified.
+3. Writing a spec can be a frustrating process. That's why many people don't do it. They wind up regretting it, though, when the consequences of not having thought things through well enough catch up to them. I can't promise writing an AISL spec won't be frustrating, at least initially, but that's more a result of learning a new way of thinking than anything else. You're exercising disused muscles.
+4. Your goal in writing an AISL spec isn't to just clearly communicate an idea or process, it's to find the gaps in your thinking and force you make implicit assumptions explicit, and to ensure as much of your idea as possible makes it into code the first time through.
+5. Specs aren't just good for getting something implemented, they also keep you involved, and provide a structured record of the conceptual components of your application that you can reference later. As AI models become more and more capable, it can become very tempting to talk through an idea, get excited, and send it toddling off to execute, only a week or so later to find you don't know enough about "your" own codebase to troubleshoot a major bug. 
+6. It's an artifact you can reuse for structured revision. Something didn't turn out the way you expected? Talk it through, figure out where the gap was in the spec. It's easy to miss or gloss over stuff in conversation, but it's harder to accidentally skip steps with a formal spec.
 
 # Documentation
 
@@ -182,8 +230,6 @@ The quick test: if replacing `obj.method()` with a `Bool` literal (or `Unspecifi
 **When you'll see helpful errors**
 
 If you write `obj.method() as SomeType`, the checker tells you: "if 'method' describes a data attribute (not a computation), use bare property access — `obj.method` without the `()` — which types as `Unspecified` and is castable." Similarly, matching directly on a method-call result (`match obj.method():`) warns you that the `Unprivileged` result can't drive exhaustiveness checking and suggests match `obj.prop as EnumType:` as the alternative.
-
----
 
 **The key takeaway**
 

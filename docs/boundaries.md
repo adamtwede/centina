@@ -55,6 +55,15 @@ would collapse `SearchResult[]`/`RedditPost[]` down to an uninformative
 This is itself an instance of boundary conflation caught in our own design — the kind
 of error the language is meant to surface.
 
+This is not new ground. The affordance/transport split is the same distinction Alistair
+Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture)
+("Ports and Adapters") draws between a **port** — a declared interface where the
+application meets the outside world — and an **adapter** — the technology that fulfils
+it. A boundary is a port; a door is a method on that port; the transport AISL refuses to
+model is the adapter. AISL's contribution on top of that prior art is the provenance
+layer: a door read is a privileged data source under "never manufactures data," and the
+`datasource`/`datasink`/`boundary` roles make direction checkable.
+
 ## The three roles
 
 A boundary carries a direction, declared as the kind keyword:
@@ -231,6 +240,41 @@ Smells that you've drawn the line wrong:
   the kind was a transport like `Webpage`) put the role on the instance. Once the kind
   became the *affordance*, the affordance carries a definite direction, so the role's
   natural home is the kind, with instances inheriting it.
+
+## When *not* to reach for a boundary
+
+Boundaries are the right primitive for **I/O-shaped** features and a poor fit for
+**compute/transform-shaped** ones. Forcing a boundary frame onto pure computation
+reliably produces "implementation tasks dressed as doors" — the
+`create_primitive()`/`get_data()` smell — which is the signal that you've modeled the
+*act of building the feature* instead of data crossing a runtime seam.
+
+The quick diagnostic is to **count the boundary-ends** of the slice you're specifying —
+how many ends face a *real external actor at runtime* (a user, a file, a socket, a
+model, a downstream service — not the developer, and not another function in the same
+program):
+
+- **2 ends** (ingress + egress are both boundaries) — I/O-shaped. The ideal fit
+  (web handler, ETL). Boundaries carry the spec.
+- **1 end** (usually egress) — a *reporting/effect* shape: internal logic that surfaces
+  outward (a checker, a logger, a metrics emitter), with a privileged *parameter* (not a
+  boundary) on the ingress side because the producer is internal. Fit, but lighter — one
+  real sink.
+- **0 ends** — pure compute (token-stream → AST, a sort). No external seam, so little
+  spec-worthy provenance; default to skepticism.
+
+The sharpest single test for any candidate boundary: **what is on the other side of this
+door, at runtime?** "The developer building this" means it's build-time work, not a data
+seam; "another function in the same program" means it's internal compute, not a boundary.
+
+This is one face of the deeper invariant: **"never manufactures data" is not only a
+typing rule, it is AISL's domain boundary.** It auto-recuses AISL from anything whose
+essence is manufacturing — *algorithm* (how a result is computed), *dynamics* (how
+behavior unfolds over time), *aesthetics* (how something is perceived) — and points
+healthy iteration *inward*, deeper into provenance / flow / contract, rather than
+*outward* toward general-purpose programming. The `aisl-fit` skill
+(`.claude/skills/aisl-fit/SKILL.md`) operationalizes this as a structured "is this even
+an AISL task?" determination run before a spec is written.
 
 ## Deferred / open
 
