@@ -1,61 +1,9 @@
 {
-  "source": "/Users/Z004M40/Projects/aisl/specs/refactor_external/refactor_external.aisl",
-  "generatedAt": "2026-06-28T02:47:23.740Z",
-  "types": {
-    "LineOfAISL": {
-      "source": "local",
-      "properties": [
-        "source_file",
-        "type"
-      ]
-    },
-    "CheckerResult": {
-      "source": "external",
-      "externalPath": "../../src/checker.ts",
-      "properties": []
-    }
-  },
-  "enums": {
-    "AISL_LINE_TYPES": {
-      "source": "local",
-      "members": [
-        "EXTERNAL",
-        "IMPORT",
-        "EVERYTHING_ELSE"
-      ]
-    }
-  },
+  "source": "/Users/Z004M40/Projects/aisl/specs/refactor_external/pretend_aisl_checker.aisl",
+  "generatedAt": "2026-06-28T02:46:56.933Z",
+  "types": {},
+  "enums": {},
   "functions": {
-    "import_resolver_aisl": {
-      "source": "local",
-      "params": [
-        {
-          "name": "statement",
-          "type": "LineOfAISL"
-        }
-      ],
-      "returnType": null
-    },
-    "import_resolver_ts": {
-      "source": "local",
-      "params": [
-        {
-          "name": "statement",
-          "type": "LineOfAISL"
-        }
-      ],
-      "returnType": null
-    },
-    "import_syntax_checker": {
-      "source": "local",
-      "params": [
-        {
-          "name": "statement",
-          "type": "LineOfAISL"
-        }
-      ],
-      "returnType": "CheckerResult"
-    },
     "resolve_external_symbol": {
       "source": "local",
       "params": [
@@ -65,12 +13,6 @@
         }
       ],
       "returnType": null
-    },
-    "resolve_symbol": {
-      "source": "external",
-      "externalPath": "./pretend_ts_checker.ts",
-      "params": [],
-      "returnType": "Unknown"
     }
   },
   "globals": {},
