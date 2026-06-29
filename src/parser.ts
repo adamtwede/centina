@@ -504,7 +504,7 @@ class Parser {
 	}
 
 	private parseUnary(): Expr {
-		if (this.check("BANG")) {
+		if (this.check("BANG") || this.check("NOT")) {
 			const t = this.advance();
 			const expr = this.parseUnary();
 			return { kind: "Unary", op: "!", expr, line: t.line };

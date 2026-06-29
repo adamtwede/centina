@@ -33,6 +33,20 @@
 				"scopeName": "source.aisl",
 				"path": "./syntaxes/aisl.tmLanguage.json"
 			}
-		]
+		],
+		"configurationDefaults": {
+			"editor.tokenColorCustomizations": {
+				"textMateRules": [
+					{
+						"scope": "keyword.other.directive.warn.aisl",
+						"settings": { "foreground": "#e5c07b" }
+					},
+					{
+						"scope": "keyword.other.directive.error.aisl",
+						"settings": { "foreground": "#d19a66" }
+					}
+				]
+			}
+		}
 	}
 }

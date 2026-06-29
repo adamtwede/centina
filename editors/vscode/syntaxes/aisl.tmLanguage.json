@@ -28,6 +28,22 @@
 					"end": "$"
 				},
 				{
+					"name": "comment.line.number-sign.directive.warn.aisl",
+					"begin": "#\\s*(~warn:)",
+					"beginCaptures": {
+						"1": { "name": "keyword.other.directive.warn.aisl" }
+					},
+					"end": "$"
+				},
+				{
+					"name": "comment.line.number-sign.directive.error.aisl",
+					"begin": "#\\s*(~error:)",
+					"beginCaptures": {
+						"1": { "name": "keyword.other.directive.error.aisl" }
+					},
+					"end": "$"
+				},
+				{
 					"name": "comment.line.number-sign.aisl",
 					"match": "#.*$"
 				}

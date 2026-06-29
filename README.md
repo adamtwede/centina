@@ -335,7 +335,7 @@ function handle(x: Unspecified):
     # @agent: handle item
 
 function dispatch(x: Unspecified, ready: Bool, blocked: Bool):
-    if ready and !blocked:
+    if ready and not blocked:
         proceed()
     if x is Feedback or x is Step:
         handle(x)

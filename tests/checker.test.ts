@@ -513,6 +513,18 @@ test("'is not' with an unknown type name is an error", () => {
 	assert.ok(errorsOf(diags).some((e) => /unknown type 'NoSuchType'/.test(e.message)));
 });
 
+test("'not' keyword is an alias for '!' as standalone negation", () => {
+	const diags = diagnosticsFor(
+		[
+			"function f(ready: Bool, blocked: Bool):",
+			"\tif ready and not blocked:",
+			"\t\tx = 1",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
 test("'and' keyword is an alias for '&&'", () => {
 	const diags = diagnosticsFor(
 		[
