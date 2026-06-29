@@ -135,6 +135,70 @@ test("a duplicate match case is an error", () => {
 	assert.ok(errors.some((e) => /duplicate match case/.test(e.message)));
 });
 
+test("a wildcard case satisfies exhaustiveness for an enum match", () => {
+	const diags = diagnosticsFor(
+		[
+			"enum Verdict = A | B | C",
+			"function f(v: Verdict) -> Number:",
+			"\tmatch v:",
+			"\t\tcase A:",
+			"\t\t\treturn 1",
+			"\t\tcase _:",
+			"\t\t\treturn 0",
+			"\treturn 0",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("a wildcard case alone is sufficient for exhaustiveness", () => {
+	const diags = diagnosticsFor(
+		[
+			"enum Verdict = A | B | C",
+			"function f(v: Verdict) -> Number:",
+			"\tmatch v:",
+			"\t\tcase _:",
+			"\t\t\treturn 0",
+			"\treturn 0",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("a duplicate wildcard case is an error", () => {
+	const diags = diagnosticsFor(
+		[
+			"enum Verdict = A | B",
+			"function f(v: Verdict):",
+			"\tmatch v:",
+			"\t\tcase _:",
+			"\t\t\treturn 1",
+			"\t\tcase _:",
+			"\t\t\treturn 2",
+			"",
+		].join("\n"),
+	);
+	assert.ok(errorsOf(diags).some((e) => /duplicate wildcard/.test(e.message)));
+});
+
+test("a wildcard that is not the last case warns about unreachable cases", () => {
+	const diags = diagnosticsFor(
+		[
+			"enum Verdict = A | B",
+			"function f(v: Verdict):",
+			"\tmatch v:",
+			"\t\tcase _:",
+			"\t\t\treturn 0",
+			"\t\tcase A:",
+			"\t\t\treturn 1",
+			"",
+		].join("\n"),
+	);
+	assert.ok(warningsOf(diags).some((w) => /unreachable/.test(w.message)));
+});
+
 test("matching on an Unspecified subject warns instead of erroring, since exhaustiveness can't be known", () => {
 	const diags = diagnosticsFor(
 		[
@@ -366,6 +430,127 @@ test("a redundant cast of an Unspecified value to Unspecified is allowed", () =>
 		'function f(a: Agent):\n\tx = a.prompt("hi") as Unspecified\n',
 	);
 	assert.equal(errorsOf(diags).length, 0);
+});
+
+// ---- 'is' expression ----
+
+test("'is' expression with a known custom type produces no errors", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"type Step",
+			"function f(result: Feedback):",
+			"\tif result is Feedback:",
+			"\t\tx = result",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'is' expression with an unknown type name is an error", () => {
+	const diags = diagnosticsFor(
+		[
+			"function f(x: Unspecified):",
+			"\tif x is NoSuchType:",
+			"\t\ty = x",
+			"",
+		].join("\n"),
+	);
+	assert.ok(errorsOf(diags).some((e) => /unknown type 'NoSuchType'/.test(e.message)));
+});
+
+test("'is' narrows the variable type in the then-branch", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"type Step",
+			"function handle(item: Feedback):",
+			"\tif item is Feedback:",
+			"\t\ttarget: Feedback = item",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'is' can appear in a compound boolean expression", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"function f(x: Feedback, flag: Bool):",
+			"\tif x is Feedback && flag:",
+			"\t\ty = x",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'is not' produces no errors with a known type", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"type Step",
+			"function f(item: Unspecified):",
+			"\tif item is not Feedback:",
+			"\t\ty = item",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'is not' with an unknown type name is an error", () => {
+	const diags = diagnosticsFor(
+		[
+			"function f(x: Unspecified):",
+			"\tif x is not NoSuchType:",
+			"\t\ty = x",
+			"",
+		].join("\n"),
+	);
+	assert.ok(errorsOf(diags).some((e) => /unknown type 'NoSuchType'/.test(e.message)));
+});
+
+test("'and' keyword is an alias for '&&'", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"type Step",
+			"function f(x: Unspecified, flag: Bool):",
+			"\tif x is Feedback and flag:",
+			"\t\ty = x",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'or' keyword is an alias for '||'", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"function f(x: Unspecified, flag: Bool):",
+			"\tif x is Feedback or flag:",
+			"\t\ty = x",
+			"",
+		].join("\n"),
+	);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("'is not' does not narrow the variable type in the then-branch", () => {
+	const diags = diagnosticsFor(
+		[
+			"type Feedback",
+			"function f(item: Unspecified):",
+			"\tif item is not Feedback:",
+			"\t\ttarget: Feedback = item",
+			"",
+		].join("\n"),
+	);
+	assert.ok(errorsOf(diags).some((e) => /expected 'Feedback', got 'Unspecified'/.test(e.message)));
 });
 
 // ---- Unspecified and Unknown are not interchangeable across assignment/return ----

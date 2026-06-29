@@ -174,12 +174,7 @@ More on this in the next section.
 
 # Documentation
 
-> **Forward design:** boundaries (`datasource`/`datasink`/`boundary`) — first-class
-> data sources/sinks meant to make AISL a robust medium beyond the agent-supervisor
-> domain — are designed but **not yet implemented**. See
-> [`docs/boundaries.md`](docs/boundaries.md) for the proposal, syntax, and the
-> affordances-not-transports modeling guidelines. The sections below document
-> currently implemented behavior.
+The sections below document currently implemented behavior.
 
 ## Property Access vs. Method Calls in AISL
 
@@ -234,3 +229,110 @@ If you write `obj.method() as SomeType`, the checker tells you: "if 'method' des
 **The key takeaway**
 
 Parentheses mean "I am describing a computation whose *result* is opaque (unverifiable)"; no parentheses mean "I am describing a data attribute *assumed* to be on hand that I'm willing to name a type for." Both forms are valid AISL — they just express different things about the relationship between the object and the semantic meaning of the descriptive value in question.
+
+---
+
+## Match exhaustiveness and wildcards
+
+`match` over an enum-typed subject is checked for exhaustiveness: if any variant is uncovered and no wildcard is present, the checker errors.
+
+```aisl
+enum Verdict = SUCCESS | FAILURE | RETRY
+
+function handle(v: Verdict):
+    match v:
+        case SUCCESS:
+            finish()
+        case FAILURE:
+            abort()
+        # checker error here: missing case RETRY
+```
+
+`case _:` is a wildcard arm that matches anything and satisfies exhaustiveness. It must be the last arm; placing it earlier warns about unreachable cases after it.
+
+```aisl
+function handle(v: Verdict):
+    match v:
+        case SUCCESS:
+            finish()
+        case _:
+            # @agent: handle all other verdicts
+```
+
+Duplicate case arms (including duplicate wildcards) are errors.
+
+---
+
+## Type guards: `is` and `is not`
+
+`value is TypeName` is a boolean expression that checks whether a value is of the given type. It narrows the variable's type inside the `if` then-branch, eliminating the need for a cast:
+
+```aisl
+type Feedback
+type Step
+
+function process(item: Unspecified):
+    if item is Feedback:
+        submit_feedback(item)   # item is Feedback here — no cast needed
+    elif item is Step:
+        run_step(item)          # item is Step here
+```
+
+`value is not TypeName` is the negated form. It does not narrow (without a union type concept, the else-type can't be pinned), but it reads cleanly in conditions:
+
+```aisl
+function skip_feedback(item: Unspecified):
+    if item is not Feedback:
+        process_non_feedback(item)
+```
+
+Both forms work in compound expressions with `and`/`or`:
+
+```aisl
+if item is Feedback and item.priority == HIGH:
+    escalate(item)
+```
+
+The type name after `is`/`is not` must refer to a declared type or enum; an unknown name is an error.
+
+---
+
+## Boolean keyword operators: `and`, `or`
+
+`and` and `or` are keyword aliases for `&&` and `||`. Either form is accepted anywhere a boolean expression is valid. They have the same precedence and associativity as their symbol counterparts.
+
+```aisl
+if ready and not blocked:
+    proceed()
+
+if x is Feedback or x is Step:
+    handle(x)
+```
+
+The symbol forms (`&&`, `||`) remain valid; `and`/`or` are purely additive.
+
+---
+
+## Test directive annotations
+
+`# ~error:` and `# ~warn:` comments are directive annotations used to assert and suppress expected diagnostics in AISL fixture files. When the checker emits a diagnostic on a line that carries a matching directive, the diagnostic is suppressed rather than reported.
+
+```aisl
+enum Status = A | B
+
+function incomplete(s: Status):
+    match s:  # ~error: not exhaustive
+        case A:
+            return 1
+    return 0
+```
+
+**Format:** `# ~error: <pattern>` or `# ~warn: <pattern>`. The pattern is matched as a substring of the diagnostic message. For more precise matching, wrap it in slashes for a regex: `# ~error: /door '.*' returns nothing/`.
+
+**Suppression semantics:** a directive only suppresses if it cleanly matches — same line, same severity, pattern found in message. A directive that does not match any diagnostic remains "unmatched" and leaves the diagnostic visible. Mismatches do not silently eat diagnostics.
+
+**Using the fixture test runner:** place `.aisl` files in `tests/aisl/`. The runner (`tests/aisl-fixtures.test.ts`, part of `npm test`) automatically discovers and runs them, failing if:
+- any diagnostic is not covered by an annotation (unexpected diagnostic), or
+- any annotation did not match a real diagnostic (annotation firing on nothing).
+
+**In production specs:** directive annotations work identically as a deliberate suppression mechanism for known, intentional diagnostics — document the acknowledgement inline rather than in a separate comment.

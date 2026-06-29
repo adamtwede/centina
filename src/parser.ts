@@ -428,17 +428,19 @@ class Parser {
 			const caseStart = this.advance();
 			let label: string;
 			let labelKind: "ident" | "string";
+			let wildcard = false;
 			if (this.check("STRING")) {
 				label = this.advance().value;
 				labelKind = "string";
 			} else {
 				label = this.expect("IDENT", "as match case label").value;
 				labelKind = "ident";
+				if (label === "_") wildcard = true;
 			}
 			this.expect("COLON", "after match case label");
 			this.expect("NEWLINE", "after match case label");
 			const body = this.parseBlock();
-			cases.push({ label, labelKind, body, line: caseStart.line });
+			cases.push({ label, labelKind, wildcard, body, line: caseStart.line });
 			this.skipTrivia();
 		}
 		this.expect("DEDENT", "to end match body");
@@ -463,7 +465,7 @@ class Parser {
 
 	private parseOr(): Expr {
 		let left = this.parseAnd();
-		while (this.check("OROR")) {
+		while (this.check("OROR") || this.check("OR")) {
 			const t = this.advance();
 			const right = this.parseAnd();
 			left = { kind: "Binary", op: "||", left, right, line: t.line };
@@ -473,7 +475,7 @@ class Parser {
 
 	private parseAnd(): Expr {
 		let left = this.parseEquality();
-		while (this.check("ANDAND")) {
+		while (this.check("ANDAND") || this.check("AND")) {
 			const t = this.advance();
 			const right = this.parseEquality();
 			left = { kind: "Binary", op: "&&", left, right, line: t.line };
@@ -512,10 +514,19 @@ class Parser {
 
 	private parseCast(): Expr {
 		let expr = this.parsePostfix();
-		while (this.check("AS")) {
-			this.advance();
-			const typeAnnotation = this.parseTypeRef();
-			expr = { kind: "Cast", expr, typeAnnotation, line: expr.line };
+		for (;;) {
+			if (this.check("AS")) {
+				this.advance();
+				const typeAnnotation = this.parseTypeRef();
+				expr = { kind: "Cast", expr, typeAnnotation, line: expr.line };
+			} else if (this.check("IS")) {
+				const t = this.advance();
+				const negated = this.check("NOT") ? (this.advance(), true) : false;
+				const typeName = this.expect("IDENT", "as type name after 'is'").value;
+				expr = { kind: "Is", expr, typeName, negated, line: t.line };
+			} else {
+				break;
+			}
 		}
 		return expr;
 	}

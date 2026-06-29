@@ -1,6 +1,6 @@
 export type TokenType =
 	| "ENUM" | "TYPE" | "FUNCTION" | "RETURN" | "IF" | "ELIF" | "ELSE" | "MATCH" | "CASE"
-	| "FOREACH" | "IN" | "DO" | "WHILE" | "AS" | "TRUE" | "FALSE"
+	| "FOREACH" | "IN" | "DO" | "WHILE" | "AS" | "IS" | "NOT" | "AND" | "OR" | "TRUE" | "FALSE"
 	| "EXTERNAL" | "IMPORT" | "ASSUMED" | "OBJECT" | "RENAMED" | "FROM" | "WAS"
 	| "DATASOURCE" | "DATASINK" | "BOUNDARY"
 	| "IDENT" | "STRING" | "TEMPLATE_STRING" | "NUMBER"
@@ -39,6 +39,10 @@ const KEYWORDS: Record<string, TokenType> = {
 	do: "DO",
 	while: "WHILE",
 	as: "AS",
+	is: "IS",
+	not: "NOT",
+	and: "AND",
+	or: "OR",
 	true: "TRUE",
 	false: "FALSE",
 	external: "EXTERNAL",

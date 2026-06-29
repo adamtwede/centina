@@ -539,6 +539,14 @@ class Checker {
         // added here in the future, those cases must remain explicitly allowed.
         this.checkExpr(stmt.cond, scope);
         const thenScope = scope.child();
+        if (
+          stmt.cond.kind === "Is" &&
+          !stmt.cond.negated &&
+          stmt.cond.expr.kind === "Ident" &&
+          this.isKnownTypeName(stmt.cond.typeName)
+        ) {
+          thenScope.declare(stmt.cond.expr.name, { kind: "named", name: stmt.cond.typeName });
+        }
         for (const s of stmt.then) this.checkStmt(s, thenScope, sig);
         if (stmt.else) {
           const elseScope = scope.child();
@@ -607,7 +615,21 @@ class Checker {
     const subjectTy = this.checkExpr(stmt.subject, scope);
 
     const seen = new Set<string>();
-    for (const c of stmt.cases) {
+    let wildcardIdx = -1;
+    for (let i = 0; i < stmt.cases.length; i++) {
+      const c = stmt.cases[i];
+
+      if (c.wildcard) {
+        if (wildcardIdx !== -1) {
+          this.error(`duplicate wildcard case '_'`, c.line);
+        } else {
+          wildcardIdx = i;
+        }
+        const caseScope = scope.child();
+        for (const s of c.body) this.checkStmt(s, caseScope, sig);
+        continue;
+      }
+
       if (seen.has(c.label)) {
         this.error(`duplicate match case '${c.label}'`, c.line);
       }
@@ -629,7 +651,14 @@ class Checker {
       for (const s of c.body) this.checkStmt(s, caseScope, sig);
     }
 
-    if (subjectTy.kind === "named" && this.enums.has(subjectTy.name)) {
+    if (wildcardIdx !== -1 && wildcardIdx !== stmt.cases.length - 1) {
+      this.warn(
+        `wildcard case '_' is not last; case(s) after it are unreachable`,
+        stmt.cases[wildcardIdx].line,
+      );
+    }
+
+    if (wildcardIdx === -1 && subjectTy.kind === "named" && this.enums.has(subjectTy.name)) {
       const enumDecl = this.enums.get(subjectTy.name)!;
       const missing = enumDecl.members.filter((m) => !seen.has(m));
       if (missing.length > 0) {
@@ -638,12 +667,12 @@ class Checker {
           stmt.line,
         );
       }
-    } else if (subjectTy.kind === "unspecified") {
+    } else if (wildcardIdx === -1 && subjectTy.kind === "unspecified") {
       this.warn(
         `match subject has type 'Unspecified'; cast it to an enum type to enable exhaustiveness checking`,
         stmt.line,
       );
-    } else if (subjectTy.kind === "unprivileged") {
+    } else if (wildcardIdx === -1 && subjectTy.kind === "unprivileged") {
       this.warn(
         `match subject has type 'Unprivileged' (the result of an undeclared method call) and cannot be cast to an enum for exhaustiveness checking; ` +
         `if you mean to match on a discriminant attribute of the object (not call a computation), ` +
@@ -782,6 +811,13 @@ class Checker {
           );
         }
         return toTy;
+      }
+      case "Is": {
+        this.checkExpr(expr.expr, scope);
+        if (!this.isKnownTypeName(expr.typeName)) {
+          this.error(`unknown type '${expr.typeName}' in 'is' expression`, expr.line);
+        }
+        return { kind: "named", name: "Bool" };
       }
       case "Call":
         return this.checkCall(expr, scope);

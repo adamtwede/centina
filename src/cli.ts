@@ -7,6 +7,7 @@ import { checkAndCollect } from "./checker.js";
 import { resolveExternals } from "./resolveExternals.js";
 import { resolveLocalExternals } from "./resolveLocalExternals.js";
 import { buildSymbolTable } from "./symbols.js";
+import { parseDirectives, applyDirectives } from "./directives.js";
 
 function main(): void {
 	const file = process.argv[2];
@@ -36,17 +37,19 @@ function main(): void {
 			// Symbol table write is best-effort — don't abort the checker on failure.
 		}
 
-		if (diagnostics.length === 0) {
+		const { remaining } = applyDirectives(diagnostics, parseDirectives(source));
+
+		if (remaining.length === 0) {
 			console.log(`${file}: no issues found`);
 			return;
 		}
 
-		const sorted = [...diagnostics].sort((a, b) => a.line - b.line);
+		const sorted = [...remaining].sort((a, b) => a.line - b.line);
 		for (const d of sorted) {
 			console.log(`${file}:${d.line}: ${d.severity}: ${d.message}`);
 		}
-		const errorCount = diagnostics.filter((d) => d.severity === "error").length;
-		const warningCount = diagnostics.filter((d) => d.severity === "warning").length;
+		const errorCount = remaining.filter((d) => d.severity === "error").length;
+		const warningCount = remaining.filter((d) => d.severity === "warning").length;
 		console.log(`\n${errorCount} error(s), ${warningCount} warning(s)`);
 		if (errorCount > 0) process.exitCode = 1;
 	} catch (e) {

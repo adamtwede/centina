@@ -114,6 +114,7 @@ export type Stmt =
 export interface MatchCase {
 	label: string;
 	labelKind: "ident" | "string";
+	wildcard: boolean;
 	body: Stmt[];
 	line: number;
 }
@@ -132,4 +133,5 @@ export type Expr =
 	| { kind: "Unary"; op: "!"; expr: Expr; line: number }
 	| { kind: "Call"; callee: Expr; args: Expr[]; line: number }
 	| { kind: "Member"; obj: Expr; prop: string; line: number }
-	| { kind: "Cast"; expr: Expr; typeAnnotation: TypeRef; line: number };
+	| { kind: "Cast"; expr: Expr; typeAnnotation: TypeRef; line: number }
+	| { kind: "Is"; expr: Expr; typeName: string; negated: boolean; line: number };
