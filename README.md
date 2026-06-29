@@ -37,7 +37,7 @@ datasource TodoReactComponent():
     # so we just ascribe the type info (in this case, Todo) directly onto it.
     get_todos() -> Todo[] # functions on boundary types are called 'door methods' or simply 'doors'.
 
-todo_component = TodoComponent() # boundaries must be "instantiated," it'll be clear why later.
+todo_component = TodoReactComponent() # boundaries must be "instantiated," it'll be clear why later.
 
 # the other two boundary types are 'datasink' (write only) and 'boundary' (read/write).
 # these conventions are enforced by the AISL checker with a simple structural heuristic:
@@ -193,9 +193,13 @@ enum Kind = EXPR | DECL | RETURN
 
 function classify(s: Statement) -> Kind:
     match s.kind as Kind:   # bare prop → Unspecified → castable → exhaustiveness works
-        case EXPR:  return EXPR
-        case DECL:  return DECL
-        case RETURN: return RETURN
+        case EXPR:
+            return EXPR
+        case DECL:
+            return DECL
+        case RETURN:
+            return RETURN
+    return EXPR
 ```
 
 `obj.method()` — describes the execution of a computation (with an *unverifiable* result).
@@ -242,19 +246,21 @@ enum Verdict = SUCCESS | FAILURE | RETRY
 function handle(v: Verdict):
     match v:
         case SUCCESS:
-            finish()
+            # @agent: handle success
         case FAILURE:
-            abort()
-        # checker error here: missing case RETRY
+            # @agent: handle failure
+    # error: match over enum 'Verdict' is not exhaustive; missing case(s): RETRY
 ```
 
 `case _:` is a wildcard arm that matches anything and satisfies exhaustiveness. It must be the last arm; placing it earlier warns about unreachable cases after it.
 
 ```aisl
+enum Verdict = SUCCESS | FAILURE | RETRY
+
 function handle(v: Verdict):
     match v:
         case SUCCESS:
-            finish()
+            # @agent: handle success
         case _:
             # @agent: handle all other verdicts
 ```
@@ -271,6 +277,12 @@ Duplicate case arms (including duplicate wildcards) are errors.
 type Feedback
 type Step
 
+function submit_feedback(feedback: Feedback):
+    # @agent: submit the feedback
+
+function run_step(step: Step):
+    # @agent: run the step
+
 function process(item: Unspecified):
     if item is Feedback:
         submit_feedback(item)   # item is Feedback here — no cast needed
@@ -281,16 +293,27 @@ function process(item: Unspecified):
 `value is not TypeName` is the negated form. It does not narrow (without a union type concept, the else-type can't be pinned), but it reads cleanly in conditions:
 
 ```aisl
+type Feedback
+
+function process_non_feedback(item: Unspecified):
+    # @agent: process non-feedback item
+
 function skip_feedback(item: Unspecified):
     if item is not Feedback:
         process_non_feedback(item)
 ```
 
-Both forms work in compound expressions with `and`/`or`:
+Both forms work in compound expressions with `and`/`or`. Note that type narrowing only fires when the entire condition is a bare `ident is TypeName` — a compound condition like `item is Feedback and flag` does not narrow `item` inside the branch:
 
 ```aisl
-if item is Feedback and item.priority == HIGH:
-    escalate(item)
+type Feedback
+
+function log_item(x: Unspecified):
+    # @agent: log item
+
+function demonstrate_and(item: Unspecified, high_priority: Bool):
+    if item is Feedback and high_priority:
+        log_item(item)   # item is still Unspecified here; narrowing requires a bare 'is' condition
 ```
 
 The type name after `is`/`is not` must refer to a declared type or enum; an unknown name is an error.
@@ -302,11 +325,20 @@ The type name after `is`/`is not` must refer to a declared type or enum; an unkn
 `and` and `or` are keyword aliases for `&&` and `||`. Either form is accepted anywhere a boolean expression is valid. They have the same precedence and associativity as their symbol counterparts.
 
 ```aisl
-if ready and not blocked:
-    proceed()
+type Feedback
+type Step
 
-if x is Feedback or x is Step:
-    handle(x)
+function proceed():
+    # @agent: proceed
+
+function handle(x: Unspecified):
+    # @agent: handle item
+
+function dispatch(x: Unspecified, ready: Bool, blocked: Bool):
+    if ready and !blocked:
+        proceed()
+    if x is Feedback or x is Step:
+        handle(x)
 ```
 
 The symbol forms (`&&`, `||`) remain valid; `and`/`or` are purely additive.
@@ -315,12 +347,12 @@ The symbol forms (`&&`, `||`) remain valid; `and`/`or` are purely additive.
 
 ## Test directive annotations
 
-`# ~error:` and `# ~warn:` comments are directive annotations used to assert and suppress expected diagnostics in AISL fixture files. When the checker emits a diagnostic on a line that carries a matching directive, the diagnostic is suppressed rather than reported.
+`# ~error:` and `# ~warn:` comments are directive annotations used to simultaneously assert and suppress expected diagnostics in AISL fixture files. This is considered safe because AISL pseudocode is never executed, merely interpreted, though the coding agent will likely flag it if the spec is run through the aisl-iterate skill. When the checker emits a diagnostic on a line that carries a matching directive, the diagnostic is suppressed rather than reported.
 
 ```aisl
 enum Status = A | B
 
-function incomplete(s: Status):
+function incomplete(s: Status) -> Number:
     match s:  # ~error: not exhaustive
         case A:
             return 1
