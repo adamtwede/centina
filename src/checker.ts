@@ -1,4 +1,5 @@
 import {
+  BoundaryRole,
   EnumDecl,
   Expr,
   ExternalDecl,
@@ -153,6 +154,20 @@ interface FunctionSig {
   line: number;
 }
 
+interface DoorSig {
+  params: { name: string; type: Ty }[];
+  returnType: Ty;
+  isVoid: boolean;
+}
+
+interface BoundarySig {
+  name: string;
+  role: BoundaryRole;
+  constructorParams: { name: string; type: Ty }[];
+  doors: Map<string, DoorSig>;
+  line: number;
+}
+
 class Scope {
   private vars = new Map<string, Ty>();
   constructor(private parent?: Scope) {}
@@ -199,6 +214,8 @@ class Checker {
   private externalTypes = new Map<string, ExternalDecl>();
   /** `external function` aliases — callable, return Unknown, args unchecked (no param info is tracked). */
   private externalFunctions = new Map<string, ExternalDecl>();
+  /** Boundary kinds declared in this document. */
+  private boundaries = new Map<string, BoundarySig>();
 
   constructor(private program: Program) {}
 
@@ -300,6 +317,45 @@ class Checker {
         line: fn.line,
       });
     }
+
+    for (const b of this.program.boundaries) {
+      if (BUILTIN_TYPE_NAMES.has(b.name)) {
+        this.error(`cannot redefine built-in type '${b.name}'`, b.line);
+        continue;
+      }
+      if (this.isKnownTypeName(b.name)) {
+        this.error(`'${b.name}' is already declared`, b.line);
+        continue;
+      }
+      const constructorParams = b.constructorParams.map((p) => ({
+        name: p.name,
+        type: p.typeAnnotation ? this.resolveTypeRef(p.typeAnnotation) : UNSPECIFIED,
+      }));
+      const doors = new Map<string, DoorSig>();
+      for (const door of b.doors) {
+        const isVoid = door.returnType === undefined;
+        const returnType = door.returnType ? this.resolveTypeRef(door.returnType) : UNSPECIFIED;
+        const params = door.params.map((p) => ({
+          name: p.name,
+          type: p.typeAnnotation ? this.resolveTypeRef(p.typeAnnotation) : UNSPECIFIED,
+        }));
+        doors.set(door.name, { params, returnType, isVoid });
+
+        // Direction enforcement
+        if (b.role === "datasource" && isVoid) {
+          this.error(
+            `door '${door.name}' on datasource '${b.name}' returns nothing — datasources are read-only; did you mean 'boundary'?`,
+            door.line,
+          );
+        } else if (b.role === "datasink" && !isVoid) {
+          this.error(
+            `door '${door.name}' on datasink '${b.name}' returns a value — datasinks are write-only; did you mean 'boundary'?`,
+            door.line,
+          );
+        }
+      }
+      this.boundaries.set(b.name, { name: b.name, role: b.role, constructorParams, doors, line: b.line });
+    }
   }
 
   private isKnownTypeName(name: string): boolean {
@@ -307,6 +363,7 @@ class Checker {
       this.enums.has(name) ||
       this.types.has(name) ||
       this.externalTypes.has(name) ||
+      this.boundaries.has(name) ||
       BUILTIN_SCALARS.has(name) ||
       name === AGENT_TYPE ||
       name === "Unspecified" ||
@@ -342,6 +399,17 @@ class Checker {
 
   private checkGlobals(): void {
     for (const g of this.program.globals) {
+      if (this.isVoidDoorCall(g.init, this.globalScope)) {
+        const call = g.init as Extract<Expr, { kind: "Call" }>;
+        const member = call.callee as Extract<Expr, { kind: "Member" }>;
+        this.error(
+          `door '${member.prop}' returns nothing; its result cannot be bound to '${g.name}'`,
+          g.line,
+        );
+        this.checkExpr(g.init, this.globalScope);
+        this.globalScope.declare(g.name, UNSPECIFIED);
+        continue;
+      }
       const initTy = this.checkExpr(g.init, this.globalScope);
       if (this.rejectsUnprivilegedBinding(initTy, g.name, g.line)) {
         this.globalScope.declare(g.name, UNSPECIFIED);
@@ -370,6 +438,18 @@ class Checker {
       line,
     );
     return true;
+  }
+
+  /** Returns true when `expr` is a call to a void door on a boundary instance, without running type checking. */
+  private isVoidDoorCall(expr: Expr, scope: Scope): boolean {
+    if (expr.kind !== "Call") return false;
+    if (expr.callee.kind !== "Member") return false;
+    const objTy = scope.lookup(expr.callee.obj.kind === "Ident" ? expr.callee.obj.name : "");
+    if (!objTy || objTy.kind !== "named") return false;
+    const bsig = this.boundaries.get(objTy.name);
+    if (!bsig) return false;
+    const door = bsig.doors.get(expr.callee.prop);
+    return !!door && door.isVoid;
   }
 
   // ---- functions ------------------------------------------------------------------
@@ -416,6 +496,18 @@ class Checker {
   private checkStmt(stmt: Stmt, scope: Scope, sig: FunctionSig): void {
     switch (stmt.kind) {
       case "VarDecl": {
+        // Check for void door call before checkExpr so we can produce a precise error.
+        if (this.isVoidDoorCall(stmt.init, scope)) {
+          const call = stmt.init as Extract<Expr, { kind: "Call" }>;
+          const member = call.callee as Extract<Expr, { kind: "Member" }>;
+          this.error(
+            `door '${member.prop}' returns nothing; its result cannot be bound to '${stmt.name}'`,
+            stmt.line,
+          );
+          this.checkExpr(stmt.init, scope);
+          scope.declare(stmt.name, UNSPECIFIED);
+          return;
+        }
         const initTy = this.checkExpr(stmt.init, scope);
         if (this.rejectsUnprivilegedBinding(initTy, stmt.name, stmt.line)) {
           scope.declare(stmt.name, UNSPECIFIED);
@@ -809,6 +901,26 @@ class Checker {
         }
         return objTy.element;
       }
+      // Door method dispatch for boundary instances.
+      if (objTy.kind === "named" && this.boundaries.has(objTy.name)) {
+        const bsig = this.boundaries.get(objTy.name)!;
+        const door = bsig.doors.get(expr.callee.prop);
+        if (!door) {
+          this.error(
+            `'${expr.callee.prop}' is not a declared door of '${objTy.name}'; only declared doors may be called on a boundary instance`,
+            expr.line,
+          );
+          return UNSPECIFIED;
+        }
+        if (expr.args.length !== door.params.length) {
+          this.error(
+            `door '${expr.callee.prop}' expects ${door.params.length} argument(s), got ${expr.args.length}`,
+            expr.line,
+          );
+        }
+        return door.isVoid ? UNSPECIFIED : door.returnType;
+      }
+
       // A method call chained off an external (Unknown) object stays Unknown,
       // so the "unverified shape" risk survives the chain instead of quietly
       // downgrading to the less-suspicious Unprivileged. Every other method
@@ -829,6 +941,18 @@ class Checker {
         );
       }
       return { kind: "named", name: AGENT_TYPE };
+    }
+
+    if (expr.callee.kind === "Ident" && this.boundaries.has(expr.callee.name)) {
+      const sig = this.boundaries.get(expr.callee.name)!;
+      for (const a of expr.args) this.checkExpr(a, scope);
+      if (expr.args.length !== sig.constructorParams.length) {
+        this.error(
+          `'${sig.name}(...)' expects ${sig.constructorParams.length} argument(s), got ${expr.args.length}`,
+          expr.line,
+        );
+      }
+      return { kind: "named", name: sig.name };
     }
 
     if (

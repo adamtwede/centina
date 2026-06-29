@@ -77,7 +77,7 @@
 		},
 		"keywords": {
 			"name": "keyword.control.aisl",
-			"match": "\\b(assumed|enum|type|function|return|if|else|match|case|foreach|in|do|while|as|external|import|object|from|renamed|was)\\b"
+			"match": "\\b(assumed|enum|type|function|return|if|else|match|case|foreach|in|do|while|as|external|import|object|from|renamed|was|datasource|datasink|boundary)\\b"
 		},
 		"builtin-types": {
 			"name": "support.type.builtin.aisl",
@@ -94,6 +94,13 @@
 				},
 				{
 					"match": "\\b(enum|type)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
+					"captures": {
+						"1": { "name": "keyword.control.aisl" },
+						"2": { "name": "entity.name.type.aisl" }
+					}
+				},
+				{
+					"match": "\\b(datasource|datasink|boundary)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b",
 					"captures": {
 						"1": { "name": "keyword.control.aisl" },
 						"2": { "name": "entity.name.type.aisl" }

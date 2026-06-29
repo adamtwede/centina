@@ -53,6 +53,24 @@ export interface Param {
 	line: number;
 }
 
+export type BoundaryRole = "datasource" | "datasink" | "boundary";
+
+export interface DoorDecl {
+	name: string;
+	params: Param[];
+	returnType?: TypeRef;
+	line: number;
+}
+
+export interface BoundaryDecl {
+	kind: "BoundaryDecl";
+	role: BoundaryRole;
+	name: string;
+	constructorParams: Param[];
+	doors: DoorDecl[];
+	line: number;
+}
+
 export interface FunctionDecl {
 	kind: "FunctionDecl";
 	name: string;
@@ -70,7 +88,7 @@ export interface GlobalVarDecl {
 	line: number;
 }
 
-export type TopLevel = EnumDecl | TypeDecl | FunctionDecl | GlobalVarDecl | ExternalDecl;
+export type TopLevel = EnumDecl | TypeDecl | FunctionDecl | GlobalVarDecl | ExternalDecl | BoundaryDecl;
 
 export interface Program {
 	kind: "Program";
@@ -79,6 +97,7 @@ export interface Program {
 	globals: GlobalVarDecl[];
 	functions: FunctionDecl[];
 	externals: ExternalDecl[];
+	boundaries: BoundaryDecl[];
 }
 
 export type Stmt =

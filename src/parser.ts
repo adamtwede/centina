@@ -8,8 +8,12 @@ const PROPERTY_NAME_TOKENS = new Set<TokenType>([
 	"ENUM", "TYPE", "FUNCTION", "RETURN", "IF", "ELIF", "ELSE", "MATCH", "CASE",
 	"FOREACH", "IN", "DO", "WHILE", "AS", "TRUE", "FALSE",
 	"EXTERNAL", "IMPORT", "ASSUMED", "OBJECT", "RENAMED", "FROM", "WAS",
+	"DATASOURCE", "DATASINK", "BOUNDARY",
 ]);
 import {
+	BoundaryDecl,
+	BoundaryRole,
+	DoorDecl,
 	EnumDecl,
 	Expr,
 	ExternalDecl,
@@ -94,7 +98,7 @@ class Parser {
 	}
 
 	parseProgram(): Program {
-		const program: Program = { kind: "Program", enums: [], types: [], globals: [], functions: [], externals: [] };
+		const program: Program = { kind: "Program", enums: [], types: [], globals: [], functions: [], externals: [], boundaries: [] };
 		this.skipTrivia();
 		while (!this.check("EOF")) {
 			if (this.check("ENUM")) {
@@ -105,6 +109,8 @@ class Parser {
 				program.functions.push(this.parseFunctionDecl());
 			} else if (this.check("EXTERNAL") || this.check("IMPORT") || this.check("ASSUMED")) {
 				program.externals.push(this.parseExternalDecl());
+			} else if (this.check("DATASOURCE") || this.check("DATASINK") || this.check("BOUNDARY")) {
+				program.boundaries.push(this.parseBoundaryDecl());
 			} else if (this.check("IDENT")) {
 				program.globals.push(this.parseGlobalVarDecl());
 			} else {
@@ -133,6 +139,53 @@ class Parser {
 		const name = this.expect("IDENT", "for type name").value;
 		this.expect("NEWLINE", "after type declaration");
 		return { kind: "TypeDecl", name, line: start.line };
+	}
+
+	private parseBoundaryDecl(): BoundaryDecl {
+		const startTok = this.peek();
+		let role: BoundaryRole;
+		if (this.match("DATASOURCE")) role = "datasource";
+		else if (this.match("DATASINK")) role = "datasink";
+		else { this.expect("BOUNDARY", "to start boundary declaration"); role = "boundary"; }
+
+		const name = this.expect("IDENT", "for boundary name").value;
+		this.expect("LPAREN", "after boundary name");
+		const constructorParams: Param[] = [];
+		if (!this.check("RPAREN")) {
+			constructorParams.push(this.parseParam());
+			while (this.match("COMMA")) {
+				constructorParams.push(this.parseParam());
+			}
+		}
+		this.expect("RPAREN", "to close boundary constructor parameter list");
+		this.expect("COLON", "after boundary signature");
+		this.expect("NEWLINE", "after boundary signature");
+		this.expect("INDENT", "to open boundary door block");
+
+		const doors: DoorDecl[] = [];
+		while (!this.check("DEDENT") && !this.check("EOF")) {
+			this.skipTrivia();
+			if (this.check("DEDENT") || this.check("EOF")) break;
+			const doorLine = this.peek().line;
+			const doorName = this.expect("IDENT", "for door name").value;
+			this.expect("LPAREN", "after door name");
+			const doorParams: Param[] = [];
+			if (!this.check("RPAREN")) {
+				doorParams.push(this.parseParam());
+				while (this.match("COMMA")) {
+					doorParams.push(this.parseParam());
+				}
+			}
+			this.expect("RPAREN", "to close door parameter list");
+			let doorReturn: TypeRef | undefined;
+			if (this.match("ARROW")) {
+				doorReturn = this.parseTypeRef();
+			}
+			this.expect("NEWLINE", "after door declaration");
+			doors.push({ name: doorName, params: doorParams, returnType: doorReturn, line: doorLine });
+		}
+		this.expect("DEDENT", "to close boundary door block");
+		return { kind: "BoundaryDecl", role, name, constructorParams, doors, line: startTok.line };
 	}
 
 	private parseExternalDecl(): ExternalDecl {

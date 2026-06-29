@@ -1,4 +1,4 @@
-import type { Program, TypeRef } from "./ast.js";
+import type { BoundaryRole, Program, TypeRef } from "./ast.js";
 
 export interface TypeEntry {
   source: "local" | "external";
@@ -31,6 +31,17 @@ export interface GlobalEntry {
   type: string;
 }
 
+export interface DoorEntry {
+  params: ParamEntry[];
+  returnType: string | null;
+}
+
+export interface BoundaryEntry {
+  role: BoundaryRole;
+  constructorParams: ParamEntry[];
+  doors: Record<string, DoorEntry>;
+}
+
 export interface BuiltinMethodEntry {
   name: string;
   params: ParamEntry[];
@@ -55,6 +66,7 @@ export interface SymbolTable {
   functions: Record<string, FunctionEntry>;
   globals: Record<string, GlobalEntry>;
   builtins: Record<string, BuiltinEntry>;
+  boundaries: Record<string, BoundaryEntry>;
 }
 
 export function typeRefToString(ref: TypeRef): string {
@@ -193,6 +205,28 @@ export function buildSymbolTable(
     };
   }
 
+  const boundaries: Record<string, BoundaryEntry> = {};
+  for (const b of program.boundaries) {
+    const doors: Record<string, DoorEntry> = {};
+    for (const door of b.doors) {
+      doors[door.name] = {
+        params: door.params.map((p) => ({
+          name: p.name,
+          type: p.typeAnnotation ? typeRefToString(p.typeAnnotation) : "Unspecified",
+        })),
+        returnType: door.returnType ? typeRefToString(door.returnType) : null,
+      };
+    }
+    boundaries[b.name] = {
+      role: b.role,
+      constructorParams: b.constructorParams.map((p) => ({
+        name: p.name,
+        type: p.typeAnnotation ? typeRefToString(p.typeAnnotation) : "Unspecified",
+      })),
+      doors,
+    };
+  }
+
   return {
     source: sourcePath,
     generatedAt: new Date().toISOString(),
@@ -201,5 +235,6 @@ export function buildSymbolTable(
     functions,
     globals,
     builtins,
+    boundaries,
   };
 }

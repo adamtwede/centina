@@ -1,6 +1,6 @@
 {
   "source": "/Users/Z004M40/Projects/aisl/prototype.aisl",
-  "generatedAt": "2026-06-26T01:48:48.980Z",
+  "generatedAt": "2026-06-29T03:27:56.116Z",
   "types": {
     "Step": {
       "source": "local",
@@ -212,5 +212,6 @@
         "specification"
       ]
     }
-  }
+  },
+  "boundaries": {}
 }

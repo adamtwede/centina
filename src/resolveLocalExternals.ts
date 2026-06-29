@@ -4,6 +4,7 @@ import { tokenize } from "./lexer.js";
 import { parse } from "./parser.js";
 import { check, Diagnostic, BUILTIN_TYPE_NAMES } from "./checker.js";
 import {
+  BoundaryDecl,
   EnumDecl,
   ExternalDecl,
   ExternalSymbolKind,
@@ -15,14 +16,15 @@ import {
 } from "./ast.js";
 
 /** "external" here means "found only as another `external ... from ...` entry in the target file" — a forwarding chain, never injected directly (see below). */
-type NativeKind = "enum" | "type" | "function" | "global" | "external";
-type InjectableKind = "enum" | "type" | "function" | "global";
+type NativeKind = "enum" | "type" | "function" | "global" | "external" | "boundary";
+type InjectableKind = "enum" | "type" | "function" | "global" | "boundary";
 type NativeDecl =
   | EnumDecl
   | TypeDecl
   | FunctionDecl
   | GlobalVarDecl
-  | ExternalDecl;
+  | ExternalDecl
+  | BoundaryDecl;
 
 interface LoadedFile {
   program: Program;
@@ -62,6 +64,8 @@ function findNative(
   if (g) return { decl: g, nativeKind: "global" };
   const ext = program.externals.find((d) => d.name === name);
   if (ext) return { decl: ext, nativeKind: "external" };
+  const b = program.boundaries.find((d) => d.name === name);
+  if (b) return { decl: b, nativeKind: "boundary" };
   return undefined;
 }
 
@@ -70,7 +74,7 @@ function symbolKindMatches(
   declared: ExternalSymbolKind,
   native: InjectableKind,
 ): boolean {
-  if (declared === "type") return native === "type" || native === "enum";
+  if (declared === "type") return native === "type" || native === "enum" || native === "boundary";
   if (declared === "function") return native === "function";
   return native === "global";
 }
@@ -102,6 +106,9 @@ function inject(
       return;
     case "global":
       program.globals.push(cloned as GlobalVarDecl);
+      return;
+    case "boundary":
+      program.boundaries.push(cloned as BoundaryDecl);
       return;
   }
 }
@@ -183,6 +190,7 @@ function collectDeclaredNames(program: Program): Set<string> {
   for (const d of program.functions) names.add(d.name);
   for (const d of program.globals) names.add(d.name);
   for (const d of program.externals) names.add(d.name);
+  for (const d of program.boundaries) names.add(d.name);
   return names;
 }
 

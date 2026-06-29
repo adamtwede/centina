@@ -145,17 +145,15 @@ When the callee is a `Member` and `objTy` is a `named` type that resolves to a k
 
 After collecting `BoundarySig` entries in `collectDecls()`, validate each door against its kind's role:
 
-- **`datasource`**: every door must have a return type annotation (non-void). If a door is void, emit a **warning**:
+- **`datasource`**: every door must have a return type annotation (non-void). If a door is void, emit an **error**:
   ```
-  warning: door 'write' on datasource 'LogFile' returns nothing — datasources are read-only; did you mean 'boundary'?
+  error: door 'write' on datasource 'LogFile' returns nothing — datasources are read-only; did you mean 'boundary'?
   ```
-- **`datasink`**: every door must be void (no return annotation). If a door has a return type, emit a **warning**:
+- **`datasink`**: every door must be void (no return annotation). If a door has a return type, emit an **error**:
   ```
-  warning: door 'search' on datasink 'LogFile' returns a value — datasinks are write-only; did you mean 'boundary'?
+  error: door 'search' on datasink 'LogFile' returns a value — datasinks are write-only; did you mean 'boundary'?
   ```
 - **`boundary`**: any mix is allowed; no direction diagnostics.
-
-Warnings, not errors, to match the design doc ("warns/errors" — and since the spec function itself only emits errors, the softer signal is appropriate for the direction check).
 
 #### Privileged source status
 
@@ -196,8 +194,8 @@ In `buildSymbolTable()`, iterate `program.boundaries` and populate `boundaries`.
 
 Add a new test file `tests/boundary.test.ts` that covers:
 - A clean `datasource` / `datasink` / `boundary` declaration (no diagnostics).
-- A void door on a `datasource` → warning.
-- A returning door on a `datasink` → warning.
+- A void door on a `datasource` → error.
+- A returning door on a `datasink` → error.
 - An undeclared door call on a boundary instance → error.
 - A void door call result bound in a `VarDecl` → error.
 - A door call result flowing into a typed binding without a cast → no diagnostic (privileged source).
