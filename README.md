@@ -138,7 +138,7 @@ More on this in the next section.
 
 **Principle**: Draw boundaries around *affordances* — what data you get or put, and in what shape — not around technologies or structures that carry them. Lean away from "what is this thing" and toward "what does it give me? / what do I do with it?" This is the hard part for humans writing something that feels like code, and it's the main thing AISL is here to push you toward.
 
-**Principle**: Model your proposed boundaries as one of the two restricted types first. Only use 'boundary' when it's unambiguous that you need it.
+**Principle**: Model your proposed boundaries as one of the two restricted types (`datasource` or `datasink`) first. Only use `boundary` when it's unambiguous that you need it.
 
 **Principle**: Identify and use datasources over ad hoc types to describe where your data comes from. Boundary types allow you to succinctly describe an interface with the outside world. Use this to your advantage, because more than anything else, boundaries will limit scope, identify roles, inform separation of concerns, etc.
 
@@ -159,7 +159,7 @@ More on this in the next section.
 
 - You have more than one `boundary` declared in a single spec (*not* of the other types, specifically the `boundary` boundary type). That's often an indication your spec is modeling the wrong thing, and your boundaries are porous.
 - You're reaching for a per-instance method override. (→ separate boundary — this is the invariant in #2 above firing)
-- Door names are drifting vague (get_contents, get_data) to span instances that really do different things. (→ split into specific affordances)
+- Door names are drifting vague (`get_contents`, `get_data`) to span instances that really do different things. (→ split into specific affordances)
 - Your kind names are technology nouns (Webpage, HttpClient, SqlTable) instead of affordance nouns (GoogleSearch, ProductCatalog, UserStore). Not always wrong — sometimes the affordance genuinely is "a page I read and write wholesale" — but it's a yellow flag worth asking question #5 above.
 - One instance only ever touches half the doors. Maybe fine (see narrowing below); maybe it's telling you it's a different boundary.
 
@@ -169,8 +169,8 @@ More on this in the next section.
 2. AISL pseudocode doesn't "manufacture" objects. This is by design. Other than primitives, data in an AISL spec must come from a small selection of "privileged" sources, all semantically *external* to the feature or process being specified.
 3. Writing a spec can be a frustrating process. That's why many people don't do it. They wind up regretting it, though, when the consequences of not having thought things through well enough catch up to them. I can't promise writing an AISL spec won't be frustrating, at least initially, but that's more a result of learning a new way of thinking than anything else. You're exercising disused muscles.
 4. Your goal in writing an AISL spec isn't to just clearly communicate an idea or process, it's to find the gaps in your thinking and force you make implicit assumptions explicit, and to ensure as much of your idea as possible makes it into code the first time through.
-5. Specs aren't just good for getting something implemented, they also keep you involved, and provide a structured record of the conceptual components of your application that you can reference later. As AI models become more and more capable, it can become very tempting to talk through an idea, get excited, and send it toddling off to execute, only a week or so later to find you don't know enough about "your" own codebase to troubleshoot a major bug. 
-6. It's an artifact you can reuse for structured revision. Something didn't turn out the way you expected? Talk it through, figure out where the gap was in the spec. It's easy to miss or gloss over stuff in conversation, but it's harder to accidentally skip steps with a formal spec.
+5. Specs aren't just good for getting something implemented, they also keep you involved, and provide a structured record of the conceptual components of your application that you can reference later. As AI models become more and more capable, it can become very tempting to talk through an idea, get excited, and send it toddling off to execute, only to find a week or so later you don't know enough about "your" own codebase to troubleshoot a major bug. 
+6. It's an artifact you can reuse for structured revision. Something didn't turn out the way you expected? Talk it through, figure out where the gap was in the spec. It's easy to miss or gloss over stuff in conversation, but it's much harder to accidentally skip steps with a formal spec.
 
 # Documentation
 

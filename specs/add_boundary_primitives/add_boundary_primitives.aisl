@@ -20,12 +20,26 @@ function boundary_declaration_syntax_checker(declaration: AISLDeclarationStateme
 
     match declaration.statement_type as DECLARATION_STATEMENT_TYPES:
         case DATASOURCE:
-            if declaration.door_methods.any().returns_void():
+            if declaration.door_methods.any().returns_void(): # ~warn: undeclared method call
                 diagnostics.report_error("All door methods of datasource boundary types must return a value. Use 'boundary' if you need read and write.")
         case DATASINK:
-            if declaration.door_methods.any().declares_return_type():
+            if declaration.door_methods.any().declares_return_type(): # ~warn: undeclared method call
                 diagnostics.report_error("Door methods of datasink boundary types cannot return a value. Use 'boundary' if you need to read and write on a boundary type.")
         case BOUNDARY:
             # @agent: boundary types can have both read/write door methods; no diagnostics emitted
         case EVERYTHING_ELSE:
             # @agent: not a boundary type; no diagnostics emitted
+
+type Feedback
+type High
+
+function escalate(item: Unspecified):
+    # not implemented
+
+function process(item: Unspecified):
+
+    if item is Feedback and item.priority is not High: # ~warn: 'Unspecified'
+        escalate(item)
+    else if item is not Feedback:
+        escalate(item)
+    

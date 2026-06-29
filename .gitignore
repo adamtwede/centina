@@ -21,3 +21,5 @@ harness-config.json
 # Eval task fixtures live in their own nested git repo, never the main one
 # (see src/sandbox.ts, AGENTS.md "Sandbox workflow")
 /sandbox/
+
+.serena/

@@ -1,6 +1,6 @@
 {
   "source": "/Users/Z004M40/Projects/aisl/specs/add_boundary_primitives/add_boundary_primitives.aisl",
-  "generatedAt": "2026-06-29T03:30:31.784Z",
+  "generatedAt": "2026-06-29T17:12:12.920Z",
   "types": {
     "AISLDeclarationStatement": {
       "source": "local",
@@ -8,6 +8,14 @@
         "door_methods",
         "statement_type"
       ]
+    },
+    "Feedback": {
+      "source": "local",
+      "properties": []
+    },
+    "High": {
+      "source": "local",
+      "properties": []
     },
     "AISLPrimitive": {
       "source": "external",
@@ -33,6 +41,26 @@
         {
           "name": "declaration",
           "type": "AISLDeclarationStatement"
+        }
+      ],
+      "returnType": null
+    },
+    "escalate": {
+      "source": "local",
+      "params": [
+        {
+          "name": "item",
+          "type": "Unspecified"
+        }
+      ],
+      "returnType": null
+    },
+    "process": {
+      "source": "local",
+      "params": [
+        {
+          "name": "item",
+          "type": "Unspecified"
         }
       ],
       "returnType": null
