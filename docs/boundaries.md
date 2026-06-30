@@ -132,9 +132,12 @@ Boundaries slot into the existing `Unspecified`/`Unknown`/`Unprivileged` lattice
   data shape instead of skipping that thinking.
 - **A door with no return annotation yields `Unspecified`** (castable), the usual
   gradual-typing escape hatch.
-- **Return types are ordinary `type`s** (`type SearchResult`, `type Markdown`) —
-  nominal but with dynamic, undeclared properties. No new type system; boundaries
-  compose with the types AISL already has.
+- **Types referenced in door signatures are implicitly treated as `Unknown`** — the
+  boundary declaration is itself the seam to external code, so any type name in a
+  door param or return type that isn't already declared is auto-implied as an assumed
+  external type. You do not need a separate `assumed external type SearchResult` just
+  because `SearchResult` appears in a door signature. If a type *is* already declared
+  (via `type`, `enum`, or `external`), the declared version is used instead.
 - **An undeclared method call on a boundary instance is an ERROR**, not
   `Unspecified`. This is the one place a boundary is *stricter* than a plain `type`
   (whose ad-hoc method calls yield `Unprivileged`). Declaring a boundary is a

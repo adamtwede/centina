@@ -216,6 +216,8 @@ class Checker {
   private externalFunctions = new Map<string, ExternalDecl>();
   /** Boundary kinds declared in this document. */
   private boundaries = new Map<string, BoundarySig>();
+  /** Type names implied by boundary door signatures — treated as Unknown (like assumed externals). */
+  private boundaryImpliedTypes = new Set<string>();
 
   constructor(private program: Program) {}
 
@@ -318,6 +320,24 @@ class Checker {
       });
     }
 
+    // Pre-scan boundary door signatures: any type name that isn't already known
+    // is implicitly treated as Unknown (like `assumed external type`), because
+    // boundaries are seams to external code and their door types come from there.
+    const scanBoundaryTypeRef = (ref: TypeRef | undefined): void => {
+      if (!ref) return;
+      if (ref.kind === "array") { scanBoundaryTypeRef(ref.element); return; }
+      if (!BUILTIN_TYPE_NAMES.has(ref.name) && !this.isKnownTypeName(ref.name)) {
+        this.boundaryImpliedTypes.add(ref.name);
+      }
+    };
+    for (const b of this.program.boundaries) {
+      for (const p of b.constructorParams) scanBoundaryTypeRef(p.typeAnnotation);
+      for (const door of b.doors) {
+        for (const p of door.params) scanBoundaryTypeRef(p.typeAnnotation);
+        scanBoundaryTypeRef(door.returnType);
+      }
+    }
+
     for (const b of this.program.boundaries) {
       if (BUILTIN_TYPE_NAMES.has(b.name)) {
         this.error(`cannot redefine built-in type '${b.name}'`, b.line);
@@ -364,6 +384,7 @@ class Checker {
       this.types.has(name) ||
       this.externalTypes.has(name) ||
       this.boundaries.has(name) ||
+      this.boundaryImpliedTypes.has(name) ||
       BUILTIN_SCALARS.has(name) ||
       name === AGENT_TYPE ||
       name === "Unspecified" ||
@@ -387,7 +408,7 @@ class Checker {
       // confusing second diagnostic on the same construct.
       return UNSPECIFIED;
     }
-    if (ref.name === "Unknown" || this.externalTypes.has(ref.name))
+    if (ref.name === "Unknown" || this.externalTypes.has(ref.name) || this.boundaryImpliedTypes.has(ref.name))
       return UNKNOWN;
     if (!this.isKnownTypeName(ref.name)) {
       this.error(`unknown type '${ref.name}'`, ref.line);
@@ -716,14 +737,20 @@ class Checker {
         return { kind: "named", name: "Bool" };
       }
       case "Binary": {
-        this.checkExpr(expr.left, scope);
-        this.checkExpr(expr.right, scope);
-        if (
-          expr.op === "&&" ||
-          expr.op === "||" ||
-          expr.op === "==" ||
-          expr.op === "!="
-        ) {
+        const leftTy = this.checkExpr(expr.left, scope);
+        const rightTy = this.checkExpr(expr.right, scope);
+        if (expr.op === "==" || expr.op === "!=") {
+          const leftUnprivileged = leftTy.kind === "unprivileged";
+          const rightUnprivileged = rightTy.kind === "unprivileged";
+          if (leftUnprivileged !== rightUnprivileged) {
+            this.error(
+              `cannot compare an 'Unprivileged' value (the result of an undeclared method call) with a concrete type using '${expr.op}' — ad-hoc method call results have no declared type and cannot be cast, so this comparison is meaningless`,
+              expr.line
+            );
+          }
+          return { kind: "named", name: "Bool" };
+        }
+        if (expr.op === "&&" || expr.op === "||") {
           return { kind: "named", name: "Bool" };
         }
         return UNSPECIFIED;
