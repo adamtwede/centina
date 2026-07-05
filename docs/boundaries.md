@@ -284,9 +284,9 @@ typing rule, it is AISL's domain boundary.** It auto-recuses AISL from anything 
 essence is manufacturing — *algorithm* (how a result is computed), *dynamics* (how
 behavior unfolds over time), *aesthetics* (how something is perceived) — and points
 healthy iteration *inward*, deeper into provenance / flow / contract, rather than
-*outward* toward general-purpose programming. The `aisl-fit` skill
-(`.claude/skills/aisl-fit/SKILL.md`) operationalizes this as a structured "is this even
-an AISL task?" determination run before a spec is written.
+*outward* toward general-purpose programming. The `centina-fit` skill
+(`.claude/skills/centina-fit/SKILL.md`) operationalizes this as a structured "is this
+even a Centina task?" determination run before a spec is written.
 
 ## Deferred / open
 

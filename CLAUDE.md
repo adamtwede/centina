@@ -37,22 +37,24 @@ Early post-pivot. What exists:
 - `centina.ts` — the vocabulary module (`Noun`, `deferred`, `Agent`); the
   comment header documents the boundary/external JSDoc-tag spellings.
 - `prototype.centina.ts` — the founding fixture, a 1:1 port of the author's
-  `prototype.aisl` rewrite. **Its 6 tsc errors are preserved findings** —
-  real spec gaps (a missing target-model prompt step; values used outside the
-  branch that creates them) awaiting the author's design decisions. Do NOT
-  fix them without the author; they are the fixture's payload.
+  `prototype.aisl` rewrite. The port's 6 preserved findings (missing
+  target-model prompt call; values used outside the branch that creates
+  them) **have been ratified and resolved by the author** — `npm run
+  typecheck` is clean. The primitive spellings chosen during the port
+  (marker-function `deferred`, `Agent<ModelId>` generics, camelCase naming)
+  are the settled convention going forward, not open questions.
 - `tsconfig.json` — the deliberately permissive spec-plane config.
+- `.prettierrc` — formatting convention (`semi: false`) for `.centina.ts`
+  files.
 
 The Centina checker does **not** exist yet — don't assume it. `ROADMAP.md`
-tracks build order. The spelling of the spec primitives (marker-function
-`deferred` vs JSDoc-tagged `declare`, etc.) was chosen during the port and is
-still open to ratification by the author.
+tracks build order.
 
 ## Commands
 
-- `npm run typecheck` — tsc over the vocabulary + all `*.centina.ts` specs
-  (expect the 6 preserved findings in `prototype.centina.ts`; anything else
-  is a regression).
+- `npm run typecheck` — tsc over the vocabulary + all `*.centina.ts` specs.
+  Expect zero errors; any diagnostic is a real regression to raise with the
+  author, not something to fix unilaterally (see Rule 0).
 
 ## Rules of engagement
 
@@ -67,8 +69,6 @@ still open to ratification by the author.
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log (including the evidence that
   drove the pivot). Read it before proposing language/checker changes.
-- The project skills `aisl-fit` and `aisl-iterate`
-  (`.claude/skills/`) **predate the pivot**: their concepts (fit
-  classification, two-plane model, diagnostic-triage loop) are current, but
-  their tool references (`src/cli.ts`, `.aisl` syntax) are stale. Revision is
-  on the roadmap; until then follow their ideas, not their commands.
+- The project skills `centina-fit` and `centina-iterate` (`.claude/skills/`)
+  have been rewritten for the pivot — Centina vocabulary, `tsc` as the
+  interim checker, no `.aisl`/`src/cli.ts` references. Use them directly.

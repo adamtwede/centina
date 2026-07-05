@@ -51,7 +51,7 @@ export type Noun<Name extends string> = { readonly [shape]: Name }
  * with no gaps.
  */
 export declare function deferred<F extends (...args: never[]) => unknown>(
-	note?: string,
+  note?: string,
 ): F
 
 /**
@@ -65,10 +65,10 @@ export declare function deferred<F extends (...args: never[]) => unknown>(
  * back from `.model_id` with no cast needed.
  */
 export declare class Agent<Model = unknown> {
-	constructor(model: Model)
-	readonly model_id: Model
-	/** The model's own capability/spec sheet, usable in prompt construction. */
-	readonly specification: string
-	prompt(text: string): unknown
-	review(subject: unknown): unknown
+  constructor(model: Model)
+  readonly modelId: Model
+  /** The model's own capability/spec sheet, usable in prompt construction. */
+  readonly specification: string
+  prompt(text: string): unknown
+  review(subject: unknown): unknown
 }

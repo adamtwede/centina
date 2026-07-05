@@ -72,9 +72,9 @@ routed*:
 | Hole | Spelling | Routing |
 |---|---|---|
 | deferred decision | `const f = deferred<(a: A) => B>()` | human decides during iterate: this spec, a separate spec, or agent autonomy |
-| agent-directed | `// @agent: ...` comment | coding agent resolves at build time |
-| external | `/** @external "src" */ declare function ...` | lives in existing code / an API / a system |
-| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared data seam; doors are the privileged entry/exit points |
+| agent-directed | `// @agent: ...` comment | coding agent resolves at spec-iteration (centina-iterate skill) or plan-doc build time |
+| external | `/** @external "src" */ declare function ...` | lives in: existing code / an API / an external system |
+| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black box data seam; doors are the privileged entry/exit points |
 
 Two operating principles carried over from AISL, one revised:
 

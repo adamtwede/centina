@@ -14,8 +14,8 @@ on the **algorithm** axis (the transform itself).
 **Deciding factor:** Resolves at **Level 0**. The inventory turns up no
 provenance ambiguity: the input shape is fixed and known, the output shape is
 fixed and known, and the interesting content is entirely the mechanical mapping
-between them — which AISL refuses to express (manufacturing). There is no
-contract to *discover*, only one to implement.
+between them — which is realization, not a relationship Centina has anything
+to say about. There is no contract to *discover*, only one to implement.
 
 **Discriminators:**
 - Both ends are internal representations consumed by the same program → 0-end.
@@ -28,5 +28,5 @@ contract to *discover*, only one to implement.
   that precedent.
 
 **Source:** The "expand the language to accept new syntax" half of the
-`add_boundary_primitives` work, which the design discussion identified as
-compute-shaped and not spec-worthy in AISL.
+`add_boundary_primitives` work (AISL v0 era; shape carries over unchanged),
+which the design discussion identified as compute-shaped and not spec-worthy.

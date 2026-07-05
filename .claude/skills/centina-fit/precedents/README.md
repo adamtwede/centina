@@ -1,15 +1,21 @@
 # Canonical fit-case precedents
 
-These are the **canonical pool** for `aisl-fit` — curated reference cases shipped
-with AISL, spanning the spectrum from clean fit to clear recusal. They are
-priors that let a fit determination start from an expected shape instead of from
-zero. A match is always a hypothesis to confirm by descent, never a verdict (see
-`../SKILL.md`).
+These are the **canonical pool** for `centina-fit` — curated reference cases
+shipped with Centina, spanning the spectrum from clean fit to clear recusal.
+They are priors that let a fit determination start from an expected shape
+instead of from zero. A match is always a hypothesis to confirm by descent,
+never a verdict (see `../SKILL.md`).
 
-**These files are the AISL authors' to edit.** A user session never mutates them;
-project-side cases live in the user's own repo (`specs/**/FIT.md`, or a repo-local
-`precedents/`) and match first. Promoting a project case to canonical is an
-authoring decision made within the AISL codebase itself.
+These cases were authored during the AISL v0 era; their shapes and
+discriminators carry over unchanged post-pivot (the two-plane lens didn't
+change), but each has been reworded to Centina's vocabulary and file
+conventions.
+
+**These files are the Centina authors' to edit.** A user session never
+mutates them; project-side cases live in the user's own repo
+(`specs/**/FIT.md`, or a repo-local `precedents/`) and match first. Promoting
+a project case to canonical is an authoring decision made within the Centina
+codebase itself.
 
 ## Fit-case format
 
@@ -18,7 +24,7 @@ not its project specifics. Too specific and it matches nothing; too general and
 it matches everything uselessly. Fields:
 
 - **Descriptor** — the task family in domain-neutral terms (e.g. "a compiler pass
-  that adds a validation rule", not "add boundary primitives to AISL").
+  that adds a validation rule", not "add boundary primitives to Centina").
 - **Shape** — boundary-end count (2 / 1 / 0) and where the center of gravity
   sits (structural vs realization, and which sub-axis).
 - **Verdict** — `fit` / `partial-fit` / `no-fit`.

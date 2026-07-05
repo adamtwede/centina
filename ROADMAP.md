@@ -22,30 +22,36 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   immediately surfaced 6 genuine findings (missing target-model prompt step;
   branch-scoped values used outside their branch) — the pipeline demonstrating
   goal 2 with zero custom code written.
+- **Author ratified the port** — the author resolved all 6 preserved
+  findings directly (the target-model prompt call now made; the escalation
+  chain reworked as an ordered array rather than three named consts; the
+  branch-scoping gaps fixed), settled `| undefined` over `| null` on
+  `matchTask`, and moved the whole fixture to camelCase with a project
+  `.prettierrc` (`semi: false`). `npm run typecheck` is clean.
+- **Skills revision** — `aisl-fit`/`aisl-iterate` renamed to `centina-fit`/
+  `centina-iterate` and rewritten: Centina vocabulary throughout, `tsc` named
+  as the interim structural-plane checker (no checker CLI exists yet),
+  `.aisl`/`src/cli.ts` references removed, the "never manufactures data"
+  axiom reframed as bookkeeping (matching `fit-validation.md`), and the
+  boundary-end "slice-relative" finding folded into `centina-fit` as a named
+  limitation.
 
 ## Next up
 
-1. **Author ratifies the port** — the primitive spellings chosen during the
-   port (marker-function `deferred` vs JSDoc-tagged `declare`; `| null` on
-   `match_task`; `feedback?` optionality; `Agent<ModelId>` generics) plus the
-   6 preserved findings, resolved in the first Centina iterate session.
-2. **Checker harness** — load the program via the TypeScript compiler API
+1. **Checker harness** — load the program via the TypeScript compiler API
    (likely ts-morph), run tsc-with-filtering, merge in spec-plane diagnostics;
    CLI entry point (`npm run check`).
-3. **First spec rule: hole enumeration** — list every `deferred`, `@agent:`,
+2. **First spec rule: hole enumeration** — list every `deferred`, `@agent:`,
    `@external`, and boundary with its routing; "clean" = no unmarked gaps.
-4. **Boundary direction rule** — `@datasource` doors must return data,
+3. **Boundary direction rule** — `@datasource` doors must return data,
    `@datasink` doors must return void (direction from returns, per
    `docs/boundaries.md`).
-5. **Assumption bookkeeping** — report every `as` cast as a recorded
+4. **Assumption bookkeeping** — report every `as` cast as a recorded
    assumption; flag casts that launder shape without a source.
-6. **Naming-consistency rule** — port the AISL typo/drift detection idea
-   (e.g. the fixture's `loopRun` vs `loop_run`).
-7. **Skills revision** — update `aisl-fit`/`aisl-iterate` to Centina (concepts
-   unchanged; tool references and syntax stale). Rename accordingly.
-8. **TS language-service plugin** — same rule code surfaced live in-editor;
+5. **Naming-consistency rule** — port the AISL typo/drift detection idea.
+6. **TS language-service plugin** — same rule code surfaced live in-editor;
    filter/downgrade spec-irrelevant tsc diagnostics.
-9. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
+7. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
    `deferred` on top of stock TS highlighting (tiny extension, no publishing
    needed for local dev).
 

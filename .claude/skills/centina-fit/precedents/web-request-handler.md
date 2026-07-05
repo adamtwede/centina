@@ -25,5 +25,6 @@ function inside the structural frame, not a reason to reclassify.
 - Compute-heavy core does **not** flip this to realization as long as the I/O
   seams are the point; the core is a plain function the boundaries frame.
 
-**Source:** `specs/todo/todo.aisl` and the boundaries design discussion — the
-motivating domain for the boundary primitives.
+**Source:** `specs/todo/todo.aisl` (AISL v0 era; shape carries over unchanged)
+and the boundaries design discussion — the motivating domain for the
+boundary primitives.

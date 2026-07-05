@@ -27,7 +27,8 @@ pipeline hands the rule its input.
   design doc, create the primitive) as doors → tasks-as-doors, a different
   (no-fit) shape. If that smell appears, this precedent does **not** hold.
 
-**Source:** `add_boundary_primitives` design session. The spec collapsed to a
-single `datasink Diagnostics()` plus the classifier function; build-time
-"boundaries" (`BoundaryDiscussion`, `AISLSource`) were the tasks-as-doors smell
-and were dropped.
+**Source:** `add_boundary_primitives` design session (AISL v0 era; shape
+carries over unchanged). The spec collapsed to a single `/** @datasink */`
+diagnostics door plus the classifier function; build-time "boundaries"
+(`BoundaryDiscussion`, `AISLSource`) were the tasks-as-doors smell and were
+dropped.
