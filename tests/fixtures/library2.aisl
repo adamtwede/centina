@@ -1,2 +1,0 @@
-type D
-# external type C from "./library.aisl"

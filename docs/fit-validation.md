@@ -179,4 +179,42 @@ Provenance (G2 tax-vs-gain) is woven through Phases 1–2, not a separate phase.
 *(Per-candidate, filled as we go. Snap verdict → descent verdict → divergence/
 discriminator → premise verdict → provenance notes.)*
 
-- _(none yet — Phase 1 sweep next)_
+- **2026-07 — DD1 (feedback pair), executed by the author directly.** Rather
+  than descending via the skill, the author rewrote `prototype.aisl`
+  wholesale. Findings:
+  - **Fit verdict:** the pair specced naturally; the task-matcher subsystem
+    quarantined itself behind a `boundary` with two doors and an explicit
+    "probably a separate spec" note — answering the factoring question
+    organically, in the affirmative, with the boundary primitive as the
+    reference mechanism.
+  - **Premise (G2) evidence, strongest of the session:** the structured form
+    omitted the step where the target model is actually prompted
+    (`target_model_output` used but never produced) — while the *prose header
+    of the same file* states that step explicitly. A bare
+    undefined-identifier check catches it mechanically. Structure surfaced
+    what prose hid, same author, same document, same day.
+  - **Two founding prohibitions overturned by usage:** the author's own hand
+    reached for typed property lists (`ImplementationAttempt`, `LoopRun`) and
+    record construction (`LoopRun()`) — both previously rejected on
+    "never manufactures data" grounds. **Provenance verdict: prohibition is
+    dead; bookkeeping survives** (names must resolve + casts mark
+    assumptions). `Unprivileged` retired rather than enforced.
+  - **Two primitives invented by need:** `deferred` (a typed hole whose
+    *routing* — this spec / separate spec / runtime agent — is deliberately
+    unresolved) and inline decision points with alternatives held open. Plus
+    demand for optional params, `do/while`, member assignment — all things TS
+    already has.
+- **2026-07 — The pivot.** Consequence of the above: the base structural
+  language was re-deriving TypeScript, while the novel value (holes, routing,
+  boundaries, bookkeeping) needs a *checker*, not a grammar. Decision:
+  **spec-flavored TypeScript** — TS as grammar, spec-plane checker as
+  arbiter. Project renamed **Centina**; AISL v0 preserved at tag
+  `aisl-v0-standalone-language`. The planned three-arm head-to-head collapses
+  to prose-vs-Centina (still pending, still the right G3 test).
+- **2026-07 — First Centina artifact confirms the pipeline.** The 1:1 port
+  (`prototype.centina.ts`) + permissive tsc produced exactly 6 diagnostics,
+  all genuine spec findings (the missing prompt step ×2; branch-scoped
+  `attempt`/`step_prompt_output` used outside their branch ×4), zero false
+  positives, zero custom checker code. Phase-2 candidate work (monorepo tool,
+  game systems, seam cases) paused during the pivot; resume once the checker
+  can participate.

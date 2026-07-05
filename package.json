@@ -1,16 +1,9 @@
 {
-  "name": "aisl",
-  "version": "1.0.0",
-  "description": "This project lays out a formal description/specification for the creation of a domain specific language (DSL) for use with agentic (LLM-assisted) coding, specifically for high-level planning and architecture. As a DSL, it is concerned more with the *what* rather than the *how*.",
-  "main": "dist/cli.js",
-  "bin": {
-    "aisl-check": "dist/cli.js"
-  },
+  "name": "centina",
+  "version": "0.1.0",
+  "description": "Centina — spec-flavored TypeScript: type-checked falsework for coding tasks. TypeScript is the grammar; a spec-plane checker (not tsc) is the arbiter of done.",
   "scripts": {
-    "check": "tsx src/cli.ts",
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

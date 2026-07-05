@@ -4,32 +4,71 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-AISL (Agent-Interpreted Specification Language) is a DSL for writing high-level, structured pseudocode that a human authors and a coding model (e.g. Claude) iterates on with them until it reaches a shared understanding, which is then turned into an implementation plan. In the fewest words: type-checked pseudocode. The goal is to replace ad-hoc conversation-first planning with a more structured artifact that:
+**Centina** is spec-flavored TypeScript: a medium for writing structured,
+rule-checked pseudocode ("falsework") for a coding task before it's built.
+TypeScript is the grammar; a spec-plane checker — not tsc — is the intended
+arbiter of correctness. A spec is done when every gap in it is deliberate,
+typed, and *routed* (deferred to the human, delegated to an agent, referenced
+from external code, or quarantined behind a boundary) — not when it compiles.
 
-- enforces naming consistency and reduces ambiguity in the pseudocode itself
-- gives the coding model clearer guardrails to interpret correctly
-- pushes the human to think through design decisions up front rather than offloading that thinking to the model
+The four goals in `README.md` ("The goals") are the project's only invariant;
+every rule and primitive is a means under test against them. Notably,
+"provenance" here means *bookkeeping* (names must resolve; every `as` cast is
+a recorded assumption), not prohibition — the AISL-era `Unprivileged`
+privilege system was deliberately retired after real usage overturned it (see
+`docs/fit-validation.md`).
+
+## History: the AISL pivot
+
+Centina began as AISL, a from-scratch spec language with its own
+lexer/parser/checker. In July 2026 the author pivoted: real spec-writing
+showed that TS already had every *structural* feature being reached for, while
+the genuinely novel inventions (`deferred`, `@agent:` direction, boundaries)
+needed a checker, not a grammar. **The entire AISL v0 toolchain and its docs
+are preserved at git tag `aisl-v0-standalone-language`** — consult the tag,
+not this working tree, for anything AISL-era. Do not rebuild AISL-era
+machinery (lexer, parser, `.aisl` checking); `prototype.aisl` and
+`widgets.aisl` remain in-tree only as port references.
 
 ## Project state
 
-There is a working TypeScript toolchain (lexer, parser, checker, CLI) implementing the AISL language as it currently stands — see `ROADMAP.md` for what's done, deferred, and backlogged. `prototype.aisl` is the standing worked example and regression fixture; it should stay at zero checker diagnostics (`tests/prototype.test.ts` enforces this). The language's syntax and type rules are still actively changing session-to-session — check `ROADMAP.md` before assuming a feature exists or a piece of syntax is final, and don't build ahead of it (e.g. an LSP) while it's still settling.
+Early post-pivot. What exists:
 
-`PLAN.md` (the language *spec* itself, via `SPEC.md`/`ARCHITECTURE.md`) is still a placeholder — those documents don't exist yet. Don't assume them. The one piece of forward language design that *is* written down is `docs/boundaries.md` — a design proposal for first-class data boundaries (`datasource`/`datasink`/`boundary`), designed but not yet implemented; treat it as a not-yet-built feature (don't assume checker/parser support), and read it before designing anything in that area.
+- `centina.ts` — the vocabulary module (`Noun`, `deferred`, `Agent`); the
+  comment header documents the boundary/external JSDoc-tag spellings.
+- `prototype.centina.ts` — the founding fixture, a 1:1 port of the author's
+  `prototype.aisl` rewrite. **Its 6 tsc errors are preserved findings** —
+  real spec gaps (a missing target-model prompt step; values used outside the
+  branch that creates them) awaiting the author's design decisions. Do NOT
+  fix them without the author; they are the fixture's payload.
+- `tsconfig.json` — the deliberately permissive spec-plane config.
+
+The Centina checker does **not** exist yet — don't assume it. `ROADMAP.md`
+tracks build order. The spelling of the spec primitives (marker-function
+`deferred` vs JSDoc-tagged `declare`, etc.) was chosen during the port and is
+still open to ratification by the author.
 
 ## Commands
 
-- `npm run check <file.aisl>` — run the checker CLI on a single file (also `tsx src/cli.ts <file.aisl>` directly)
-- `npm run typecheck` — `tsc --noEmit`
-- `npm test` — runs all `tests/*.test.ts` via `node:test` + `tsx`, no extra test framework
-- `npm run build` — `tsc` (emits `dist/`)
-- VS Code: open `editors/vscode/` as its own folder and press F5 for an Extension Development Host with syntax highlighting active (unpublished, nothing to package for local dev). The "AISL: Check current file" task (`.vscode/tasks.json`) pipes CLI diagnostics into the Problems panel.
+- `npm run typecheck` — tsc over the vocabulary + all `*.centina.ts` specs
+  (expect the 6 preserved findings in `prototype.centina.ts`; anything else
+  is a regression).
 
-## Architecture
+## Rules of engagement
 
-Pipeline, in order: `src/lexer.ts` (indentation-aware tokenizer) → `src/parser.ts` (recursive-descent → AST in `src/ast.ts`) → `src/resolveLocalExternals.ts` (pre-check pass) → `src/checker.ts` (`check()`) → `src/resolveExternals.ts` (post-check pass) → diagnostics merged and printed by `src/cli.ts`.
-
-- **Two cross-file resolution passes, deliberately split around `check()`**, both reachable from a single `external (type|function|object) Name from "path"` (or `external renamed ... was RealName`) statement — there is no separate `import` keyword; which pass handles a given statement depends only on whether `path` ends in `.aisl`:
-  - `resolveLocalExternals.ts` (pre-check) — for `.aisl`-extension targets. Parses and checks the target file, finds the real declaration in any namespace, and splices a renamed clone into the importing program's `enums`/`types`/`functions`/`globals` before `check()` runs, so the symbol gets full real nominal typing. Single-hop only: a name resolving only via another `external` entry in the target (a forwarding chain) is a hard error telling the human to reference the source directly, rather than chasing the chain — this is also what makes cycle detection unnecessary.
-  - `resolveExternals.ts` (post-check) — for everything else (real code files, bare library specifiers). Regex-based heuristic verification (TS/JS and Python only); always types as `Unknown`; every miss is a warning, never an error.
-- **`Unknown` vs `Unspecified`** (`src/checker.ts`) are deliberately distinct gradual-typing escape hatches: both require an explicit `as` cast before flowing into a concrete slot, but member/method access on `Unknown` is never flagged (vs. `Unspecified`, which warns on first-level `.prop` access), while casting *off* `Unknown` always warns about the unverified shape assumption.
-- Two project skills cover the spec workflow, in order. Use `aisl-fit` (`.claude/skills/aisl-fit/SKILL.md`) *before* a spec exists, to decide whether a task even belongs in AISL and where to slice it: it runs the structural/realization two-plane model and a prose→signatures→thin-slice descent, then emits a `specs/<name>/FIT.md` handoff. Then use `aisl-iterate` (`.claude/skills/aisl-iterate/SKILL.md`) when iterating an `.aisl` file against the checker: run the checker, triage each diagnostic as mechanical-fix-it vs. genuine-ambiguity-ask-the-human, apply the agreed fix, re-run, repeat until clean. Per-feature lineage: **FIT.md → `<name>.aisl` → PLAN.md**. Both skills enforce Rule 0 — never author a spec (or a thin slice's *meaning*) on the human's behalf.
+- **Rule 0: never author a spec's *meaning* on the human's behalf** — data
+  nouns, shapes, directions, and the resolution of `deferred` holes are the
+  human's thinking. Supplying *form* (skeletons, syntax, holes) is fine. The
+  author has lifted Rule 0 only for internal language-design sessions (where
+  the subject is Centina itself, not a task being specced).
+- `docs/boundaries.md` — boundary design (affordances-not-transports, the
+  three roles, direction-from-returns, drawing guidelines) carries over from
+  AISL unchanged; only its concrete syntax section is AISL-era.
+- `docs/fit-validation.md` — the running design memo: goals, the
+  falsifiability frame, and the findings log (including the evidence that
+  drove the pivot). Read it before proposing language/checker changes.
+- The project skills `aisl-fit` and `aisl-iterate`
+  (`.claude/skills/`) **predate the pivot**: their concepts (fit
+  classification, two-plane model, diagnostic-triage loop) are current, but
+  their tool references (`src/cli.ts`, `.aisl` syntax) are stale. Revision is
+  on the roadmap; until then follow their ideas, not their commands.

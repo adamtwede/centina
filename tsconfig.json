@@ -1,4 +1,7 @@
 {
+	// The deliberately permissive spec-plane tsconfig: tsc is kept for what it is
+	// genuinely good at (name resolution, arity, shape), and relieved of duties
+	// that fight a spec-writer (unused locals/params, emit).
 	"compilerOptions": {
 		"target": "ES2022",
 		"module": "ES2022",
@@ -6,11 +9,9 @@
 		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
-		"types": ["node"],
-		"outDir": "dist",
-		"declaration": false,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true
+		"noEmit": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
 	},
-	"include": ["src/**/*.ts"]
+	"include": ["centina.ts", "*.centina.ts", "specs/**/*.centina.ts"]
 }
