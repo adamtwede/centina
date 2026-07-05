@@ -43,3 +43,17 @@ function process(item: Unspecified):
     else if item is not Feedback:
         escalate(item)
     
+type Item
+type Inventory
+
+function item_in_stock(item: Item, inventory: Inventory) -> Bool:
+    #item_count = inventory.get_item_count() # ~error: assignment of Unprivileged data to local symbol
+    # return inventory.get_item_count().isGreaterThanZero() as Bool # ~error: explicit cast of Unprivileged to Bool
+
+    # if inventory.get_item_count().isGreaterThanZero(): # ~warn: allowed, though emits a warning that can be suppressed.
+    #     return true
+    # return false
+    # return inventory.get_item_count() != 0
+    if inventory.get_item_count().isGreaterThanZero():
+        return true
+    return false

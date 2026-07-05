@@ -218,6 +218,8 @@ class Checker {
   private boundaries = new Map<string, BoundarySig>();
   /** Type names implied by boundary door signatures — treated as Unknown (like assumed externals). */
   private boundaryImpliedTypes = new Set<string>();
+  /** Globals declared with an explicit datasource/datasink narrowing annotation. */
+  private narrowedRoles = new Map<string, "datasource" | "datasink">();
 
   constructor(private program: Program) {}
 
@@ -441,6 +443,28 @@ class Checker {
         : initTy;
       this.checkNominalAssignable(declaredTy, initTy, g.line, g.name);
       this.globalScope.declare(g.name, declaredTy);
+
+      if (g.role) {
+        // Validate the RHS is a boundary kind (not datasource/datasink).
+        const kindName =
+          g.init.kind === "Call" && g.init.callee.kind === "Ident"
+            ? g.init.callee.name
+            : null;
+        const bsig = kindName ? this.boundaries.get(kindName) : undefined;
+        if (!bsig) {
+          this.error(
+            `role annotation '${g.role}' requires the right-hand side to be a boundary kind constructor call`,
+            g.line,
+          );
+        } else if (bsig.role !== "boundary") {
+          this.error(
+            `role annotation '${g.role}' requires a 'boundary' kind on the right-hand side; '${kindName}' is declared as '${bsig.role}'`,
+            g.line,
+          );
+        } else {
+          this.narrowedRoles.set(g.name, g.role);
+        }
+      }
     }
   }
 
@@ -978,6 +1002,23 @@ class Checker {
         if (expr.args.length !== door.params.length) {
           this.error(
             `door '${expr.callee.prop}' expects ${door.params.length} argument(s), got ${expr.args.length}`,
+            expr.line,
+          );
+        }
+        // Apply narrowed-role direction enforcement when the instance was declared
+        // with `datasource name = ...` or `datasink name = ...`.
+        const instanceName =
+          expr.callee.obj.kind === "Ident" ? expr.callee.obj.name : null;
+        const narrowed = instanceName ? this.narrowedRoles.get(instanceName) : undefined;
+        const effectiveRole = narrowed ?? bsig.role;
+        if (effectiveRole === "datasource" && door.isVoid) {
+          this.error(
+            `door '${expr.callee.prop}' returns nothing — cannot call a void door on a 'datasource'-narrowed instance of '${bsig.name}'; datasources are read-only`,
+            expr.line,
+          );
+        } else if (effectiveRole === "datasink" && !door.isVoid) {
+          this.error(
+            `door '${expr.callee.prop}' returns a value — cannot call a returning door on a 'datasink'-narrowed instance of '${bsig.name}'; datasinks are write-only`,
             expr.line,
           );
         }

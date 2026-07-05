@@ -166,7 +166,7 @@ More on this in the next section.
 ### Invariants, rules, and things to know
 
 1. Never ask a coding agent to write an AISL spec for you. It defeats the entire purpose. Collaborate. Don't outsource your thinking or you might as well go back to whatever you were doing before.
-2. AISL pseudocode doesn't "manufacture" objects. This is by design. Other than primitives, data in an AISL spec must come from a small selection of "privileged" sources, all semantically *external* to the feature or process being specified.
+2. AISL pseudocode doesn't "manufacture" objects. This is by design. Other than primitives, data in an AISL spec must come from a small selection of "privileged" sources (more on this below), with one exception all semantically *external* to the feature or process being specified.
 3. Writing a spec can be a frustrating process. That's why many people don't do it. They wind up regretting it, though, when the consequences of not having thought things through well enough catch up to them. I can't promise writing an AISL spec won't be frustrating, at least initially, but that's more a result of learning a new way of thinking than anything else. You're exercising disused muscles.
 4. Your goal in writing an AISL spec isn't to just clearly communicate an idea or process, it's to find the gaps in your thinking and force you make implicit assumptions explicit, and to ensure as much of your idea as possible makes it into code the first time through.
 5. Specs aren't just good for getting something implemented, they also keep you involved, and provide a structured record of the conceptual components of your application that you can reference later. As AI models become more and more capable, it can become very tempting to talk through an idea, get excited, and send it toddling off to execute, only to find a week or so later you don't know enough about "your" own codebase to troubleshoot a major bug. 
@@ -204,7 +204,22 @@ function classify(s: Statement) -> Kind:
 
 `obj.method()` — describes the execution of a computation (with an *unverifiable* result).
 
-When you write `obj.method()`, you're describing a computation that produces a "new" value. The checker rigidly types the result as `Unprivileged` — a special mode of `Unspecified` that blocks casting and assignment into concrete slots. This exists to enforce AISL's core invariant: *AISL cannot be used to express the internal manufacturing of data, since it is not a real programming language; AISL is descriptive only.* Only function parameters, `Agent.prompt()`/`Agent.review()`, and external references may produce a concrete value. An undeclared method call with parentheses is explicitly not one of them.
+When you write `obj.method()`, you're describing a computation that produces a "new" value. The checker rigidly types the result as `Unprivileged` — a special mode of `Unspecified` that blocks casting and assignment into concrete slots. This exists to enforce AISL's core invariant: *AISL cannot be used to express the internal manufacturing of data, since it is not a real programming language; AISL is descriptive only.* Only function parameters (not arguments), `Number` and `String` primitives, `Agent.prompt()`/`Agent.review()`, and external references may produce a concrete value. An undeclared method call on an internally-declared object is explicitly not one of them:
+
+```aisl
+    type Item
+    type Inventory
+
+    function item_in_stock(item: Item, inventory: Inventory) -> Bool:
+        item_count = inventory.get_item_count() # ~error: assignment of Unprivileged data to local symbol
+        return inventory.get_item_count() is not 0 # ~error: implicit cast of Unprivileged to Number
+        return inventory.get_item_count().isGreaterThanZero() as Bool # ~error: explicit cast of Unprivileged to Bool
+
+        if inventory.get_item_count().isGreaterThanZero(): # allowed
+            return true
+```
+
+This admittedly somewhat awkward style is designed to discourage a spec writer from leaning on internal manipulation of data with accompanying layers indirection and toward succinct-but-still-descriptive statements.
 
 `Unprivileged` values are still useful descriptively: you can chain off them, compare them for equality, use them as if conditions, and pass them where an unspecified value is expected. What you can't do is cast the result into a concrete type and treat it as real data your AISL spec document has "produced":
 

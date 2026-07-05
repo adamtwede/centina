@@ -85,6 +85,8 @@ export interface GlobalVarDecl {
 	name: string;
 	typeAnnotation?: TypeRef;
 	init: Expr;
+	/** Present when declared with `datasource name = ...` or `datasink name = ...` syntax. */
+	role?: "datasource" | "datasink";
 	line: number;
 }
 

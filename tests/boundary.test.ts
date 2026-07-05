@@ -130,3 +130,101 @@ function f():
 `);
 	assert.equal(errorsOf(diags).length, 0);
 });
+
+// ---- role narrowing ----
+
+test("datasource-narrowed boundary instance parses and checks with no diagnostics", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+\tremove_widget() -> Widget
+datasource containerX = Container("WidgetX")
+`);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("datasink-narrowed boundary instance parses and checks with no diagnostics", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+\tremove_widget() -> Widget
+datasink containerY = Container("WidgetY")
+`);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("calling a void door on a datasource-narrowed instance is an error", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+datasource containerX = Container("WidgetX")
+function f():
+\tcontainerX.add_widget("w")
+`);
+	const errors = errorsOf(diags);
+	const err = errors.find((e) => /void door.*datasource.*narrowed/.test(e.message));
+	assert.ok(err, "expected void-door-on-datasource error");
+});
+
+test("calling a returning door on a datasink-narrowed instance is an error", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+datasink containerY = Container("WidgetY")
+function f():
+\tresult = containerY.get_widgets()
+`);
+	const errors = errorsOf(diags);
+	const err = errors.find((e) => /returning door.*datasink.*narrowed/.test(e.message));
+	assert.ok(err, "expected returning-door-on-datasink error");
+});
+
+test("calling a returning door on a datasource-narrowed instance is fine", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+datasource containerX = Container("WidgetX")
+function f():
+\tresult = containerX.get_widgets()
+`);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("calling a void door on a datasink-narrowed instance is fine", () => {
+	const diags = diagnosticsFor(
+		`boundary Container(widgetType: String):
+\tadd_widget(widget: Widget)
+\tget_widgets() -> Widget[]
+datasink containerY = Container("WidgetY")
+function f():
+\tcontainerY.add_widget("w")
+`);
+	assert.equal(errorsOf(diags).length, 0);
+});
+
+test("narrowing annotation on a datasource kind (not boundary) is an error", () => {
+	const diags = diagnosticsFor(
+		`datasource GoogleSearch(url: String):
+\tsearch(term: String) -> String
+datasource narrowed = GoogleSearch("https://google.com")
+`);
+	const errors = errorsOf(diags);
+	const err = errors.find((e) => /requires a 'boundary' kind/.test(e.message));
+	assert.ok(err, "expected 'requires a boundary kind' error");
+});
+
+test("narrowing annotation on a datasink kind (not boundary) is an error", () => {
+	const diags = diagnosticsFor(
+		`datasink LogFile(path: String):
+\twrite(line: String)
+datasink narrowed = LogFile("out.log")
+`);
+	const errors = errorsOf(diags);
+	const err = errors.find((e) => /requires a 'boundary' kind/.test(e.message));
+	assert.ok(err, "expected 'requires a boundary kind' error");
+});

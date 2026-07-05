@@ -39,17 +39,20 @@ function main(): void {
 
 		const { remaining } = applyDirectives(diagnostics, parseDirectives(source));
 
-		if (remaining.length === 0) {
+		const errorLines = new Set(remaining.filter((d) => d.severity === "error").map((d) => d.line));
+		const coalesced = remaining.filter((d) => !(d.severity === "warning" && errorLines.has(d.line)));
+
+		if (coalesced.length === 0) {
 			console.log(`${file}: no issues found`);
 			return;
 		}
 
-		const sorted = [...remaining].sort((a, b) => a.line - b.line);
+		const sorted = [...coalesced].sort((a, b) => a.line - b.line);
 		for (const d of sorted) {
 			console.log(`${file}:${d.line}: ${d.severity}: ${d.message}`);
 		}
-		const errorCount = remaining.filter((d) => d.severity === "error").length;
-		const warningCount = remaining.filter((d) => d.severity === "warning").length;
+		const errorCount = coalesced.filter((d) => d.severity === "error").length;
+		const warningCount = coalesced.filter((d) => d.severity === "warning").length;
 		console.log(`\n${errorCount} error(s), ${warningCount} warning(s)`);
 		if (errorCount > 0) process.exitCode = 1;
 	} catch (e) {

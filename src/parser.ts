@@ -110,7 +110,16 @@ class Parser {
 			} else if (this.check("EXTERNAL") || this.check("IMPORT") || this.check("ASSUMED")) {
 				program.externals.push(this.parseExternalDecl());
 			} else if (this.check("DATASOURCE") || this.check("DATASINK") || this.check("BOUNDARY")) {
-				program.boundaries.push(this.parseBoundaryDecl());
+				// `datasource`/`datasink` followed by IDENT then EQUALS or COLON is a
+				// role-narrowed global (`datasource x = Boundary(...)`), not a kind decl.
+				const isNarrowedGlobal =
+					!this.check("BOUNDARY") &&
+					(this.peek(2).type === "EQUALS" || this.peek(2).type === "COLON");
+				if (isNarrowedGlobal) {
+					program.globals.push(this.parseNarrowedGlobalVarDecl());
+				} else {
+					program.boundaries.push(this.parseBoundaryDecl());
+				}
 			} else if (this.check("IDENT")) {
 				program.globals.push(this.parseGlobalVarDecl());
 			} else {
@@ -238,6 +247,20 @@ class Parser {
 			ref = { kind: "array", element: ref, line: start.line };
 		}
 		return ref;
+	}
+
+	private parseNarrowedGlobalVarDecl(): GlobalVarDecl {
+		const roleTok = this.advance();
+		const role = roleTok.type === "DATASOURCE" ? "datasource" : "datasink";
+		const nameTok = this.expect("IDENT", "for global variable name after role annotation");
+		let typeAnnotation: TypeRef | undefined;
+		if (this.match("COLON")) {
+			typeAnnotation = this.parseTypeRef();
+		}
+		this.expect("EQUALS", "in role-narrowed global variable declaration");
+		const init = this.parseExpr();
+		this.expect("NEWLINE", "after role-narrowed global variable declaration");
+		return { kind: "GlobalVarDecl", name: nameTok.value, typeAnnotation, init, role, line: nameTok.line };
 	}
 
 	private parseGlobalVarDecl(): GlobalVarDecl {

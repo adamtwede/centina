@@ -1,99 +1,60 @@
 {
-  "source": "/Users/Z004M40/Projects/aisl/specs/add_boundary_primitives/add_boundary_primitives.aisl",
-  "generatedAt": "2026-06-29T23:05:50.316Z",
+  "source": "/Users/Z004M40/Projects/aisl/widgets.aisl",
+  "generatedAt": "2026-06-30T03:13:38.973Z",
   "types": {
-    "AISLDeclarationStatement": {
-      "source": "local",
-      "properties": [
-        "door_methods",
-        "statement_type"
-      ]
-    },
-    "Feedback": {
+    "WidgetY": {
       "source": "local",
       "properties": []
     },
-    "High": {
-      "source": "local",
-      "properties": []
-    },
-    "Item": {
-      "source": "local",
-      "properties": []
-    },
-    "Inventory": {
-      "source": "local",
-      "properties": [
-        "get_item_count"
-      ]
-    },
-    "AISLPrimitive": {
+    "WidgetX": {
       "source": "external",
-      "externalPath": "./aisl_types.ts",
+      "externalPath": "./widgetX",
+      "properties": []
+    },
+    "WidgetType": {
+      "source": "external",
+      "externalPath": "./widgetX",
       "properties": []
     }
   },
-  "enums": {
-    "DECLARATION_STATEMENT_TYPES": {
-      "source": "local",
-      "members": [
-        "BOUNDARY",
-        "DATASOURCE",
-        "DATASINK",
-        "EVERYTHING_ELSE"
-      ]
-    }
-  },
+  "enums": {},
   "functions": {
-    "boundary_declaration_syntax_checker": {
+    "main": {
       "source": "local",
-      "params": [
-        {
-          "name": "declaration",
-          "type": "AISLDeclarationStatement"
-        }
-      ],
+      "params": [],
       "returnType": null
     },
-    "escalate": {
+    "convert": {
       "source": "local",
       "params": [
         {
-          "name": "item",
-          "type": "Unspecified"
+          "name": "widgetX",
+          "type": "WidgetX"
         }
       ],
-      "returnType": null
+      "returnType": "WidgetY"
     },
-    "process": {
+    "deconvert": {
       "source": "local",
       "params": [
         {
-          "name": "item",
-          "type": "Unspecified"
+          "name": "widgetY",
+          "type": "WidgetY"
         }
       ],
-      "returnType": null
-    },
-    "item_in_stock": {
-      "source": "local",
-      "params": [
-        {
-          "name": "item",
-          "type": "Item"
-        },
-        {
-          "name": "inventory",
-          "type": "Inventory"
-        }
-      ],
-      "returnType": "Bool"
+      "returnType": "WidgetX"
     }
   },
   "globals": {
-    "diagnostics": {
+    "containerX": {
       "source": "local",
-      "type": "Unspecified"
+      "type": "Unspecified",
+      "narrowedRole": "datasource"
+    },
+    "containerY": {
+      "source": "local",
+      "type": "Unspecified",
+      "narrowedRole": "datasink"
     }
   },
   "builtins": {
@@ -135,18 +96,40 @@
     }
   },
   "boundaries": {
-    "Diagnostics": {
-      "role": "datasink",
-      "constructorParams": [],
+    "Container": {
+      "role": "boundary",
+      "constructorParams": [
+        {
+          "name": "widgetType",
+          "type": "WidgetType"
+        }
+      ],
       "doors": {
-        "report_error": {
+        "add_widget": {
           "params": [
             {
-              "name": "message",
-              "type": "String"
+              "name": "widget",
+              "type": "Widget"
             }
           ],
           "returnType": null
+        },
+        "get_widgets": {
+          "params": [],
+          "returnType": "Widget[]"
+        },
+        "set_widgets": {
+          "params": [
+            {
+              "name": "widgets",
+              "type": "Widget[]"
+            }
+          ],
+          "returnType": null
+        },
+        "remove_widget": {
+          "params": [],
+          "returnType": "Widget"
         }
       }
     }

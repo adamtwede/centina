@@ -1,0 +1,27 @@
+assumed external type WidgetX from "./widgetX"
+assumed external type WidgetType from "./widgetX"
+
+boundary Container(widgetType: WidgetType):
+    add_widget(widget: Widget)
+    get_widgets() -> Widget[]
+    set_widgets(widgets: Widget[])
+    remove_widget() -> Widget
+
+datasource containerX = Container("WidgetX" as WidgetType)
+datasink containerY = Container("WidgetY" as WidgetType)
+
+type WidgetY
+
+function main():
+
+    foreach widget in containerX.get_widgets():
+        widgetX = containerX.remove_widget()
+        widget = convert(widgetX) # widget typed as Unknown instead of WidgetY, so:
+        widget = deconvert(widgetX) # we get a type mismatch here, but I would have expected it to be between WidgetX and WidgetY, not Unknown and WidgetY. I know we are treating the inline boundary external type declarations *like* Unknown, but I didn't realize we were literally just shadow-typing them *to* Unknown. It's really confusing to use this way.
+        containerY.add_widget(widget)
+
+function convert(widgetX: WidgetX) -> WidgetY:
+    return widgetX as WidgetY
+
+function deconvert(widgetY: WidgetY) -> WidgetX:
+    return widgetY as WidgetX

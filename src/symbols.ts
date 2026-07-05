@@ -29,6 +29,7 @@ export interface GlobalEntry {
   source: "local" | "external";
   externalPath?: string;
   type: string;
+  narrowedRole?: "datasource" | "datasink";
 }
 
 export interface DoorEntry {
@@ -160,6 +161,7 @@ export function buildSymbolTable(
     globals[g.name] = {
       source: "local",
       type: g.typeAnnotation ? typeRefToString(g.typeAnnotation) : "Unspecified",
+      ...(g.role ? { narrowedRole: g.role } : {}),
     };
   }
 
