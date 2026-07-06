@@ -102,17 +102,22 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   `editors/vscode/README.md` covers loading it locally (`Developer: Install
   Extension from Location...` or a symlink into the extensions folder).
 
-## Next up
-
-1. **Scoped/incremental checker runs** — `npm run check` currently loads and
-   checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
-   argument (`npm run check -- prototype.centina.ts`) that runs the full rule
-   set only on the requested file(s) plus whatever they import (so checking
-   `prototype.centina.ts` still pulls in `task-matcher.centina.ts` for the
-   boundary-direction/dependency rules, which are meaningless read in
-   isolation from the class they're declared on) — dependencies checked
-   before dependents, cycle detection needed since nothing currently
-   prevents one.
+- **Scoped/incremental checker runs** (`checker/harness.ts`'s `resolveScope`,
+  wired into `checker/cli.ts`) — `npm run check -- <file...>` now runs the
+  full rule set on just the requested file(s) plus every local spec they
+  transitively import (imports of `centina.ts` itself don't count — it's
+  vocabulary, not a spec dependency), so checking `prototype.centina.ts`
+  alone still surfaces `task-matcher.centina.ts`'s findings, per the
+  confirmed design: dependencies are visited (and appear in the report)
+  before dependents via post-order DFS, and an import cycle among local
+  specs is caught during traversal and reported as its own `error`-severity
+  `dependency-cycle` finding rather than looping or silently picking an
+  order. `tsc` diagnostics are scoped the same way (`getPreEmitDiagnostics`
+  per file in the resolved closure) when a scope is given; omitting all
+  arguments keeps today's whole-project behavior unchanged. Verified against
+  the real specs (single-file scope, transitive-dependency reporting, a
+  scratch-induced import cycle, and a not-found path all behave as designed)
+  with all scratch edits reverted.
 
 ## Open / under discussion
 

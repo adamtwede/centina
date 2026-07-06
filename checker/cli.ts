@@ -1,4 +1,5 @@
-import { getSpecSourceFiles, loadProject } from "./harness"
+import { SourceFile } from "ts-morph"
+import { getSpecSourceFiles, loadProject, resolveScope } from "./harness"
 import { assumptionBookkeepingRule } from "./rules/assumptionBookkeeping"
 import { boundaryDependencyRule } from "./rules/boundaryDependency"
 import { boundaryDirectionRule } from "./rules/boundaryDirection"
@@ -40,9 +41,44 @@ function printFindings(findings: Finding[]): void {
   }
 }
 
+function cycleFindings(cycles: string[][]): Finding[] {
+  return cycles.map((cycle) => ({
+    rule: "dependency-cycle",
+    severity: "error",
+    file: cycle[0],
+    line: 1,
+    message: `import cycle among local specs: ${cycle
+      .map((file) => file.split("/").pop())
+      .join(" -> ")}`,
+  }))
+}
+
 function main(): void {
   const project = loadProject()
-  const diagnostics = project.getPreEmitDiagnostics()
+  const requestedPaths = process.argv.slice(2)
+
+  let targetSourceFiles: SourceFile[]
+  let cycles: string[][] = []
+
+  if (requestedPaths.length === 0) {
+    targetSourceFiles = getSpecSourceFiles(project)
+  } else {
+    try {
+      const scope = resolveScope(project, requestedPaths)
+      targetSourceFiles = scope.files
+      cycles = scope.cycles
+    } catch (error) {
+      console.error((error as Error).message)
+      process.exit(1)
+    }
+  }
+
+  const diagnostics =
+    requestedPaths.length === 0
+      ? project.getPreEmitDiagnostics()
+      : targetSourceFiles.flatMap((sourceFile) =>
+          project.getPreEmitDiagnostics(sourceFile),
+        )
 
   if (diagnostics.length > 0) {
     console.log(project.formatDiagnosticsWithColorAndContext(diagnostics))
@@ -50,8 +86,10 @@ function main(): void {
     console.log("tsc: clean")
   }
 
-  const specSourceFiles = getSpecSourceFiles(project)
-  const findings = RULES.flatMap((rule) => rule.check(specSourceFiles))
+  const findings = [
+    ...RULES.flatMap((rule) => rule.check(targetSourceFiles)),
+    ...cycleFindings(cycles),
+  ]
 
   if (findings.length > 0) {
     printFindings(findings)
