@@ -1,8 +1,6 @@
 // prototype.centina.ts — the Centina port of prototype.aisl (AISL v0), the
 // founding fixture. Ported 1:1 from the author's rewrite, including its open
-// questions and known gaps. The tsc errors this file produces are PRESERVED
-// FINDINGS awaiting the author's decisions (see CLAUDE.md) — do not "fix" them
-// without the author.
+// questions and known gaps, then iterated on in centina-iterate sessions.
 //
 // loop:
 // 1. supervisor prompts target with an implementation step.
@@ -83,23 +81,6 @@ interface TaskRunRecord {
 }
 const taskRunLog: TaskRunRecord[] = []
 
-// @agent: would this be a better way to represent a step implementation loop?
-// map LoopRunMap:
-// 	key: Step + ModelId # composite key
-// 	value: ImplementationAttempt[]
-
-// interface LoopRun {
-//   step: Step
-//   model: ModelId
-//   attempts: ImplementationAttempt[]
-// }
-
-// seems like this might be unnecessary:
-// interface ImplementationRun {
-//   iterations: LoopRun[]
-// }
-// const implementationRun: ImplementationRun = { iterations: [] }
-
 interface LoopFeedbackDestination {
   key: Feedback
   value: FeedbackDestination
@@ -131,11 +112,6 @@ function implementationLoop(
   loopRunFeedback?: Feedback,
 ) {
   let implementationStepComplete = false
-  // const loopRun = {} as LoopRun // assumption: fields committed immediately below
-  // loopRun.step = implementationStep
-  // loopRun.model = targetModel.modelId
-  // loopRun.attempts = []
-
   let stepPromptOutput: unknown
   const attempt: ImplementationAttempt = {} as ImplementationAttempt // assumption: fields committed over the iteration
 
@@ -224,7 +200,7 @@ function implementationLoop(
       }
       case Decision.ESCALATE:
         escalate(implementationStep, supervisorModel, targetModel)
-        break
+        return
       case Decision.MARK_COMPLETE: {
         taskRunLog.push({
           step: implementationStep,
