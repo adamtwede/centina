@@ -64,7 +64,7 @@ export declare function deferred<F extends (...args: never[]) => unknown>(
  * `Agent<ModelId>` constructed with a `ModelId` yields that same `ModelId`
  * back from `.model_id` with no cast needed.
  */
-export declare class Agent<Model = unknown> {
+export declare class Agent<Model = string> {
   constructor(model: Model)
   readonly modelId: Model
   /** The model's own capability/spec sheet, usable in prompt construction. */

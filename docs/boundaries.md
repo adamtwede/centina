@@ -288,6 +288,39 @@ healthy iteration *inward*, deeper into provenance / flow / contract, rather tha
 (`.claude/skills/centina-fit/SKILL.md`) operationalizes this as a structured "is this
 even a Centina task?" determination run before a spec is written.
 
+## Provisional boundaries (Centina-era)
+
+A boundary standing in for a system that doesn't have its own spec yet (marked,
+typically, by an `@agent:` note like "this is probably a separate spec") is
+fine to declare inline in whatever spec first needed it — but it's a candidate
+for extraction into its own file (e.g. `task-matcher.centina.ts`), not gated on
+that note being present. Any inline boundary carries the same risk: a later
+spec that needs the same seam, unaware it already exists, reinvents it
+slightly differently.
+
+Two checks worth applying to any `@datasource`/`@datasink`/`@boundary`,
+whether or not it's flagged for extraction yet:
+
+- **Dependency direction.** A boundary's door signatures must not resolve to a
+  type declared in the *consuming* spec — that's the boundary depending on its
+  caller, backwards from how a real external system would typecheck. This
+  generalizes the affordance/transport split above: a boundary that imports its
+  caller's own record shapes has quietly become coupled to one specific
+  caller's internal representation, the same kind of conflation "affordances,
+  not transports" already rules out, just discovered at the type level instead
+  of the design level. Primitives, `unknown`, opaque `Noun<...>` brands, and
+  closed enums carry no such dependency and are fine at a door; a real
+  structured payload should be `unknown` at the door rather than an imported
+  local interface.
+- **Extraction readiness.** Once a boundary looks stable — a real seam other
+  specs would plausibly also want, not still being shaped — move it to its own
+  file. That file gets a clear "provisional boundary declarator" header and
+  contains only declarations (`declare class`/`type`/`interface`, plus one
+  instantiation if the boundary is naturally a shared singleton) — no function
+  bodies, no spec logic — so it stays trivially discoverable ahead of a future
+  `centina-fit` precedent search, and has a natural place to grow into once
+  someone actually specs out the real system behind it.
+
 ## Deferred / open
 
 - **Instance-level role narrowing** — restricting a both-capable `boundary` kind to a

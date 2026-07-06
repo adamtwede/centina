@@ -68,6 +68,42 @@ code with precise runtime semantics. Keep these distinctions in mind:
   inferred direction seem to disagree, that's worth raising as a diagnostic
   even if `tsc` says nothing.
 
+## Boundary declarations as extraction candidates
+
+Any `@datasource`/`@datasink`/`@boundary` declared inline in a spec file is a
+candidate for extraction into its own provisional file (e.g.
+`task-matcher.centina.ts`) — this is not gated on the author having left an
+`@agent:` note about it; every inline boundary carries the same reinvention
+and dependency-direction risk regardless of whether it was flagged. Writing
+it inline first is fine and expected — a spec writer should be able to stand
+an idea up quickly without a detour to a second file. Two things to check
+during a normal iteration pass:
+
+- **Dependency direction.** A boundary door's parameters/return types must
+  not resolve to a type declared in the *consuming* spec (a local interface,
+  or an object-shaped type alias) — that's the boundary depending on its own
+  caller, backwards from how a real external system would typecheck.
+  Primitives, `unknown`, opaque `Noun<...>` brands, and closed enums are
+  fine, since they carry no shape for the boundary to depend on. If a door
+  needs a real structured payload, prefer `unknown` at the door over
+  importing the caller's own record type.
+- **Whether it's ready to move out.** If the boundary looks stable and
+  reusable — a real seam other future specs would also want, not something
+  still being shaped — offer to extract it into its own file. Extraction
+  itself is mechanical (relocating already-written declarations, adding an
+  import), but it's a cross-file move and worth stating plainly to the human
+  rather than doing silently, even though it doesn't require a full stop.
+
+A provisional boundary file gets a clear header marking it as such (e.g.
+`// PROVISIONAL BOUNDARY DECLARATOR — declarations only, no implementation.`)
+and contains only `declare class`/`type`/`interface` declarations plus, if
+the boundary is naturally a shared singleton, one instantiation (e.g. `export
+const taskMatcherEngine = new TaskMatcherEngine()`) — no function bodies, no
+spec logic. This keeps it trivially greppable/discoverable by a future spec
+(or a `centina-fit` precedent search) before that spec reinvents the same
+boundary, and gives the eventual real spec for that system a natural home to
+grow into.
+
 ## Process
 
 1. **Run the check** against the target file:

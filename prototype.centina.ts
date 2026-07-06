@@ -16,6 +16,8 @@
 // 6. move to the next step (see below), if any, or terminate task run.
 
 import { Agent, Noun, deferred } from "./centina"
+import { taskMatcherEngine } from "./task-matcher.centina"
+import type { TaskMatchedContext } from "./task-matcher.centina"
 
 /** @external "system-util" */
 type Timestamp = Noun<"Timestamp">
@@ -28,14 +30,11 @@ declare function pauseLoopAndAlertHuman(): void
 /** @external "system-util" */
 declare function humanIntervened(): boolean
 
-/** @external "task-matcher" — in AISL v0 this was auto-implied by the boundary door signature; TS wants it declared */
-type TaskMatchedContext = Noun<"TaskMatchedContext">
-
 enum ModelId {
-  CLAUDE_OPUS,
-  CLAUDE_SONNET,
-  QWEN_LOCAL,
-  MINIMAX_OPENROUTER,
+  CLAUDE_OPUS = "CLAUDE_OPUS",
+  CLAUDE_SONNET = "CLAUDE_SONNET",
+  QWEN_LOCAL = "QWEN_LOCAL",
+  MINIMAX_OPENROUTER = "MINIMAX_OPENROUTER",
 }
 enum Decision {
   FEEDBACK_REQUIRED,
@@ -77,41 +76,34 @@ interface ImplementationAttempt {
   feedback?: Feedback
 }
 
+interface TaskRunRecord {
+  step: Step
+  model: ModelId
+  attempt: ImplementationAttempt
+}
+const taskRunLog: TaskRunRecord[] = []
+
 // @agent: would this be a better way to represent a step implementation loop?
 // map LoopRunMap:
 // 	key: Step + ModelId # composite key
 // 	value: ImplementationAttempt[]
 
-interface LoopRun {
-  step: Step
-  model: ModelId
-  attempts: ImplementationAttempt[]
-}
+// interface LoopRun {
+//   step: Step
+//   model: ModelId
+//   attempts: ImplementationAttempt[]
+// }
 
 // seems like this might be unnecessary:
-interface ImplementationRun {
-  iterations: LoopRun[]
-}
-const implementationRun: ImplementationRun = { iterations: [] }
+// interface ImplementationRun {
+//   iterations: LoopRun[]
+// }
+// const implementationRun: ImplementationRun = { iterations: [] }
 
 interface LoopFeedbackDestination {
   key: Feedback
   value: FeedbackDestination
 }
-
-/**
- * @boundary
- * @agent: the task matcher database is probably a separate spec. for now we
- * just treat it as a solved problem.
- */
-declare class TaskMatcherEngine {
-  encodeRunIntoTaskMatcher(
-    loopRun: LoopRun,
-    destinationMap: LoopFeedbackDestination[],
-  ): void
-  matchTask(step: Step, model: Agent<ModelId>): TaskMatchedContext | undefined
-}
-const taskMatcherEngine = new TaskMatcherEngine()
 
 function main(): void {
   const supervisorModel = new Agent(escalations[escalations.length - 1]) // the most capable model in the escalation chain
@@ -128,12 +120,7 @@ function startImplementation(
   targetModel: Agent<ModelId>,
 ): void {
   for (const implementationStep of implementationPlan) {
-    const run = implementationLoop(
-      implementationStep,
-      supervisorModel,
-      targetModel,
-    )
-    implementationRun.iterations.push(run)
+    implementationLoop(implementationStep, supervisorModel, targetModel)
   }
 }
 
@@ -142,12 +129,12 @@ function implementationLoop(
   supervisorModel: Agent<ModelId>,
   targetModel: Agent<ModelId>,
   loopRunFeedback?: Feedback,
-): LoopRun {
+) {
   let implementationStepComplete = false
-  const loopRun = {} as LoopRun // assumption: fields committed immediately below
-  loopRun.step = implementationStep
-  loopRun.model = targetModel.modelId
-  loopRun.attempts = []
+  // const loopRun = {} as LoopRun // assumption: fields committed immediately below
+  // loopRun.step = implementationStep
+  // loopRun.model = targetModel.modelId
+  // loopRun.attempts = []
 
   let stepPromptOutput: unknown
   const attempt: ImplementationAttempt = {} as ImplementationAttempt // assumption: fields committed over the iteration
@@ -155,10 +142,15 @@ function implementationLoop(
   do {
     let decision: Decision
     if (supervisorModel === targetModel) {
+      attempt.timestamp = timestamp()
       supervisorModel.prompt(
         `Please implement the following: ${implementationStep}`,
       ) // max escalation policy.
       decision = Decision.MAX_ESCALATION
+      // @agent: attempt.score is deliberately left unset on this path — open
+      // design question (not yet resolved) on how to differentiate a
+      // max-escalation attempt from a normally-scored one; see the note below
+      // on MAX_ESCALATION about matching future tasks.
     } else {
       attempt.timestamp = timestamp()
 
@@ -174,7 +166,11 @@ function implementationLoop(
         }
       }
 
-      const stepPromptOutput = supervisorModel.prompt(stepPromptText)
+      // supervisor drafts the prompt, then the target model is the one that
+      // actually attempts the step — the assumption at the cast below is that
+      // the supervisor's draft is usable verbatim as the target's prompt.
+      const generatedPrompt = supervisorModel.prompt(stepPromptText)
+      stepPromptOutput = targetModel.prompt(generatedPrompt as string)
 
       attempt.score = scoreAttempt(
         implementationStep,
@@ -186,7 +182,7 @@ function implementationLoop(
         implementationStep,
         stepPromptOutput,
         attempt.score,
-        loopRun,
+        taskRunLog,
         supervisorModel,
         targetModel,
       )
@@ -201,44 +197,62 @@ function implementationLoop(
           targetModel,
         )
         attempt.feedback = feedback
-        // @agent: does it make sense to do this as opposed to tracking a local feedback variable?
-        loopRun.attempts.push(
-          ...implementationLoop(
-            implementationStep,
-            supervisorModel,
-            targetModel,
-            feedback,
-          ).attempts,
-        ) // @agent: which one? this?
-        // return implementationLoop(implementationStep, supervisorModel, targetModel, feedback) // @agent: or this? ideally, each loop_run represents a 1:1 relationship between a particular model's attempt to complete a particular implementation step, and so contains all the attempts for a given step for a given model. but some steps get broken down, others escalated, etc., so it's not clear how best to represent this.
+        taskRunLog.push({
+          step: implementationStep,
+          model: targetModel.modelId,
+          attempt,
+        })
+        implementationLoop(
+          implementationStep,
+          supervisorModel,
+          targetModel,
+          feedback,
+        )
         break
       }
       case Decision.DECOMPOSE_STEP: {
-        const sub_steps = decomposeStep(implementationStep, supervisorModel)
-        for (const sub_step of sub_steps) {
-          // loopRun.attempts.push(...implementationLoop(sub_step, supervisorModel, targetModel).attempts) // @agent: which one? this?
-          return implementationLoop(sub_step, supervisorModel, targetModel) // @agent: or this? see above.
+        const subSteps = decomposeStep(implementationStep, supervisorModel)
+        taskRunLog.push({
+          step: implementationStep,
+          model: targetModel.modelId,
+          attempt,
+        })
+        for (const subStep of subSteps) {
+          implementationLoop(subStep, supervisorModel, targetModel)
         }
         break
       }
       case Decision.ESCALATE:
         escalate(implementationStep, supervisorModel, targetModel)
         break
-      case Decision.MARK_COMPLETE:
-        loopRun.attempts.push(attempt)
-        encodeLoopRunIntoTaskMatcher(loopRun)
+      case Decision.MARK_COMPLETE: {
+        taskRunLog.push({
+          step: implementationStep,
+          model: targetModel.modelId,
+          attempt,
+        })
+        encodeStepImplementationAttemptRunIntoTaskMatcher(
+          taskRunLog,
+          implementationStep,
+        )
         implementationStepComplete = true
         break
+      }
       case Decision.MAX_ESCALATION:
         // @agent: no feedback given in this case, the omission of which should be considered a deliberate indicator that future matched tasks should be escalated to the supervisor model immediately, at least assuming the same models/agents are involved (how that works is still TBD, and depends on the task matcher engine's implementation).
-        loopRun.attempts.push(attempt)
-        encodeLoopRunIntoTaskMatcher(loopRun)
+        taskRunLog.push({
+          step: implementationStep,
+          model: targetModel.modelId,
+          attempt,
+        })
+        encodeStepImplementationAttemptRunIntoTaskMatcher(
+          taskRunLog,
+          implementationStep,
+        )
         implementationStepComplete = true
         break
     }
   } while (!implementationStepComplete && !humanIntervened())
-
-  return loopRun
 }
 
 function escalate(
@@ -288,7 +302,12 @@ function proposeFeedback(
 
 // @agent: supervisor agent examines the attempts for the given task to decide if the feedback is relevant to the task as a whole, or if it is only relevant to a specific model's attempt at the task. if it is relevant to the task as a whole, it should be encoded into project docs, agent docs, and the task matcher for future similar tasks. if it is only relevant to a specific model's attempt, it should be encoded into that model's system prompt or a skill for future attempts at similar tasks:
 const organizeFeedback =
-  deferred<(loopRun: LoopRun) => LoopFeedbackDestination[]>()
+  deferred<
+    (
+      implementationStep: Step,
+      taskRunLog: TaskRunRecord[],
+    ) => LoopFeedbackDestination[]
+  >()
 
 // @agent: supervisor model looks at whether or not the target model is improving or not over the course of X attempts at implementing the given step, in part by comparing ImplementationAttempt.score across multiple consecutive attempts, analyzing the trend, and making a determination about how to proceed:
 const makeDecision =
@@ -297,16 +316,19 @@ const makeDecision =
       implementationStep: Step,
       stepPromptOutput: unknown,
       attemptScore: Score,
-      loopRun: LoopRun,
+      taskRunLog: TaskRunRecord[],
       supervisorModel: Agent<ModelId>,
       targetModel: Agent<ModelId>,
     ) => Decision
   >()
 
 // @agent: supervisor model incorporates feedback into the task matcher examining the destination code, which indicates where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
-function encodeLoopRunIntoTaskMatcher(loopRun: LoopRun): void {
-  const destinationMap = organizeFeedback(loopRun)
-  taskMatcherEngine.encodeRunIntoTaskMatcher(loopRun, destinationMap)
+function encodeStepImplementationAttemptRunIntoTaskMatcher(
+  taskRunLog: TaskRunRecord[],
+  implementationStep: Step,
+): void {
+  const destinationMap = organizeFeedback(implementationStep, taskRunLog)
+  taskMatcherEngine.encodeTask(implementationStep, taskRunLog, destinationMap)
 }
 
 // @agent: the question for the supervisor model is: for this task/step, for this model (but also for any model), have we done something similar in the past that can be found in our project docs or task matcher database that can be used to improve the prompt for this task/step? if so, return it:
