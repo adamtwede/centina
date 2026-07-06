@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "centina.injection.code",
+  "injectionSelector": "source.ts",
+  "patterns": [{ "include": "#deferred-marker" }],
+  "repository": {
+    "deferred-marker": {
+      "comment": "deferred<F>() / deferred() — the typed-hole marker function from centina.ts.",
+      "match": "\\b(deferred)\\b(?=\\s*[(<])",
+      "captures": {
+        "1": { "name": "keyword.other.centina.deferred" }
+      }
+    }
+  }
+}

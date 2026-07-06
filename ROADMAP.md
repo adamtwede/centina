@@ -88,13 +88,23 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   implemented — the spec-plane tsconfig is already deliberately permissive,
   so there's currently nothing known worth downgrading; revisit if a real
   case shows up.
+- **TextMate injection grammar** (`editors/vscode/`) — a declaration-only,
+  unpublished VS Code extension: two injection grammars layered onto the
+  built-in TypeScript grammar (`injectTo: ["source.ts", "source.tsx"]`), no
+  new language id, so `.centina.ts` files stay plain `typescript` for every
+  other tool. `centina.comments.injection.json` (selector matches when the
+  deepest scope is a `//` or JSDoc comment) tints the `@agent:` marker,
+  `@boundary`/`@datasource`/`@datasink` role tags, and the `@external` tag;
+  `centina.code.injection.json` (selector `source.ts`, broad — matches
+  anywhere in a TS file) tints the `deferred` marker call, narrowed by a
+  lookahead for `(`/`<` so an unrelated identifier literally named
+  `deferred` doesn't light up. No compile step or activation code — the
+  `editors/vscode/README.md` covers loading it locally (`Developer: Install
+  Extension from Location...` or a symlink into the extensions folder).
 
 ## Next up
 
-1. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
-   `deferred` on top of stock TS highlighting (tiny extension, no publishing
-   needed for local dev).
-2. **Scoped/incremental checker runs** — `npm run check` currently loads and
+1. **Scoped/incremental checker runs** — `npm run check` currently loads and
    checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
    argument (`npm run check -- prototype.centina.ts`) that runs the full rule
    set only on the requested file(s) plus whatever they import (so checking
