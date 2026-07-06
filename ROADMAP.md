@@ -35,25 +35,36 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   axiom reframed as bookkeeping (matching `fit-validation.md`), and the
   boundary-end "slice-relative" finding folded into `centina-fit` as a named
   limitation.
+- **Checker harness v1** (`checker/`, `npm run check`) — loads the project via
+  ts-morph, merges `tsc`'s structural diagnostics with three spec-plane
+  rules: hole enumeration (every `deferred`/`@agent:`/`@external`/boundary
+  declaration, as an info-level inventory — "clean" = no unmarked gaps, not
+  no gaps), boundary direction (`@datasource` doors must return data,
+  `@datasink` doors must return void), and boundary dependency-direction (a
+  boundary's doors must not depend on a structured type declared in that same
+  file — the rule this session's `task-matcher.centina.ts` extraction
+  motivated, not originally listed below but folded in alongside items 2-3
+  since it uses the same harness and AST-walk shape).
 
 ## Next up
 
-1. **Checker harness** — load the program via the TypeScript compiler API
-   (likely ts-morph), run tsc-with-filtering, merge in spec-plane diagnostics;
-   CLI entry point (`npm run check`).
-2. **First spec rule: hole enumeration** — list every `deferred`, `@agent:`,
-   `@external`, and boundary with its routing; "clean" = no unmarked gaps.
-3. **Boundary direction rule** — `@datasource` doors must return data,
-   `@datasink` doors must return void (direction from returns, per
-   `docs/boundaries.md`).
-4. **Assumption bookkeeping** — report every `as` cast as a recorded
+1. **Assumption bookkeeping** — report every `as` cast as a recorded
    assumption; flag casts that launder shape without a source.
-5. **Naming-consistency rule** — port the AISL typo/drift detection idea.
-6. **TS language-service plugin** — same rule code surfaced live in-editor;
+2. **Naming-consistency rule** — port the AISL typo/drift detection idea.
+3. **TS language-service plugin** — same rule code surfaced live in-editor;
    filter/downgrade spec-irrelevant tsc diagnostics.
-7. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
+4. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
    `deferred` on top of stock TS highlighting (tiny extension, no publishing
    needed for local dev).
+5. **Scoped/incremental checker runs** — `npm run check` currently loads and
+   checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
+   argument (`npm run check -- prototype.centina.ts`) that runs the full rule
+   set only on the requested file(s) plus whatever they import (so checking
+   `prototype.centina.ts` still pulls in `task-matcher.centina.ts` for the
+   boundary-direction/dependency rules, which are meaningless read in
+   isolation from the class they're declared on) — dependencies checked
+   before dependents, cycle detection needed since nothing currently
+   prevents one.
 
 ## Open / under discussion
 
