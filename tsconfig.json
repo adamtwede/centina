@@ -11,7 +11,8 @@
 		"skipLibCheck": true,
 		"noEmit": true,
 		"noUnusedLocals": false,
-		"noUnusedParameters": false
+		"noUnusedParameters": false,
+		"plugins": [{ "name": "./checker/tsPlugin.cjs" }]
 	},
 	"include": ["centina.ts", "*.centina.ts", "specs/**/*.centina.ts"]
 }

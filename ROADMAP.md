@@ -64,15 +64,37 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   human. `checker/vocabulary.ts` extracted the import-alias-resolution helper
   (`isFromVocabulary`) this rule needed, deduplicating logic that had already
   been copy-pasted (and once mis-copied) across two earlier rules.
+- **TS language-service plugin** (`checker/tsPlugin.cjs` /
+  `checker/tsPluginImpl.ts`, wired via `tsconfig.json`'s
+  `compilerOptions.plugins`) — the same five rules surfaced live in-editor as
+  real diagnostics on `.centina.ts` files, not just `npm run check` output.
+  tsserver loads plugins via a synchronous CommonJS `require` and can't
+  transpile TS itself, so the plugin entry is a two-line `.cjs` bootstrap
+  (`require("tsx/cjs")` to register tsx's require hook, then hand off to the
+  real TS implementation) — everything past that bootstrap is ordinary
+  TypeScript reusing the existing `Rule`/`Finding` machinery unchanged. Each
+  `getSemanticDiagnostics` call refreshes the target file's ts-morph
+  `SourceFile` from the live (possibly unsaved) editor buffer via
+  `languageServiceHost.getScriptSnapshot`, not from disk, so diagnostics
+  track what's actually being typed; a `try`/`catch` around the whole rule
+  pass guarantees a bug in our rules degrades to "no extra diagnostics," never
+  breaks the editor's real TS features. Findings map to `ts.Diagnostic`
+  (`error`/`warning`/`info` → Error/Warning/Suggestion category, whole-line
+  span, a private code per rule starting at 91001, `source: "centina"`).
+  Verified by driving the plugin directly against a real `ts.LanguageService`
+  (no build step, no VSCode needed) and confirming both disk-state and
+  live-unsaved-edit typos surface correctly. "Filter/downgrade spec-irrelevant
+  tsc diagnostics" (the other half of the original roadmap wording) wasn't
+  implemented — the spec-plane tsconfig is already deliberately permissive,
+  so there's currently nothing known worth downgrading; revisit if a real
+  case shows up.
 
 ## Next up
 
-1. **TS language-service plugin** — same rule code surfaced live in-editor;
-   filter/downgrade spec-irrelevant tsc diagnostics.
-2. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
+1. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
    `deferred` on top of stock TS highlighting (tiny extension, no publishing
    needed for local dev).
-3. **Scoped/incremental checker runs** — `npm run check` currently loads and
+2. **Scoped/incremental checker runs** — `npm run check` currently loads and
    checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
    argument (`npm run check -- prototype.centina.ts`) that runs the full rule
    set only on the requested file(s) plus whatever they import (so checking
