@@ -7,7 +7,8 @@
 > syntax below is AISL v0 (preserved at tag `aisl-v0-standalone-language`).
 > The Centina spelling is a JSDoc-tagged `declare class`
 > (`/** @datasource | @datasink | @boundary */`) — see `centina.ts` and the
-> worked use in `prototype.centina.ts`. Checker enforcement is roadmapped.
+> worked use in `specs/hill-climbing-loop/hill-climbing-loop.centina.ts`.
+> Checker enforcement is roadmapped.
 
 **Status:** Designed, not yet implemented. This is a language-design document — the
 first concrete fragment of the eventual `SPEC.md` referenced in `ROADMAP.md`. It

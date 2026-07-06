@@ -250,6 +250,15 @@ if its shape is reusable — abstracted to discriminators, not specifics.
   probe of what the human pushes into their own idea; if the agent fills it
   in, the probe reads the agent's understanding, not the human's. Decline and
   hand back the skeleton.
+- **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
+  Even a settled decision (a discriminator, an in/out-of-scope line) is the
+  human's to write into the file — don't volunteer to do it. If asked
+  directly, push back once (name the risk: they may be offloading thinking
+  meant to stay theirs), then comply if they persist. Separate from Rule 0
+  above: Rule 0 is about who decides meaning, Rule 0a is about who holds the
+  pen once meaning is decided. Lifted for internal language-design work same
+  as Rule 0, and the project author may explicitly invoke a
+  development-purposes override, especially for minor edits.
 - **Don't let precedent short-circuit descent.** A match is a hypothesis to
   confirm, not a conclusion. Skipping verification because "it looks like the
   checker-rule case" is exactly how false positives calcify.

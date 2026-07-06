@@ -24,11 +24,30 @@ Centina began as AISL, a from-scratch spec language with its own
 lexer/parser/checker. In July 2026 the author pivoted: real spec-writing
 showed that TS already had every *structural* feature being reached for, while
 the genuinely novel inventions (`deferred`, `@agent:` direction, boundaries)
-needed a checker, not a grammar. **The entire AISL v0 toolchain and its docs
+needed a checker, not a grammar. `@agent:` notes may carry an author-chosen
+label — `@agent(C1): ...` — giving the note a stable name to reference later
+instead of an ephemeral line number; labels are free text the human assigns.
+**The entire AISL v0 toolchain and its docs
 are preserved at git tag `aisl-v0-standalone-language`** — consult the tag,
 not this working tree, for anything AISL-era. Do not rebuild AISL-era
-machinery (lexer, parser, `.aisl` checking); `prototype.aisl` and
-`widgets.aisl` remain in-tree only as port references.
+machinery (lexer, parser, `.aisl` checking); `prototype.aisl` (now at
+`specs/hill-climbing-loop/`) and `widgets.aisl` remain in-tree only as port
+references.
+
+## Two different "agent" concepts — do not conflate
+
+- **`Agent<Model>` / `.prompt()` / `.review()`** (`centina.ts`) — domain
+  content. Describes the *real system a spec is about* prompting or judging
+  an LLM agent at runtime, once the spec becomes an implementation. E.g. in
+  `hill-climbing-loop.centina.ts`, `supervisorModel.prompt(...)` models the
+  eventual harness prompting the actual agent orchestrating that loop.
+- **`@agent:` / `@agent(label):` comments** — spec-authoring-time metadata.
+  A direct channel between the human spec-writer and whichever coding agent
+  is running a `centina-iterate`/`centina-fit` session with them. Never part
+  of the spec's domain content, never describing runtime behavior.
+
+These are unrelated concepts that happen to share the word "agent." See the
+clarifying comment in `centina.ts` next to the `Agent` class.
 
 ## Project state
 
@@ -36,8 +55,9 @@ Early post-pivot. What exists:
 
 - `centina.ts` — the vocabulary module (`Noun`, `deferred`, `Agent`); the
   comment header documents the boundary/external JSDoc-tag spellings.
-- `prototype.centina.ts` — the founding fixture, a 1:1 port of the author's
-  `prototype.aisl` rewrite. The port's 6 preserved findings (missing
+- `specs/hill-climbing-loop/hill-climbing-loop.centina.ts` — the founding
+  fixture, a 1:1 port of the author's `prototype.aisl` rewrite. The port's 6
+  preserved findings (missing
   target-model prompt call; values used outside the branch that creates
   them) **have been ratified and resolved by the author** — `npm run
   typecheck` is clean. The primitive spellings chosen during the port
@@ -63,6 +83,19 @@ tracks build order.
   human's thinking. Supplying *form* (skeletons, syntax, holes) is fine. The
   author has lifted Rule 0 only for internal language-design sessions (where
   the subject is Centina itself, not a task being specced).
+- **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
+  During a `centina-iterate`/`centina-fit` session, the agent should not
+  volunteer to write changes into a `.centina.ts` file — surface the
+  decision and let the human make it, then let *them* say whether they want
+  it applied. If a human does ask the agent to make the edit, push back once
+  (name the risk: they may be offloading thinking that's meant to stay
+  theirs) rather than silently complying — but don't refuse outright if they
+  persist after that pushback. This is separate from Rule 0's "never decide
+  the meaning" — Rule 0a is about who's holding the pen once meaning has
+  already been decided. Lifted, same as Rule 0, for internal language-design
+  work, and the author may explicitly invoke a development-purposes override
+  for minor spec edits (as happened settling `Score.MAX_ESCALATED` on
+  `hill-climbing-loop.centina.ts`).
 - `docs/boundaries.md` — boundary design (affordances-not-transports, the
   three roles, direction-from-returns, drawing guidelines) carries over from
   AISL unchanged; only its concrete syntax section is AISL-era.

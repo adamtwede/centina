@@ -36,14 +36,37 @@ declare const shape: unique symbol
 export type Noun<Name extends string> = { readonly [shape]: Name }
 
 /**
- * A typed hole with deliberately unresolved *routing*: the author knows this
+ * A typed hole's resolution state, given as the first type argument:
+ *
+ *   - `"unimplemented"` — must have a real function body before planning can
+ *     begin; the checker treats this as an error, a hard stop.
+ *   - `"spec"` — routed to a separate `.centina.ts` spec that doesn't exist
+ *     yet (part of a larger Centina-driven planning workflow).
+ *   - `"open"` — left to the implementing agent's discretion when the plan is
+ *     written; not a gap the human needs to close.
+ *
+ * Leaving the kind off entirely (`deferred<F>()`) means routing itself is
+ * still undecided — the checker flags that as a warning, distinct from the
+ * three resolved kinds above (which it reports as info/error, not "please
+ * resolve this").
+ */
+export type DeferredKind = "unimplemented" | "spec" | "open"
+
+/**
+ * A "typed hole" with variable *routing* resolution: the author knows this
  * operation's signature but has not yet decided whether it belongs in this
  * spec, in a separate spec, or should be left to a coding agent's runtime
  * judgment (e.g. a direct agent prompt). The routing decision is made during
  * the iterate loop, not at authoring time.
  *
  * Usage:
- *   const score_attempt = deferred<(step: Step, output: string) => Score>()
+ *
+ * ```
+ *   const score = deferred<(step: Step, output: string) => Score>() // unresolved, emits a warning
+ *   const rank = deferred<"spec", (c: Candidate[]) => Candidate>() // warrants a separate, unwritten spec
+ *   const decide = deferred<"open", (node: Node) => Decision>() // left to the discretion of the planning agent
+ *   const lookup = deferred<"unimplemented", (n: Name, t: Table) => Row>() // emits an error until function has a body
+ * ```
  *
  * The signature is real and participates fully in type checking — callers are
  * held to it even though nothing exists behind it. The checker enumerates all
@@ -53,6 +76,10 @@ export type Noun<Name extends string> = { readonly [shape]: Name }
 export declare function deferred<F extends (...args: never[]) => unknown>(
   note?: string,
 ): F
+export declare function deferred<
+  Kind extends DeferredKind,
+  F extends (...args: never[]) => unknown,
+>(note?: string): F
 
 /**
  * The one boundary Centina ships pre-built: a model the spec converses with.
@@ -70,5 +97,15 @@ export declare class Agent<Model = string> {
   /** The model's own capability/spec sheet, usable in prompt construction. */
   readonly specification: string
   prompt(text: string): unknown
-  review(subject: unknown): unknown
+  review(subject: unknown, criteria: string): unknown
 }
+
+// `Agent<Model>` / `.prompt()` / `.review()` are domain content: they describe
+// the *real system the spec is about* prompting or judging an LLM agent at
+// runtime, once the spec becomes an implementation. This is unrelated to the
+// `@agent:`-tagged comments documented at the top of this file and in
+// centina-iterate's SKILL.md, which are spec-authoring-time metadata — a
+// direct channel between the human writing the spec and whichever coding
+// agent is helping them write it. Never conflate the two: an `Agent` value in
+// a spec's pseudocode is never the coding agent reading the spec, and an
+// `@agent:` note is never describing the runtime system's behavior.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "scopeName": "centina.injection.code",
-  "injectionSelector": "source.ts",
+  "injectionSelector": "L:source.ts",
   "patterns": [{ "include": "#deferred-marker" }],
   "repository": {
     "deferred-marker": {

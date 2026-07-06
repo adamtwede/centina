@@ -212,7 +212,9 @@ discriminator → premise verdict → provenance notes.)*
   `aisl-v0-standalone-language`. The planned three-arm head-to-head collapses
   to prose-vs-Centina (still pending, still the right G3 test).
 - **2026-07 — First Centina artifact confirms the pipeline.** The 1:1 port
-  (`prototype.centina.ts`) + permissive tsc produced exactly 6 diagnostics,
+  (`prototype.centina.ts`, later renamed/relocated to
+  `specs/hill-climbing-loop/hill-climbing-loop.centina.ts`) + permissive tsc
+  produced exactly 6 diagnostics,
   all genuine spec findings (the missing prompt step ×2; branch-scoped
   `attempt`/`step_prompt_output` used outside their branch ×4), zero false
   positives, zero custom checker code. Phase-2 candidate work (monorepo tool,

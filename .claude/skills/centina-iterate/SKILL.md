@@ -48,7 +48,10 @@ code with precise runtime semantics. Keep these distinctions in mind:
   During iteration, try to work with the human to convert `@agent:` stubs
   into proper Centina constructs (`deferred<F>()`, a typed boundary door)
   where the intent is clear enough to express. If it isn't, flag it as a
-  genuine ambiguity and discuss.
+  genuine ambiguity and discuss. A note may carry an author-chosen label —
+  `@agent(C1): ...` — giving it a stable name to reference later in
+  conversation or in a PLAN.md, instead of an ephemeral line number. Labels
+  are free text the human assigns; don't invent or renumber them yourself.
 
 - **`deferred<F>()` calls** are marker functions: a typed hole whose *routing*
   (stays in this spec / belongs in a separate spec / left to a runtime
@@ -132,7 +135,8 @@ grow into.
      conversation (a typo matching an existing identifier, a missing `as`
      cast whose target type is unambiguous, a scope reference that clearly
      meant a different in-scope name). Propose the fix in one or two
-     sentences and apply it directly.
+     sentences and let the human apply it — see Rule 0a below on why the
+     agent doesn't reach for the edit itself, even for a fix this small.
 
    - **Genuine ambiguity** — the diagnostic reveals that the pseudocode's
      _intent_ isn't actually settled (e.g. an undefined identifier that
@@ -163,7 +167,7 @@ implementation plan and write it as a PLAN.md file alongside the spec:
   exists, ask the human how they'd like to proceed rather than overwriting
   existing contents.
 - **Provenance**: the first section must name the spec file that produced
-  it, e.g. `**Spec source**: prototype.centina.ts`. This makes the plan's
+  it, e.g. `**Spec source**: hill-climbing-loop.centina.ts`. This makes the plan's
   origin traceable. If a `FIT.md` preceded the spec (see the `centina-fit`
   skill), name that too — it carries the scope decision this plan should
   respect.
@@ -200,22 +204,31 @@ completed status:
   fine (illustrating a syntax point, sketching one door), but do not produce,
   fill in, or "finish" a spec — the human is the architect. If a human asks
   you to write one, decline and redirect to iterating on what *they* write.
+- **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
+  Even once a fix or a routing decision is fully settled — mechanical or
+  not — don't volunteer to be the one who writes it into the file. Surface
+  what changes and why, then let the human apply it. If they ask the agent
+  to make the edit anyway, push back once (name the risk: they may be
+  offloading thinking that's meant to stay theirs), but don't refuse
+  outright if they persist after that pushback — comply and move on. This is
+  separate from Rule 0 above: Rule 0 is about who decides a spec's meaning,
+  Rule 0a is about who holds the pen once meaning is decided. The project's
+  author may explicitly invoke a development-purposes override for this
+  policy, especially for minor edits — treat that as sufficient to proceed
+  without further pushback for the edit in question.
 - Don't silently resolve a genuine ambiguity just to make the check pass. A
   diagnostic is a tool for _finding_ underspecified intent, not a target to
   satisfy by any available typing trick (e.g. don't just loosen a param's
   type, or add an `as unknown as X` cast, to make a mismatch disappear unless
   that's actually what the human decides).
 - Don't fix diagnostics yourself unless explicitly instructed or given
-  approval. They're designed to indicate places where the human developer's
-  intent is unclear or underspecified. The human should decide how to
-  resolve those ambiguities, not the coding agent.
-- Do not make edits directly to a spec file prior to a plan draft without
-  explicit instructions from the human to do so. The human should be the
-  primary architect of the spec file, so they remain in the loop and don't
-  rely on the coding agent to do their thinking for them.
+  approval, and even then, see Rule 0a — push back once before complying.
+  They're designed to indicate places where the human developer's intent is
+  unclear or underspecified; the human should decide how to resolve those
+  ambiguities, not the coding agent.
 - Don't fix multiple unrelated diagnostics in one pass without re-checking in
   between.
-- If explicitly instructed to make spec edits, don't add structure to the
+- If instructed to make spec edits (per Rule 0a), don't add structure to the
   document (new types, enums, casts) beyond what's needed to resolve the
   diagnostic at hand — bigger syntax/structure changes go through the normal
   design discussion, not this loop.
@@ -256,7 +269,8 @@ places.
 
 ### Scope-crossing identifiers are a common real finding
 
-The port of `prototype.aisl` to `prototype.centina.ts` reproduced (by design)
+The port of `prototype.aisl` to `hill-climbing-loop.centina.ts` (then still
+named `prototype.centina.ts`) reproduced (by design)
 six `tsc` errors, several of which were a value referenced in a `switch`/`if`
 branch other than the one that created it (e.g. an `attempt` used in a
 branch where no code path actually constructs one). This is exactly the

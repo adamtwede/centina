@@ -17,8 +17,10 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   `declare` statements (`@datasource`/`@datasink`/`@boundary`, `@external`).
 - **Permissive spec-plane tsconfig** — tsc kept for name resolution/arity/
   shape; relieved of unused-checks and emit.
-- **Founding fixture** (`prototype.centina.ts`) — 1:1 port of the author's
-  `prototype.aisl` rewrite, open questions and known gaps preserved. tsc
+- **Founding fixture** (`specs/hill-climbing-loop/hill-climbing-loop.centina.ts`,
+  named `prototype.centina.ts` until its rename/relocation into `specs/`) —
+  1:1 port of the author's `prototype.aisl` rewrite, open questions and known
+  gaps preserved. tsc
   immediately surfaced 6 genuine findings (missing target-model prompt step;
   branch-scoped values used outside their branch) — the pipeline demonstrating
   goal 2 with zero custom code written.
@@ -102,11 +104,14 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   `editors/vscode/README.md` covers loading it locally (`Developer: Install
   Extension from Location...` or a symlink into the extensions folder).
 
+- **`deferred` resolution classifier** (`centina.ts`, `checker/rules/holeEnumeration.ts`) — resolves the open question below: `deferred<F>()` stays exactly as it read before (no routing decided yet — now surfaced as a `warning`, not `info`, since it's a decision still owed), and an optional leading kind argument narrows it: `deferred<"unimplemented", F>()` (needs a real body before planning can begin — `error`), `deferred<"spec", F>()` (routed to a separate spec, part of a larger Centina-driven planning workflow — `info`), `deferred<"open", F>()` (left to the implementing agent's discretion when the plan is written — `info`). The kind always reads before `F` (`DeferredKind` exported from `centina.ts`); ordinary overload arity resolution (1 vs. 2 explicit type arguments) picks the right signature, verified against both forms plus a rejected bogus kind via `tsc`.
+- **Spec-explanation rule** (`checker/rules/specExplanation.ts`) — a spec's code alone doesn't establish what it exists to describe, so this rule warns (heuristically, by length only — presence, not quality, same posture as the other rules) when a spec's first statement isn't preceded by a real leading comment. Verified clean against both real specs (each already opens with a substantial header) and a scratch file with no leading comment.
+- **Labeled `@agent` notes** (`editors/vscode/syntaxes/centina.comments.injection.json`, `checker/rules/holeEnumeration.ts`, `checker/rules/namingConsistency.ts`) — an `@agent:` note may carry an author-chosen label, `@agent(C1): ...`, giving it a stable name to reference later (in conversation or a PLAN.md) instead of an ephemeral line number. The label tints in its own color, distinct from the `@agent` tag itself. `hole-enumeration` surfaces the label in its finding message when present; `naming-consistency` flags (`error`) two notes in the same file claiming the same label — unlike the Noun-brand/`@external` drift checks, this isn't a near-miss judgment call, a duplicate label is a direct conflict with the whole point of the convention. Scoped per file, since the same label in two unrelated specs isn't a conflict. Verified against the real specs (a real `@agent(C1):` note surfaces correctly, no false duplicate) and a scratch-forced duplicate, reverted after confirming the rule fires.
 - **Scoped/incremental checker runs** (`checker/harness.ts`'s `resolveScope`,
   wired into `checker/cli.ts`) — `npm run check -- <file...>` now runs the
   full rule set on just the requested file(s) plus every local spec they
   transitively import (imports of `centina.ts` itself don't count — it's
-  vocabulary, not a spec dependency), so checking `prototype.centina.ts`
+  vocabulary, not a spec dependency), so checking `hill-climbing-loop.centina.ts`
   alone still surfaces `task-matcher.centina.ts`'s findings, per the
   confirmed design: dependencies are visited (and appear in the report)
   before dependents via post-order DFS, and an import cycle among local
@@ -118,6 +123,15 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   the real specs (single-file scope, transitive-dependency reporting, a
   scratch-induced import cycle, and a not-found path all behave as designed)
   with all scratch edits reverted.
+- **Founding fixture relocated to `specs/`** — `prototype.centina.ts` →
+  `specs/hill-climbing-loop/hill-climbing-loop.centina.ts`, its boundary
+  declarator `task-matcher.centina.ts`, and its AISL-era ancestor
+  `prototype.aisl` moved alongside it, all co-located in a self-contained
+  sub-project folder. Settled the filename/folder convention going forward:
+  dashes (matching every other post-pivot name — `task-matcher.centina.ts`,
+  `fit-validation.md`, `boundaries.md`), not the underscore convention the
+  older AISL-era `specs/` subfolders happen to use; those stay untouched as
+  frozen history rather than being retroactively renamed.
 
 ## Open / under discussion
 
@@ -127,8 +141,6 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   AISL) was mooted by the pivot.
 - Exhaustiveness on `switch` over spec enums — tsc doesn't require it; decide
   whether the checker should (AISL's match rule said yes).
-- Whether `deferred` should carry a structured routing argument
-  (`"this-spec" | "separate-spec" | "runtime-agent"`) or stay a free note.
 - The remaining fit-validation candidate set (monorepo dependency-impact tool,
   game systems, synthetic seam cases) — paused during the pivot; resume once
   the checker can participate.

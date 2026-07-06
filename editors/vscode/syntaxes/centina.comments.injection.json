@@ -9,10 +9,12 @@
   ],
   "repository": {
     "agent-note": {
-      "comment": "// @agent: <message> — a direct human-to-agent note.",
-      "match": "(@agent:)",
+      "comment": "// @agent: <message> or // @agent(C1): <message> — a direct human-to-agent note, optionally labeled for stable reference.",
+      "match": "(@agent)(?:(\\()([^)]+)(\\)))?(:)",
       "captures": {
-        "1": { "name": "keyword.other.centina.agent" }
+        "1": { "name": "keyword.other.centina.agent" },
+        "3": { "name": "keyword.other.centina.agentLabel" },
+        "5": { "name": "keyword.other.centina.agent" }
       }
     },
     "role-tag": {

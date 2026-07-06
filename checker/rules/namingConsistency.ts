@@ -18,6 +18,7 @@ interface NameUsage {
 }
 
 const EXTERNAL_SOURCE_PATTERN = /@external\s+"([^"]+)"/g
+const AGENT_LABEL_PATTERN = /@agent\(([^)]+)\)/g
 
 function collectNounUsages(sourceFiles: SourceFile[]): NameUsage[] {
   const usages: NameUsage[] = []
@@ -46,6 +47,21 @@ function collectExternalSourceUsages(sourceFiles: SourceFile[]): NameUsage[] {
   for (const sourceFile of sourceFiles) {
     const text = sourceFile.getFullText()
     for (const match of text.matchAll(EXTERNAL_SOURCE_PATTERN)) {
+      usages.push({
+        name: match[1],
+        file: sourceFile.getFilePath(),
+        line: sourceFile.getLineAndColumnAtPos(match.index ?? 0).line,
+      })
+    }
+  }
+  return usages
+}
+
+function collectAgentLabelUsages(sourceFiles: SourceFile[]): NameUsage[] {
+  const usages: NameUsage[] = []
+  for (const sourceFile of sourceFiles) {
+    const text = sourceFile.getFullText()
+    for (const match of text.matchAll(AGENT_LABEL_PATTERN)) {
       usages.push({
         name: match[1],
         file: sourceFile.getFilePath(),
@@ -122,6 +138,37 @@ function findDrift(
   return findings
 }
 
+// Unlike Noun brands and @external sources, an @agent label's whole purpose
+// is to be a stable, unambiguous reference — so two notes in the same file
+// claiming the same label is a genuine conflict, not a drift candidate to
+// weigh against a "more common" spelling. Scoped per file: the same label in
+// two unrelated specs isn't a conflict, since each spec is its own document.
+function findDuplicateLabels(usages: NameUsage[]): Finding[] {
+  const byFileAndName = new Map<string, NameUsage[]>()
+  for (const usage of usages) {
+    const key = `${usage.file}\0${usage.name}`
+    const existing = byFileAndName.get(key) ?? []
+    existing.push(usage)
+    byFileAndName.set(key, existing)
+  }
+
+  const findings: Finding[] = []
+  for (const occurrences of byFileAndName.values()) {
+    if (occurrences.length < 2) continue
+    const [first, ...rest] = occurrences
+    findings.push({
+      rule: "naming-consistency",
+      severity: "error",
+      file: first.file,
+      line: first.line,
+      message: `@agent(${first.name}) is used ${occurrences.length} times in this file — a label must be unique to stay a stable reference (also at ${rest
+        .map((o) => `:${o.line}`)
+        .join(", ")})`,
+    })
+  }
+  return findings
+}
+
 export const namingConsistencyRule: Rule = {
   name: "naming-consistency",
   check(sourceFiles) {
@@ -131,6 +178,7 @@ export const namingConsistencyRule: Rule = {
         collectExternalSourceUsages(sourceFiles),
         (name) => `@external "${name}"`,
       ),
+      ...findDuplicateLabels(collectAgentLabelUsages(sourceFiles)),
     ]
   },
 }

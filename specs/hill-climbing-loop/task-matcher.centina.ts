@@ -1,12 +1,12 @@
 // task-matcher.centina.ts — PROVISIONAL BOUNDARY DECLARATOR. Extracted from
-// prototype.centina.ts (the first spec that needed it) so any future spec
+// hill-climbing-loop.centina.ts (the first spec that needed it) so any future spec
 // needing task-matching imports this instead of reinventing it. No real
 // implementation or spec of its own yet — the @agent: note below is still
 // the author's honest state on that. Declarations only: no function bodies,
 // no spec logic. Promote to a full spec (with its own deferred holes, if
 // any) when the task matcher is actually designed.
 
-import { Agent, Noun } from "./centina"
+import { Agent, Noun } from "../../centina"
 
 /** @external "task-matcher" — in AISL v0 this was auto-implied by the boundary door signature; TS wants it declared */
 export type TaskMatchedContext = Noun<"TaskMatchedContext">
@@ -14,7 +14,11 @@ export type TaskMatchedContext = Noun<"TaskMatchedContext">
 /**
  * @boundary
  * @agent: the task matcher database is probably a separate spec. for now we
- * just treat it as a solved problem.
+ * just treat it as a solved problem. one open question for that future spec:
+ * when a step's attempt.score is Score.MAX_ESCALATED (the supervisor model
+ * attempted the step directly), should future matched tasks skip straight to
+ * escalation — at least when the same models/agents are involved? mechanism
+ * still TBD.
  */
 export declare class TaskMatcherEngine {
   encodeTask(
@@ -22,10 +26,7 @@ export declare class TaskMatcherEngine {
     taskRunLog: unknown[],
     destinationMap: unknown[],
   ): void
-  matchTask(
-    task: unknown,
-    model: Agent<string>,
-  ): TaskMatchedContext | undefined
+  matchTask(task: unknown, model: Agent<string>): TaskMatchedContext | undefined
 }
 
 export const taskMatcherEngine = new TaskMatcherEngine()
