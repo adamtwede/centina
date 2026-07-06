@@ -45,18 +45,22 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   file — the rule this session's `task-matcher.centina.ts` extraction
   motivated, not originally listed below but folded in alongside items 2-3
   since it uses the same harness and AST-walk shape).
+- **Assumption bookkeeping rule** (`checker/rules/assumptionBookkeeping.ts`) —
+  every `as` cast in a spec is an info-level finding unless it narrows a
+  value whose real type (peeling through throwaway `as unknown`/`as any`
+  laundering steps first) isn't itself `unknown`/`any` or a stub object
+  literal, in which case it's a warning: shape may be getting fabricated
+  without a real source.
 
 ## Next up
 
-1. **Assumption bookkeeping** — report every `as` cast as a recorded
-   assumption; flag casts that launder shape without a source.
-2. **Naming-consistency rule** — port the AISL typo/drift detection idea.
-3. **TS language-service plugin** — same rule code surfaced live in-editor;
+1. **Naming-consistency rule** — port the AISL typo/drift detection idea.
+2. **TS language-service plugin** — same rule code surfaced live in-editor;
    filter/downgrade spec-irrelevant tsc diagnostics.
-4. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
+3. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
    `deferred` on top of stock TS highlighting (tiny extension, no publishing
    needed for local dev).
-5. **Scoped/incremental checker runs** — `npm run check` currently loads and
+4. **Scoped/incremental checker runs** — `npm run check` currently loads and
    checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
    argument (`npm run check -- prototype.centina.ts`) that runs the full rule
    set only on the requested file(s) plus whatever they import (so checking
