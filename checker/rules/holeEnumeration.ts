@@ -1,5 +1,6 @@
 import { SourceFile, SyntaxKind } from "ts-morph"
 import { Finding, Rule } from "../types"
+import { isFromVocabulary } from "../vocabulary"
 
 const AGENT_NOTE_PATTERN = /@agent:/g
 const EXTERNAL_PATTERN = /@external\s+"([^"]+)"/g
@@ -16,13 +17,7 @@ function findDeferredCalls(sourceFile: SourceFile): Finding[] {
   )) {
     const expr = call.getExpression()
     if (expr.getText() !== "deferred") continue
-    const referenceSymbol = expr.getSymbol()
-    const targetSymbol = referenceSymbol?.getAliasedSymbol() ?? referenceSymbol
-    const declarations = targetSymbol?.getDeclarations() ?? []
-    const fromVocabulary = declarations.some((declaration) =>
-      declaration.getSourceFile().getFilePath().endsWith("/centina.ts"),
-    )
-    if (!fromVocabulary) continue
+    if (!isFromVocabulary(expr.getSymbol())) continue
     findings.push({
       rule: "hole-enumeration",
       severity: "info",

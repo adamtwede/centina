@@ -7,6 +7,7 @@ import {
   TypeNode,
 } from "ts-morph"
 import { Finding, Rule } from "../types"
+import { isFromVocabulary } from "../vocabulary"
 
 function boundaryTag(cls: ClassDeclaration): JSDocTag | undefined {
   if (!cls.hasDeclareKeyword()) return undefined
@@ -31,12 +32,7 @@ function isNounBrand(type: Type): boolean {
     const typeNode = declaration.getTypeNode()
     if (!typeNode || !Node.isTypeReference(typeNode)) return false
     if (typeNode.getTypeName().getText() !== "Noun") return false
-    const referenceSymbol = typeNode.getTypeName().getSymbol()
-    const targetSymbol = referenceSymbol?.getAliasedSymbol() ?? referenceSymbol
-    const targetDeclarations = targetSymbol?.getDeclarations() ?? []
-    return targetDeclarations.some((d) =>
-      d.getSourceFile().getFilePath().endsWith("/centina.ts"),
-    )
+    return isFromVocabulary(typeNode.getTypeName().getSymbol())
   })
 }
 

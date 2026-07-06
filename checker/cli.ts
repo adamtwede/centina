@@ -3,6 +3,7 @@ import { assumptionBookkeepingRule } from "./rules/assumptionBookkeeping"
 import { boundaryDependencyRule } from "./rules/boundaryDependency"
 import { boundaryDirectionRule } from "./rules/boundaryDirection"
 import { holeEnumerationRule } from "./rules/holeEnumeration"
+import { namingConsistencyRule } from "./rules/namingConsistency"
 import { Finding, Rule } from "./types"
 
 const RULES: Rule[] = [
@@ -10,6 +11,7 @@ const RULES: Rule[] = [
   boundaryDirectionRule,
   boundaryDependencyRule,
   assumptionBookkeepingRule,
+  namingConsistencyRule,
 ]
 
 const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const

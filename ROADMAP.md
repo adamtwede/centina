@@ -51,16 +51,28 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   laundering steps first) isn't itself `unknown`/`any` or a stub object
   literal, in which case it's a warning: shape may be getting fabricated
   without a real source.
+- **Naming-consistency rule** (`checker/rules/namingConsistency.ts`) — ports
+  the AISL v0 typo/drift idea (see the pivot history in `ROADMAP.md`'s intro
+  and the tag `aisl-v0-standalone-language`), but re-targeted: ordinary
+  property access on a named type is already checked structurally by `tsc`,
+  so the rule watches the two free-text namespaces no compiler pass ever
+  validates — `Noun<"...">` brand literals and `@external "<source>"`
+  strings. Collects each namespace's spellings into a frequency map and warns
+  when a less-common spelling is a near-miss (restricted edit distance,
+  transposition included, scaled by name length) of a *strictly* more common
+  one; equally-common spellings are left alone as a genuine ambiguity for the
+  human. `checker/vocabulary.ts` extracted the import-alias-resolution helper
+  (`isFromVocabulary`) this rule needed, deduplicating logic that had already
+  been copy-pasted (and once mis-copied) across two earlier rules.
 
 ## Next up
 
-1. **Naming-consistency rule** — port the AISL typo/drift detection idea.
-2. **TS language-service plugin** — same rule code surfaced live in-editor;
+1. **TS language-service plugin** — same rule code surfaced live in-editor;
    filter/downgrade spec-irrelevant tsc diagnostics.
-3. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
+2. **TextMate injection grammar** — tint `@agent:`/`@external`/role tags and
    `deferred` on top of stock TS highlighting (tiny extension, no publishing
    needed for local dev).
-4. **Scoped/incremental checker runs** — `npm run check` currently loads and
+3. **Scoped/incremental checker runs** — `npm run check` currently loads and
    checks every `*.centina.ts` file the tsconfig includes. Add a file/glob
    argument (`npm run check -- prototype.centina.ts`) that runs the full rule
    set only on the requested file(s) plus whatever they import (so checking
