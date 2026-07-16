@@ -13,14 +13,22 @@
 // 5d. if step is marked complete, we gather the accumulated feedback (if any) for the model that completed it and feed it to the task matching processor to be disseminated into "durable" storage. all feedback should be tagged with information about the model(s) that have attempted it.
 // 6. move to the next step (see below), if any, or terminate task run.
 
-import { Agent, Noun, deferred } from "../../centina"
+import { Agent, Skill, deferred } from "../../centina"
 import { taskMatcherEngine } from "./task-matcher.centina"
-import type { TaskMatchedContext } from "./task-matcher.centina"
+import { ModelId } from "./shared"
+import {
+  Attempt,
+  Task,
+  Grade,
+  Score,
+  TaskRunRecord,
+  Feedback,
+} from "./task-corpus.centina"
 
+/** @external "node:crypto" */
+declare function randomUUID(): string
 /** @external "system-util" */
-type Timestamp = Noun<"Timestamp">
-/** @external "system-util" */
-declare function timestamp(): Timestamp
+declare function timestamp(): number
 /** @external "system-util" */
 declare function anonymousMode(): boolean
 /** @external "system-util" */
@@ -28,12 +36,10 @@ declare function pauseLoopAndAlertHuman(): void
 /** @external "system-util" */
 declare function humanIntervened(): boolean
 
-enum ModelId {
-  CLAUDE_OPUS = "CLAUDE_OPUS",
-  CLAUDE_SONNET = "CLAUDE_SONNET",
-  QWEN_LOCAL = "QWEN_LOCAL",
-  MINIMAX_OPENROUTER = "MINIMAX_OPENROUTER",
+const feedbackSummarySkill: Skill<[TaskRunRecord, ModelId?], Feedback> = {
+  name: "centina-feedback-summary",
 }
+
 enum Decision {
   FEEDBACK_REQUIRED,
   DECOMPOSE_STEP,
@@ -41,26 +47,6 @@ enum Decision {
   MARK_COMPLETE,
   MAX_ESCALATION,
 }
-// enum Judgement { SUCCEEDED, FAILED, INCONCLUSIVE, NEEDS_REVIEW }
-enum FeedbackDestination {
-  PROJECT_DOCS,
-  AGENTS_DOC,
-  MODEL_SYSTEM_PROMPT,
-  SKILL,
-  HARNESS_CONFIG,
-  TASK_TYPE_MAP,
-  OTHER,
-}
-enum Score {
-  FAIL, // little or no usable output
-  PARTIAL_SUCCESS_LOW, // some output conforms to expectations
-  PARTIAL_SUCCESS_HIGH, // majority of output conforms to expectations
-  SUCCESS, // output sufficiently conforms to expectations
-  MAX_ESCALATED, // supervisor model attempted the step itself; not scored against another model's output — a signal to the task matcher, not a quality grade
-}
-
-type Step = Noun<"Step">
-type Feedback = Noun<"Feedback">
 
 const escalations = [
   ModelId.QWEN_LOCAL,
@@ -69,36 +55,17 @@ const escalations = [
   ModelId.CLAUDE_OPUS,
 ]
 
-interface ImplementationAttempt {
-  timestamp: Timestamp
-  score: Score
-  feedback?: Feedback
-  taskMatchedFeedback?: TaskMatchedContext // recorded whenever a task match was found, regardless of whether loopRunFeedback took precedence in the prompt — lets later analysis tell "match existed but wasn't enough" apart from "no match existed"
-}
-
-interface TaskRunRecord {
-  step: Step
-  model: ModelId
-  attempt: ImplementationAttempt
-}
-const taskRunLog: TaskRunRecord[] = []
-
-interface LoopFeedbackDestination {
-  key: Feedback
-  value: FeedbackDestination
-}
-
 function main(): void {
   const supervisorModel = new Agent(escalations[escalations.length - 1]) // the most capable model in the escalation chain
   const targetModel = new Agent(escalations[0])
 
   const humanInput = "Draft an implementation plan to ..."
-  const implementationPlan = supervisorModel.prompt(humanInput) as Step[]
+  const implementationPlan = supervisorModel.prompt(humanInput) as Task[]
   startImplementation(implementationPlan, supervisorModel, targetModel)
 }
 
 function startImplementation(
-  implementationPlan: Step[],
+  implementationPlan: Task[],
   supervisorModel: Agent<ModelId>,
   targetModel: Agent<ModelId>,
 ): void {
@@ -108,18 +75,24 @@ function startImplementation(
 }
 
 function implementationLoop(
-  implementationStep: Step,
+  implementationStep: Task,
   supervisorModel: Agent<ModelId>,
   targetModel: Agent<ModelId>,
   loopRunFeedback?: Feedback,
 ) {
+  const taskRunRecord: TaskRunRecord = {
+    uuid: randomUUID(),
+    task: implementationStep,
+    grade: Grade.INCONCLUSIVE,
+    attemptRecord: [],
+  }
   let implementationStepComplete = false
   let stepPromptOutput: unknown
-  const attempt: ImplementationAttempt = {} as ImplementationAttempt // assumption: fields committed over the iteration
 
   do {
+    const attempt: Attempt = {} as Attempt // assumption: fields committed over the iteration
     let decision: Decision
-    if (supervisorModel === targetModel) {
+    if (supervisorModel.modelId === targetModel.modelId) {
       attempt.timestamp = timestamp()
       supervisorModel.prompt(
         `Please implement the following: ${implementationStep}`,
@@ -135,13 +108,21 @@ function implementationLoop(
       // on attempts where loopRunFeedback took precedence in the prompt. loopRunFeedback
       // still wins the prompt slot when present — this is about not losing the
       // diagnostic signal, not changing which feedback the target model sees.
-      const taskMatchedFeedback = taskMatcher(implementationStep, targetModel)
-      attempt.taskMatchedFeedback = taskMatchedFeedback
+      const matchedTask = taskMatcher(implementationStep, targetModel)
+
+      // taskRunRecord.attemptRecord = matchedTask ? matchedTask.attemptRecord : []
 
       if (loopRunFeedback) {
         stepPromptText = `${stepPromptText}, and incorporate this feedback into the prompt: ${loopRunFeedback}`
-      } else if (taskMatchedFeedback) {
-        stepPromptText = `${stepPromptText}, and incorporate this feedback into the prompt: ${taskMatchedFeedback}`
+        attempt.feedback = loopRunFeedback
+      } else if (matchedTask) {
+        const feedbackSummary = supervisorModel.invokeSkill(
+          feedbackSummarySkill,
+          matchedTask,
+          targetModel.modelId,
+        )
+        attempt.feedback = feedbackSummary
+        stepPromptText = `${stepPromptText}, and incorporate this feedback into the prompt: ${feedbackSummary}`
       }
 
       // supervisor drafts the prompt, then the target model is the one that
@@ -160,7 +141,7 @@ function implementationLoop(
         implementationStep,
         stepPromptOutput,
         attempt.score,
-        taskRunLog,
+        taskRunRecord,
         supervisorModel,
         targetModel,
       )
@@ -174,12 +155,7 @@ function implementationLoop(
           supervisorModel,
           targetModel,
         )
-        attempt.feedback = feedback
-        taskRunLog.push({
-          step: implementationStep,
-          model: targetModel.modelId,
-          attempt,
-        })
+        taskRunRecord.attemptRecord.push(attempt)
         implementationLoop(
           implementationStep,
           supervisorModel,
@@ -191,11 +167,7 @@ function implementationLoop(
       case Decision.DECOMPOSE_STEP: {
         const subSteps = decomposeStep(implementationStep, supervisorModel)
         if (subSteps) {
-          taskRunLog.push({
-            step: implementationStep,
-            model: targetModel.modelId,
-            attempt,
-          })
+          taskRunRecord.attemptRecord.push(attempt)
           for (const subStep of subSteps) {
             implementationLoop(subStep, supervisorModel, targetModel)
           }
@@ -209,15 +181,8 @@ function implementationLoop(
         escalate(implementationStep, supervisorModel, targetModel)
         return
       case Decision.MARK_COMPLETE: {
-        taskRunLog.push({
-          step: implementationStep,
-          model: targetModel.modelId,
-          attempt,
-        })
-        encodeStepImplementationAttemptRunIntoTaskMatcher(
-          taskRunLog,
-          implementationStep,
-        )
+        taskRunRecord.attemptRecord.push(attempt)
+        encodeStepImplementationAttemptRunIntoTaskMatcher(taskRunRecord)
         implementationStepComplete = true
         break
       }
@@ -225,15 +190,8 @@ function implementationLoop(
         // Score.MAX_ESCALATED on the attempt is the signal that this step went to
         // the supervisor model directly — see task-matcher.centina.ts's note on how
         // matched future tasks should react to it.
-        taskRunLog.push({
-          step: implementationStep,
-          model: targetModel.modelId,
-          attempt,
-        })
-        encodeStepImplementationAttemptRunIntoTaskMatcher(
-          taskRunLog,
-          implementationStep,
-        )
+        taskRunRecord.attemptRecord.push(attempt)
+        encodeStepImplementationAttemptRunIntoTaskMatcher(taskRunRecord)
         implementationStepComplete = true
         break
     }
@@ -241,7 +199,7 @@ function implementationLoop(
 }
 
 function escalate(
-  implementationStep: Step,
+  implementationStep: Task,
   supervisorModel: Agent<ModelId>,
   targetModel: Agent<ModelId>,
 ): void {
@@ -265,20 +223,20 @@ function escalate(
 }
 
 function decomposeStep(
-  highLevelStep: Step,
+  highLevelStep: Task,
   supervisorModel: Agent<ModelId>,
-): Step[] | null {
+): Task[] | null {
   const decompositionAttempt = supervisorModel.prompt(
     `Break this down into simpler steps but not to the point of explicit step-by-step instructions: ${highLevelStep}`,
   )
   return supervisorModel.review(
     decompositionAttempt,
     `Does this represent a meaningful decomposition of "${highLevelStep}" into distinct sub-steps, without degenerating into step-by-step instructions? If not — or if it's unchanged/degenerate — respond with null.`,
-  ) as Step[] | null
+  ) as Task[] | null
 }
 
 function proposeFeedback(
-  implementationStep: Step,
+  implementationStep: Task,
   targetModelOutput: unknown,
   supervisorModel: Agent<ModelId>,
   targetModel: Agent<ModelId>,
@@ -288,23 +246,14 @@ function proposeFeedback(
   ) as Feedback
 }
 
-// supervisor agent examines the attempts for the given task to decide if the feedback is relevant to the task as a whole, or if it is only relevant to a specific model's attempt at the task. if it is relevant to the task as a whole, it should be encoded into project docs, agent docs, and the task matcher for future similar tasks. if it is only relevant to a specific model's attempt, it should be encoded into that model's system prompt or a skill for future attempts at similar tasks:
-const organizeFeedback = deferred<
-  "spec",
-  (
-    implementationStep: Step,
-    taskRunLog: TaskRunRecord[],
-  ) => LoopFeedbackDestination[]
->()
-
 // supervisor model looks at whether or not the target model is improving or not over the course of X attempts at implementing the given step, in part by comparing ImplementationAttempt.score across multiple consecutive attempts, analyzing the trend, and making a determination about how to proceed:
 const makeDecision = deferred<
   "spec",
   (
-    implementationStep: Step,
+    implementationStep: Task,
     stepPromptOutput: unknown,
     attemptScore: Score,
-    taskRunLog: TaskRunRecord[],
+    taskRunLog: TaskRunRecord,
     supervisorModel: Agent<ModelId>,
     targetModel: Agent<ModelId>,
   ) => Decision
@@ -312,26 +261,31 @@ const makeDecision = deferred<
 
 // supervisor model incorporates feedback into the task matcher examining the destination code, which indicates where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
 function encodeStepImplementationAttemptRunIntoTaskMatcher(
-  taskRunLog: TaskRunRecord[],
-  implementationStep: Step,
+  taskRunLog: TaskRunRecord,
 ): void {
-  const destinationMap = organizeFeedback(implementationStep, taskRunLog)
-  taskMatcherEngine.encodeTask(implementationStep, taskRunLog, destinationMap)
+  // const destinationMap = organizeFeedback(implementationStep, taskRunLog)
+  taskMatcherEngine.encodeTask(taskRunLog)
 }
 
-// the question for the supervisor model is: for this task/step, for this model (but also for any model), have we done something similar in the past that can be found in our project docs or task matcher database that can be used to improve the prompt for this task/step? if so, return it. this function is always called whether or not the task ended up needing additional, in-loop feedback, so both successes and misses on task-matched feedback are logged:
+// the question for the supervisor model is: for this task/step,
+// for this model (but also for any model), have we done something
+// similar in the past that can be found in our project docs or task
+// matcher database that can be used to improve the prompt for this
+// task/step? if so, return it. this function is always called whether
+// or not the task ended up needing additional, in-loop feedback, so
+// both successes and misses on task-matched feedback can be logged:
 function taskMatcher(
-  implementationStep: Step,
+  implementationStep: Task,
   targetModel: Agent<ModelId>,
-): TaskMatchedContext | undefined {
-  return taskMatcherEngine.matchTask(implementationStep, targetModel)
+): TaskRunRecord | undefined {
+  return taskMatcherEngine.matchTask(implementationStep, targetModel.modelId)
 }
 
 // the supervisor model scores the implementation against the task's basic requirements in isolation:
 const scoreAttempt = deferred<
   "spec",
   (
-    implementationStep: Step,
+    implementationStep: Task,
     targetModelOutput: unknown,
     targetModel: Agent<ModelId>,
   ) => Score
