@@ -321,6 +321,17 @@ whether or not it's flagged for extraction yet:
   bodies, no spec logic — so it stays trivially discoverable ahead of a future
   `centina-fit` precedent search, and has a natural place to grow into once
   someone actually specs out the real system behind it.
+- **A boundary's shape is driven by the consumer's actual needs, not by
+  exposing a provider spec's full surface.** `TaskMatcherEngine`'s two doors
+  (`matchTask`, `encodeTask`) exist because those are the only two things
+  `hill-climbing-loop.centina.ts` needs from task-matching — not a copy of
+  whatever task-matcher's real internals turn out to be. The inverse move —
+  wrapping an entire spec (its full set of internal functions, control flow,
+  local bookkeeping) in a class so some other spec *could* consume it as a
+  boundary — is backwards: it manufactures an affordance surface no real
+  consumer has asked for. Only introduce a boundary once a second, real
+  consumer needs a specific door, and declare exactly that door, authored
+  from the consumer's perspective — same as any other boundary.
 
 ## Deferred / open
 
