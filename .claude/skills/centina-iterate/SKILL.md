@@ -103,9 +103,8 @@ and contains only `declare class`/`type`/`interface` declarations plus, if
 the boundary is naturally a shared singleton, one instantiation (e.g. `export
 const taskMatcherEngine = new TaskMatcherEngine()`) — no function bodies, no
 spec logic. This keeps it trivially greppable/discoverable by a future spec
-(or a `centina-fit` precedent search) before that spec reinvents the same
-boundary, and gives the eventual real spec for that system a natural home to
-grow into.
+before that spec reinvents the same boundary, and gives the eventual real spec
+for that system a natural home to grow into.
 
 ## Process
 
@@ -168,9 +167,9 @@ implementation plan and write it as a PLAN.md file alongside the spec:
   existing contents.
 - **Provenance**: the first section must name the spec file that produced
   it, e.g. `**Spec source**: hill-climbing-loop.centina.ts`. This makes the plan's
-  origin traceable. If a `FIT.md` preceded the spec (see the `centina-fit`
-  skill), name that too — it carries the scope decision this plan should
-  respect.
+  origin traceable. If the spec came out of a `centina-session-zero` run, name
+  its `ARCHITECTURE.md` too — it carries the contract ledger and scope this
+  plan should respect.
 - **Completeness**: the plan must be self-contained enough that a capable
   coding agent can implement the feature with little or no additional input
   from the human. It should name every file that changes, describe each
@@ -260,7 +259,7 @@ exists.
 ### A cast at the `declare` site records the assumption once
 
 Centina's provenance model is bookkeeping, not prohibition (see
-`docs/fit-validation.md` and the `centina-fit` skill): casts are expected and
+`docs/fit-validation.md`): casts are expected and
 fine, but they should be recorded once, at the `declare` site where a value
 first enters the spec (an `@external` function's return type, an `Agent`
 call's result), rather than scattered as ad hoc `as` casts at every use site.

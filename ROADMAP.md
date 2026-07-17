@@ -132,6 +132,20 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   `fit-validation.md`, `boundaries.md`), not the underscore convention the
   older AISL-era `specs/` subfolders happen to use; those stay untouched as
   frozen history rather than being retroactively renamed.
+- **`centina-fit` retired, folded into `centina-session-zero`** (July 2026) —
+  the standalone fit skill (`.claude/skills/centina-fit/`, SKILL.md + the
+  `precedents/` corpus) was deleted. Its job — a binary admit/reject gate run
+  before a spec was written — was dissolved by the pivot's routing primitives:
+  realization-dominated work is no longer *rejected* from Centina, it is
+  *routed* behind a door (terminal, Skill, or held `deferred<"unimplemented">`
+  hole). The surviving judgment (structural vs realization center of gravity,
+  the tasks-as-doors smell, and the hollow-skeleton/empty-contract-ledger test
+  for the degenerate "one algorithm, not a system" case) moved into
+  `centina-session-zero` as a per-node routing decision during DAG
+  construction — see its "Which nodes earn a spec" section. The whole-DAG view
+  also retires the slice-relative boundary-end count as the primary tell.
+  Living pointers updated in `CLAUDE.md`, `docs/boundaries.md`, and
+  `centina-iterate`; existing `FIT.md` artifacts left in place as history.
 
 ## Open / under discussion
 

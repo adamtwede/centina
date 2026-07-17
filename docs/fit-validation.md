@@ -220,3 +220,20 @@ discriminator → premise verdict → provenance notes.)*
   positives, zero custom checker code. Phase-2 candidate work (monorepo tool,
   game systems, seam cases) paused during the pivot; resume once the checker
   can participate.
+- **2026-07 — The classifier (Q1) retired as a standalone gate.** Following
+  from the pivot: the fit question was framed as a binary admit/reject asked
+  *before* a spec exists, which only made sense while realization-dominated
+  work had nowhere to go. With routing primitives (`@external`, `Skill`,
+  boundaries, `deferred<"unimplemented">`), realization is no longer rejected —
+  it is routed behind a door, and the residual question is per-node ("does
+  anything structural remain once the realization is routed out?"), not
+  per-task. So the `centina-fit` skill was retired and its lens folded into
+  `centina-session-zero`, where node routing actually happens. The surviving
+  no-fit case is the degenerate one: a "system" whose DAG won't decompose —
+  detected as an **empty contract ledger** (one node, no interior seam),
+  the mirror of the over-competence failure. This also settles the Phase-1
+  finding that the boundary-end count was slice-relative and unstable: the
+  whole-DAG view converts the 0-end degeneracy into a structural fact rather
+  than a slice-relative guess, so the count stops being the primary tell. The
+  remaining candidate set (monorepo tool, game systems, seam cases) is now best
+  exercised *through* a session-zero run, not a separate classifier pass.

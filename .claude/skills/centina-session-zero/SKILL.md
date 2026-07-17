@@ -6,18 +6,19 @@ description: The front of the Centina funnel for a whole system, not a single ta
 # Centina Session Zero
 
 This skill runs at the very **front of the funnel**, before there is any spec
-to fit or iterate. `centina-fit` sizes a *single* task and asks whether it
-belongs in Centina; `centina-iterate` refines *one* spec toward clean. Session
-zero sits upstream of both: the human has a *system* in their head — several
+to iterate. `centina-iterate` refines *one* spec toward clean; session zero
+sits upstream of it: the human has a *system* in their head — several
 components that talk to each other — and needs it turned into a **component
-DAG** with frozen seams before any one component is worth filling in.
+DAG** with frozen seams before any one component is worth filling in. Sorting
+those nodes — which earn a filled-in spec, which route away as terminals,
+Skills, or held holes — is part of the work here (see "Which nodes earn a
+spec" below).
 
 The lineage it feeds: **ARCHITECTURE.md + skeleton spec set** (session zero) →
-*optionally* **FIT.md** per component whose fit is in doubt → **`<component>.centina.ts`**
-filled in (`centina-iterate`) → **PLAN.md** per boundary-set (the
-implementation). Session zero's whole job is to make the *shape* right early,
-so the later fill-and-iterate work is isolated by dependency direction instead
-of rippling backward.
+**`<component>.centina.ts`** filled in (`centina-iterate`) → **PLAN.md** per
+boundary-set (the implementation). Session zero's whole job is to make the
+*shape* right early, so the later fill-and-iterate work is isolated by
+dependency direction instead of rippling backward.
 
 Why it exists: writing one component fully, *then* discovering its boundaries,
 forces rework on the component when the boundaries turn out to be shaped
@@ -27,8 +28,8 @@ resolution, formalized into a gated process with an output artifact.
 
 ## The one sanctioned write, and its single governing rule
 
-`centina-fit` and `centina-iterate` never write spec content — the agent
-writes only form and holes. Session zero has **one** narrow exception: at the
+`centina-iterate` never writes spec content — the agent writes only form and
+holes. Session zero has **one** narrow exception: at the
 final phase it emits the skeleton spec set. That write is sanctioned *only*
 because it is **transcription, not authorship** — the components, the
 contracts, and the data shapes it lays down were all decided by the human in
@@ -93,6 +94,61 @@ as long as each is deferred to the human, delegated to a Skill, externalized,
 or quarantined behind a boundary. That's what lets a consumer be filled against
 a mocked seam in parallel with the seam's own build.
 
+## Which nodes earn a spec: routing, not gatekeeping
+
+Not every responsibility the human names wants to become a filled-in component.
+Some are **terminals** (they meet existing technology — route to `@external`),
+some are **Skills** (they turn on a runtime agent's judgment), and some are
+held **internal processing** (an algorithm the human writes at fill, routed as
+a `deferred<"unimplemented">` hole behind a door). Deciding which is which *is*
+the classification work of phases 2–4, and it has a lens.
+
+**The two planes.** Read every node on two planes and ask where its center of
+gravity sits:
+
+- **Structural** — *relationships between named data*: provenance (where data
+  enters, from whom), flow (how it moves between seams), contract (what shape
+  must hold). All describable as "X comes from Y, in shape Z, connects to W."
+  This is what a spec captures, so a structural node earns a filled component.
+- **Realization** — *carrying-out*: algorithm (how it's computed), dynamics
+  (how it behaves over time), aesthetics (how it's perceived). None reduces to
+  a nameable data relationship. A realization-dominated node is **not
+  rejected** — it is **routed behind a door** (terminal, Skill, or held hole),
+  and the spec keeps only the seam around it.
+
+That "routed, not rejected" is the post-pivot shift, and it's why session zero
+carries this judgment rather than a separate gate owning it. Before Centina had
+routing primitives a realization-heavy task had nowhere to go, so fit was a
+binary admit/reject asked before any spec was written. Now the routing
+primitives *are* the answer: realization goes behind a door, and the only thing
+left to decide per node is whether anything structural remains once it does.
+
+**The tell that a node is realization all the way down** is the
+**tasks-as-doors smell**: a door you can't name without an implementation verb
+(`computeLayout()`, `stepPhysics()`, `rankResults()`), or a door that keeps
+collapsing to `getData(): Answer` where the return shape *is* the whole problem
+restated. A real seam names a data affordance and a shape; a fake one names a
+step in an algorithm. It surfaces in phase 3, when the human tries to say what
+crosses a door and can only describe how the far side computes.
+
+**The degenerate case — a whole "system" that's really one algorithm.** Pure
+compute (a parser, a sort, a pricing calc), a real-time/dynamics core (a physics
+or animation loop), or an aesthetics-dominated task (visual design, copy tone)
+can *each* be routed behind a single door — but if routing it leaves nothing
+else, there was no system to architect. The mechanical tell is an **empty
+contract ledger**: session zero's one deliverable is frozen seam contracts, so
+if the DAG won't decompose into components that exchange named data — phase 2
+yields a single node, phase 3 finds no interior seam, phase 4 no terminal but
+the node itself — the skeleton would be one boundary wrapping one
+`deferred<"unimplemented">` hole. That **hollow skeleton** is the exact mirror
+of the over-competence failure: over-complete ships seams the human never
+ratified, hollow ships no seams at all, and both break "typed seams *plus*
+routed holes." When you see it forming, stop and say so — this is one algorithm
+to hand straight to implementation, not a system for session zero. (This is more
+robust than counting boundary-ends on a single slice, which flips with where you
+draw the slice; the whole-DAG view turns the 0-end degeneracy into a structural
+fact — the empty ledger — rather than a slice-relative guess.)
+
 ## The ascent: raise the resolution of the questions; the human paints
 
 Think of it as diffusion with one crucial inversion: the agent does **not**
@@ -146,7 +202,9 @@ them past what they've genuinely decided.
 
 6. **Handoff.** The agent recuses from the pen. The human owns every spec file
    from here; the hole ledger is live; each component is ready for
-   `centina-iterate` (or a `centina-fit` pass first, if its fit is in doubt).
+   `centina-iterate`. A node whose fit was genuinely in doubt has already been
+   routed by the check above (structural → filled component; realization →
+   behind a door) before it's handed on.
 
 ### A stop-heuristic for phases 2–4
 
@@ -208,7 +266,7 @@ carry:
 6. **Rejected alternatives** — components or contracts considered and set
    aside, and why. Keeps the next session from reopening settled ground.
 
-ARCHITECTURE.md is a system-level companion to the per-component FIT.md/PLAN.md
+ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
 lineage — a plan-per-boundary-set (see `docs/plan-organization.md`)
 is derivable from a frozen contract ledger, and drifts exactly when the ledger
 drifts.
@@ -241,6 +299,10 @@ drifts.
 - **Don't reach through a door.** Deciding what's behind a boundary — payload
   internals, algorithms, storage layout — is fill/iterate territory. Stop at
   the typed door.
+- **Don't architect a hollow skeleton.** If routing the realization out leaves
+  an empty contract ledger — one node, no interior seam, nothing to freeze —
+  the task is one algorithm, not a system. Say so and recuse; don't manufacture
+  seams to make it look like a DAG.
 - **Don't over-elicit.** Stop each component at the highest resolution the
   human can genuinely commit to. Dragging them to pin detail they haven't
   thought through just manufactures provisional cruft that ships as holes

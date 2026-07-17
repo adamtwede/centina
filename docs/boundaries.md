@@ -285,9 +285,11 @@ typing rule, it is AISL's domain boundary.** It auto-recuses AISL from anything 
 essence is manufacturing — *algorithm* (how a result is computed), *dynamics* (how
 behavior unfolds over time), *aesthetics* (how something is perceived) — and points
 healthy iteration *inward*, deeper into provenance / flow / contract, rather than
-*outward* toward general-purpose programming. The `centina-fit` skill
-(`.claude/skills/centina-fit/SKILL.md`) operationalizes this as a structured "is this
-even a Centina task?" determination run before a spec is written.
+*outward* toward general-purpose programming. The `centina-session-zero` skill
+(`.claude/skills/centina-session-zero/SKILL.md`) operationalizes this as a
+per-node routing judgment during DAG construction — structural nodes earn a
+filled spec, realization-dominated ones route behind a door (see its "Which
+nodes earn a spec" section).
 
 ## Provisional boundaries (Centina-era)
 
@@ -319,7 +321,7 @@ whether or not it's flagged for extraction yet:
   contains only declarations (`declare class`/`type`/`interface`, plus one
   instantiation if the boundary is naturally a shared singleton) — no function
   bodies, no spec logic — so it stays trivially discoverable ahead of a future
-  `centina-fit` precedent search, and has a natural place to grow into once
+  spec that needs the same seam, and has a natural place to grow into once
   someone actually specs out the real system behind it.
 - **A boundary's shape is driven by the consumer's actual needs, not by
   exposing a provider spec's full surface.** `TaskMatcherEngine`'s two doors

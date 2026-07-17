@@ -43,8 +43,8 @@ references.
   eventual harness prompting the actual agent orchestrating that loop.
 - **`@agent:` / `@agent(label):` comments** — spec-authoring-time metadata.
   A direct channel between the human spec-writer and whichever coding agent
-  is running a `centina-iterate`/`centina-fit` session with them. Never part
-  of the spec's domain content, never describing runtime behavior.
+  is running a `centina-iterate`/`centina-session-zero` session with them.
+  Never part of the spec's domain content, never describing runtime behavior.
 
 These are unrelated concepts that happen to share the word "agent." See the
 clarifying comment in `centina.ts` next to the `Agent` class.
@@ -84,8 +84,8 @@ tracks build order.
   author has lifted Rule 0 only for internal language-design sessions (where
   the subject is Centina itself, not a task being specced).
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
-  During a `centina-iterate`/`centina-fit` session, the agent should not
-  volunteer to write changes into a `.centina.ts` file — surface the
+  During a `centina-iterate`/`centina-session-zero` session, the agent should
+  not volunteer to write changes into a `.centina.ts` file — surface the
   decision and let the human make it, then let *them* say whether they want
   it applied. If a human does ask the agent to make the edit, push back once
   (name the risk: they may be offloading thinking that's meant to stay
@@ -102,6 +102,10 @@ tracks build order.
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log (including the evidence that
   drove the pivot). Read it before proposing language/checker changes.
-- The project skills `centina-fit` and `centina-iterate` (`.claude/skills/`)
-  have been rewritten for the pivot — Centina vocabulary, `tsc` as the
-  interim checker, no `.aisl`/`src/cli.ts` references. Use them directly.
+- The project skills `centina-session-zero` and `centina-iterate`
+  (`.claude/skills/`) are the current toolchain — Centina vocabulary, `tsc`
+  (plus the `checker/` harness) as the interim checker, no `.aisl`/`src/cli.ts`
+  references. `centina-session-zero` is the front door for standing up a new
+  multi-spec system; `centina-iterate` refines a single spec. The former
+  `centina-fit` skill was retired — its fit lens (structural vs realization,
+  routing not gatekeeping) folded into `centina-session-zero`.
