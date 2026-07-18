@@ -289,6 +289,14 @@ drifts.
   thinking meant to stay theirs), then comply if they persist. Lifted for
   internal language-design work, same as the other skills, and the project
   author may invoke a development-purposes override for minor edits.
+- **Don't recall a canonical design and present it as elicited.** The more
+  famous the task — a URL shortener, a todo app, an auth flow — the more the
+  agent already *knows* the standard architecture, and the stronger the pull to
+  name the store, the code scheme, the door shapes before the human does. A
+  *correct* recalled answer is over-competence at its purest: it looks exactly
+  like elicitation and isn't. Scale the draw-it-out discipline *up* on canonical
+  tasks, not down; the tell is any concrete tech or shape the agent introduced
+  that the human never said. (Surfaced by the url-shortener control trace.)
 - **Don't fill a hole to complete the picture.** An open decision left open is
   the *correct* output. A satisfyingly-complete skeleton with no holes, from a
   session where the human left real questions unanswered, is the failure this
@@ -385,23 +393,39 @@ Ratified so far:
    `@external` edge / agent-discretion — never the vocabulary of what's behind
    the door. This is the guard against becoming a general design tool.
 5. **Re-slicing a realization hole is a nested session-zero (the "genesis"
-   heuristic), and the offer is the non-coercive guard against over-recusal.**
-   To mine a hole, seed a fresh session-zero *from that hole*, with the parent
-   door's contract **frozen** as the sub-system's outer seam (two edges
-   pre-pinned — this anchors the recursion and prevents drift). Terminate on the
-   **same human-commitment gate applied recursively** — stop when the next
-   decision is behind a door, or the human can't commit to a shape — **not** on
-   "structure runs out." Realization is continuous (a sort → compare/swap/
-   partition → …); a structural floor invites infinite mining, which is
-   over-elicitation. The realization-door heuristic is both guard and
-   terminator: a fresh description that yields only verb-doors returning opaque
-   "the-answer" types is the signal there's no structure to mine — stop, mark
-   realization. Offer one level at a time, scaled to the hole's topological
-   weight (decision 3 tells you *which* holes are worth offering, without
-   asserting gravity); the human has the final word, and a declined mine is
-   logged as a risk. Do **not** add a coercive guard against a human dumping
-   structural work into a realization hole until a real miss is observed
-   surviving the pipeline.
+   heuristic) — the *backstop* guard against over-recusal, not the first line.**
+   The first-line guard is earlier and cheaper: phase-2's provenance/flow
+   questions ("where does this data come from, where does it live, what changes
+   when it's used") decompose a would-be single "engine" node into its data
+   relationships *before* routing is even considered — the crafting sleeper's
+   one-node collapse doesn't survive them. The genesis re-slice is what catches a
+   hole a human *forced* past phase 2 into a single routed lump. To mine one,
+   seed a fresh session-zero *from that hole*, with the parent door's contract
+   **frozen** as the sub-system's outer seam (two edges pre-pinned — this anchors
+   the recursion and prevents drift). Terminate on the **same human-commitment
+   gate applied recursively** — stop when the next decision is behind a door, or
+   the human can't commit to a shape — **not** on "structure runs out."
+   Realization is continuous (a sort → compare/swap/partition → …); a structural
+   floor invites infinite mining, which is over-elicitation.
+
+   **The terminator has two exits, and an agent who knows only the first
+   over-elicits a sleeper:**
+   - *(a) real realization.* The re-description yields only verb-doors returning
+     opaque "the-answer" types — the realization-door heuristic. There's no
+     structure to mine: stop and **mark realization**.
+   - *(b) illusory realization (the sleeper).* The re-description keeps yielding
+     nameable data relations until its leaves pin as contract. The hole was
+     structural all along; the mine terminates with **nothing to mark** —
+     recovered structure, no realization leaf. An agent watching only for exit
+     (a)'s verb-door smell reads "no smell yet, keep going" and drags the human
+     past the commitment gate. Exhausting into pinned leaves is itself a valid
+     terminator.
+
+   Offer one level at a time, scaled to the hole's topological weight (decision 3
+   tells you *which* holes are worth offering, without asserting gravity); the
+   human has the final word, and a declined mine is logged as a risk. Do **not**
+   add a coercive guard against a human dumping structural work into a
+   realization hole until a real miss is observed surviving the pipeline.
 6. **Responsibility split:** Centina owns the *honesty and salience* of the
    label, not the *value* of the idea.
 7. **The genesis recursion carries an explicit mining tree — the state that

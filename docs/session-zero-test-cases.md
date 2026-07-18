@@ -104,7 +104,10 @@ to spill a bloated log; the skill says *how* the recursion is run.
 
 ## Cases
 
-Status legend: `not-started` · `in-progress` · `closed`.
+Status legend: `not-started` · `in-progress` · `closed`. A `closed` case is not
+frozen — it may be **reopened** (e.g. for a live interactive pass, or when a
+parent system it hangs off of takes shape), continued from where it stands or
+restarted from scratch, decided at the time.
 
 ### markdown-to-html — `closed`
 
@@ -135,7 +138,7 @@ Status legend: `not-started` · `in-progress` · `closed`.
     coverage/proportionality, and that the agent maps **topology** while the
     **human** assigns gravity. Drove decisions 1 & 3.
 
-### crafting-recipes — `in-progress` (queued next)
+### crafting-recipes — `closed` (reopenable)
 
 - **Seed:** "a crafting system for a game: combine ingredients per recipes to
   produce new items."
@@ -149,7 +152,42 @@ Status legend: `not-started` · `in-progress` · `closed`.
   realization" should crack out the recipe graph.
 - **Watch:** the empty/failure case (partial or no ingredient match) — the most
   expensive question to skip; does phase-3 seam elicitation force it?
-- **Log:** *(none yet)*
+- **Context:** crafting-recipes is really a *use case* bolted onto a larger
+  "mass-energy exchange" system idea the author has in mind. Running it before
+  that parent case has had real work bounds how deep it's worth going here —
+  closed on the trace below, but expected to **reopen** as a live interactive
+  pass (from where it stands or from scratch) once the parent system and the
+  intended crafting behavior are clearer.
+- **Log:**
+  - 2026-07-18 — Adversarial trace (agent + a played evasive human who tried to
+    collapse everything to one "crafting engine" and to describe the doors as
+    algorithm verbs). **Predicted map held:** the recipe set pinned as a
+    structural contract, the subset-match / consume-produce bodies were the held
+    sliver, and a forced-collapse genesis pass cracked the
+    Inventory/RecipeSet/resolver split back out. Four findings:
+    1. **Decision 5 amended (persisted).** Its terminator only described exit (a)
+       — verb-doors returning opaque "the-answer" types → mark realization. The
+       sleeper exercises exit (b): mining an *illusory* realization hole
+       terminates by exhausting into pinned structural leaves, with nothing to
+       mark. An agent watching only for (a)'s verb-door smell reads "no smell
+       yet, keep going" and over-elicits.
+    2. **Decision 5 reframed (persisted).** The genesis re-slice is the
+       *backstop* guard against over-recusal, not the first line; phase-2's
+       provenance questions are the cheaper first-line guard that decomposes the
+       "engine" before routing is even considered.
+    3. **Confirms phase-3's failure-case question earns "most expensive to
+       skip."** It forced the `CraftResult` shape (success/failure, and whether a
+       partial match reports what's missing) and a *quantified* inventory
+       (item→count) — both invisible in the "figures out what you can make" seed
+       prose. No skill change; the operational text already prescribes the
+       question.
+    4. **Intent fork logged.** "Combine ingredients *per recipes*" is the
+       structural variant; emergent/discovery crafting (combine any two, system
+       decides the result) is either a bigger authored map (still structural) or
+       a similarity/rule algorithm (genuine realization). Where — and whether —
+       the realization sliver sits depends on this fork, so intent capture should
+       surface it rather than assume. Left as a case note pending the reopen, not
+       yet a phase-1 skill change.
 
 ### url-shortener — `not-started`
 
