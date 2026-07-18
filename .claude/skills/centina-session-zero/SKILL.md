@@ -349,3 +349,127 @@ terminals → skeleton.
   human fills them, in place, at `centina-iterate`. That correctly leaves
   `npm run check` reporting them as errors until fill: the honest "work
   remaining" signal for a pre-fill, pre-plan handoff, not a defect.*
+
+## ⚗️ Under refinement — NOT yet operational (fit-as-jurisdiction thread)
+
+**Do not apply this section in a live session.** These are ratified design
+decisions from an active refinement thread — fit reframed from a *verdict* into
+a *jurisdiction map* — captured here so they survive context compaction. Once
+proven against test cases they get rewritten into the operational body; they
+**supersede** the "Don't architect a hollow skeleton" bullet and parts of
+"Which nodes earn a spec: routing, not gatekeeping" above. Until then, run
+sessions on the operational text and treat this as the worklist.
+
+Ratified so far:
+
+1. **Fit is a jurisdiction map, not a verdict.** No "no-fit" / "recuse" output.
+   Every idea yields a skeleton; skeletons differ only in *coverage* — how much
+   is pinned vs. held. This supersedes the old "hollow skeleton → say so and
+   recuse" framing: gap-hunting a realization-dominated idea still pays off by
+   *localizing* the realization into a named, bounded hole.
+2. **Realization holes get a distinct route with an inverted downstream
+   contract.** A normal `deferred` says "resolve me per intent"; a realization
+   recusal says "preserve me as a boundary; escalate, don't fill." It must bind
+   through PLAN.md to the implementing agent as a conscious out-of-scope
+   marker, or the over-competence failure just relocates to implementation.
+   Spelling/primitive TBD. (Not `@external` — that means "already built
+   elsewhere"; this means "must be built, by a different discipline, not
+   specified here.")
+3. **The agent maps topology; the human assigns gravity.** Which hole is the
+   "center of gravity" is *meaning* — the human's call, never the agent's
+   (Rule 0). The agent surfaces facts only: each hole's type and structural
+   connectivity (seams touching it, DAG downstream of it). The coverage
+   statement reports what's held + its structural weight, flagged explicitly as
+   **not** a proxy for importance — topology and gravity can diverge.
+4. **The jurisdiction label speaks only Centina's vocabulary** — held hole /
+   `@external` edge / agent-discretion — never the vocabulary of what's behind
+   the door. This is the guard against becoming a general design tool.
+5. **Re-slicing a realization hole is a nested session-zero (the "genesis"
+   heuristic), and the offer is the non-coercive guard against over-recusal.**
+   To mine a hole, seed a fresh session-zero *from that hole*, with the parent
+   door's contract **frozen** as the sub-system's outer seam (two edges
+   pre-pinned — this anchors the recursion and prevents drift). Terminate on the
+   **same human-commitment gate applied recursively** — stop when the next
+   decision is behind a door, or the human can't commit to a shape — **not** on
+   "structure runs out." Realization is continuous (a sort → compare/swap/
+   partition → …); a structural floor invites infinite mining, which is
+   over-elicitation. The realization-door heuristic is both guard and
+   terminator: a fresh description that yields only verb-doors returning opaque
+   "the-answer" types is the signal there's no structure to mine — stop, mark
+   realization. Offer one level at a time, scaled to the hole's topological
+   weight (decision 3 tells you *which* holes are worth offering, without
+   asserting gravity); the human has the final word, and a declined mine is
+   logged as a risk. Do **not** add a coercive guard against a human dumping
+   structural work into a realization hole until a real miss is observed
+   surviving the pipeline.
+6. **Responsibility split:** Centina owns the *honesty and salience* of the
+   label, not the *value* of the idea.
+7. **The genesis recursion carries an explicit mining tree — the state that
+   makes it trackable, unwindable, and resumable by any agent in any session.**
+   A hole mined via decision 5 doesn't just vanish into a sub-DAG; the mining is
+   recorded as a tree rooted at the top-level system, each node a hole that was
+   offered for mining, carrying a status:
+   - `held` — a realization hole not yet mined (the default a skeleton emits).
+   - `mining` — the **cursor**; exactly one node is the active frontier.
+   - `mined` — mining terminated here, either because it cracked into a sub-DAG
+     (children present) or it bottomed out on the realization-door terminator (a
+     leaf, marked realization). A `mined` node is never re-offered.
+   - `declined` — the human declined to mine it; logged as a risk (decision 5),
+     and not retried unless the human reopens it.
+
+   **Unwind one level at a time.** When the cursor bottoms out, mark it `mined`,
+   back out to its parent, and survey the parent's *sibling* holes for further
+   realization-shaped ones to offer — exhaust a level's siblings before backing
+   out another level. The human can override the one-level default (back out
+   further, or jump the cursor to a named hole), but the agent never skips levels
+   on its own — that's how a mined branch gets silently abandoned. Mining a given
+   hole "however many levels makes sense" is a collaborative call: the agent
+   offers per decision 5's terminator; the human sets the depth.
+
+   **Statuses are what prevent retreads.** `mined`/`declined` is the mark a later
+   pass or a cold agent reads to know a branch is settled; without it, resumption
+   re-litigates closed ground.
+
+   **Resume by default.** The mining tree, its statuses, and the cursor are
+   load-bearing state — persist them per the Memory-discipline note; they must
+   survive compaction. "Resume from where we left off" resolves to the single
+   in-progress session-zero at the project level (one whose tree still has a
+   `mining` cursor or un-ruled `held` holes). If more than one is in progress,
+   **list them most-recent-first and ask which** — never guess. Any agent, any
+   session, picks up from the cursor.
+
+   **Diagram the tree for orientation.** Reuse "diagram as falsification": render
+   the mining tree (parent door → sub-DAG → leaves) with status glyphs and the
+   cursor marked, so the human can see where they are and what remains — at least
+   whenever they resume or ask, and proactively when the recursion gets deep
+   enough that prose stops carrying "where are we."
+
+Open / to prove with test cases:
+
+- Spelling of the realization-recusal route and its PLAN.md contract.
+- Form of the coverage/jurisdiction map as a first-class ARCHITECTURE.md
+  section (not buried under "Risks / watch-items") — and its convergence with
+  decision 7's mining tree, which is the same map viewed over the recursion
+  (held vs. mined vs. declined per hole, plus the cursor). Likely one section,
+  not two; confirm the serialized form (an ARCHITECTURE.md section vs. a sibling
+  state file) against a case that actually crosses a compaction.
+- A warning-level checker rule for realization-shaped doors: return-type-is-a-
+  real-contract (authored `Noun`/enum/object shape vs. opaque "the answer") as
+  the strong signal, affordance-name-shape (`read*/write*/exchange*` + a noun)
+  as corroboration; heuristic, presence-not-quality, human rules.
+- The salience mechanism: per-hole loudness already exists (`deferred` errors
+  until fill); the *aggregate* coverage statement needs an un-ignorable home
+  that reports structural weight without asserting gravity.
+- Where mined structure lands: a hole that mines into real structure is
+  replaced by a sub-DAG whose outer contract matches the old door. How a mining
+  event is *logged* is now answered by decision 7 (the mining-tree node flips
+  `held` → `mining` → `mined`, children attached). What's still TBD is the
+  physical **file layout** — whether the sub-DAG's spec files nest under the
+  parent (`specs/<system>/<parent>/…`) or sit flat with a naming convention —
+  settle it on the first case that actually mines two levels deep.
+
+Test cases, their status, and running findings live in
+`docs/session-zero-test-cases.md`; that doc also defines how a proven lesson
+gets promoted back into this section (probationary) or the operational body
+(core). Markdown→HTML and the asteroids game are closed there and drove
+decisions 1 & 3.

@@ -109,3 +109,9 @@ tracks build order.
   multi-spec system; `centina-iterate` refines a single spec. The former
   `centina-fit` skill was retired — its fit lens (structural vs realization,
   routing not gatekeeping) folded into `centina-session-zero`.
+- `docs/session-zero-test-cases.md` — the pick-up-and-go harness for
+  pressure-testing session-zero's **fit-as-jurisdiction** reframe (under
+  refinement in the skill's "⚗️ Under refinement" section). Naming a case (e.g.
+  "run the oauth-callback case") is enough: the doc carries the goals, the
+  method, each case's seed/prediction/progress, and the author-gated protocol
+  for promoting a proven lesson into the skill.
