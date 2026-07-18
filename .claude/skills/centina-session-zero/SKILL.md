@@ -131,6 +131,23 @@ restated. A real seam names a data affordance and a shape; a fake one names a
 step in an algorithm. It surfaces in phase 3, when the human tries to say what
 crosses a door and can only describe how the far side computes.
 
+**The complement — the rules-vs-computation fork (a sleeper's trigger).** Before
+you route a domain-judgment verb as realization, locate the knowledge that
+governs it. The trigger to ask is exactly this shape: a verb that *applies /
+matches / resolves / selects over domain items* (`applyDiscounts`,
+`combinePerRecipes`, `matchTasks`, `selectPlan`) whose governing criteria the
+seed leaves implicit inside the verb. Ask: **is that knowledge configurable
+data/rules the system reads (a rule set, a recipe table, a policy config —
+provenance you can point at), or a fixed computation?** Domain-authored
+knowledge — even if currently hardcoded — carries a latent rule-set contract,
+which is structural and mineable via the genesis re-slice (the crafting and
+pricing sleepers both hid one here). A fixed *intrinsic* computation — a sort
+comparator, a physics step, a hash, rendering — has no author and no latent
+contract; that's genuine realization. The counter-tell that it's genuine
+computation: nobody would author or tune the rule (you don't configure gravity).
+Surface the fork the moment such a verb appears; the answer decides whether
+there's structure to pin or a realization leaf to mark.
+
 **The degenerate case — a whole "system" that's really one algorithm.** Pure
 compute (a parser, a sort, a pricing calc), a real-time/dynamics core (a physics
 or animation loop), or an aesthetics-dominated task (visual design, copy tone)
@@ -358,6 +375,16 @@ terminals → skeleton.
   `npm run check` reporting them as errors until fill: the honest "work
   remaining" signal for a pre-fill, pre-plan handoff, not a defect.*
 
+**Test-case traces (2026-07, fit-as-jurisdiction thread).** From the adversarial
+traces in `docs/session-zero-test-cases.md`:
+
+- *Phase 3's failure/empty/not-found question is the highest-yield step in the
+  phase.* Across crafting-recipes, url-shortener, and pricing-request-handler it
+  was reliably what converted a vague seed into real contracts — forcing
+  `CraftResult`, collision/idempotency, and the itemized `PricedCart` breakdown
+  respectively, none visible in the seed prose. Ask "what happens on the
+  empty/failure case" first at every seam, not as a cleanup pass.
+
 ## ⚗️ Under refinement — NOT yet operational (fit-as-jurisdiction thread)
 
 **Do not apply this section in a live session.** These are ratified design
@@ -421,6 +448,11 @@ Ratified so far:
      past the commitment gate. Exhausting into pinned leaves is itself a valid
      terminator.
 
+   The offer also doubles as a **diagnostic**: forcing the re-description is
+   often the fastest way to tell exit (a) from (b) — whether a hole hides
+   structure or is genuinely realization — even when you don't intend to mine
+   (pricing-request-handler used the offer exactly this way).
+
    Offer one level at a time, scaled to the hole's topological weight (decision 3
    tells you *which* holes are worth offering, without asserting gravity); the
    human has the final word, and a declined mine is logged as a risk. Do **not**
@@ -483,7 +515,15 @@ Open / to prove with test cases:
   as corroboration; heuristic, presence-not-quality, human rules.
 - The salience mechanism: per-hole loudness already exists (`deferred` errors
   until fill); the *aggregate* coverage statement needs an un-ignorable home
-  that reports structural weight without asserting gravity.
+  that reports structural weight without asserting gravity. **First concrete,
+  computable form (pricing-request-handler):** report a held hole's structural
+  weight as *interior-fraction + downstream-dominance* — e.g. "this hole is the
+  entire interior of the sole orchestrator; every non-boundary node is
+  downstream of it." It states topology, not importance, so it stays gravity-free
+  (decision 3 intact); on a deceptively-healthy case topology and gravity
+  converge, so it reads as the salience flag anyway. This is *one* candidate
+  signal, not the whole mechanism — keep hunting for other computable,
+  gravity-free signals as more cases run.
 - Where mined structure lands: a hole that mines into real structure is
   replaced by a sub-DAG whose outer contract matches the old door. How a mining
   event is *logged* is now answered by decision 7 (the mining-tree node flips

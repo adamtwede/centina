@@ -186,10 +186,11 @@ restarted from scratch, decided at the time.
        decides the result) is either a bigger authored map (still structural) or
        a similarity/rule algorithm (genuine realization). Where — and whether —
        the realization sliver sits depends on this fork, so intent capture should
-       surface it rather than assume. Left as a case note pending the reopen, not
-       yet a phase-1 skill change.
+       surface it rather than assume. **Promoted 2026-07-18** (with
+       pricing-request-handler supplying the second instance) into the "Which
+       nodes earn a spec" rules-vs-computation fork note.
 
-### url-shortener — `not-started`
+### url-shortener — `closed` (reopenable)
 
 - **Seed:** "a web service where I paste a long URL and get back a short code;
   visiting the short code redirects to the original."
@@ -201,6 +202,32 @@ restarted from scratch, decided at the time.
   the create/resolve seams pin cleanly; short-code *generation* is the only
   realization sliver (agent-discretion or `@external`); the collision and
   not-found cases pin as contract.
+- **Log:**
+  - 2026-07-18 — Adversarial trace. **Control passed:** the predicted map held
+    exactly — WebBoundary / Shortener / MappingStore, both seams and both
+    failure branches pinned, and code generation routed as a small
+    agent-discretion/`@external` sliver (algorithm *not* pinned, per Rule 0), not
+    inflated into a mined region. The reframe does not over-label a clean case.
+    Findings:
+    1. **Canonical-task over-competence (persisted → "What NOT to do").** Because
+       the shortener is a famous design, the agent can recall the whole
+       architecture (KV store, base62, put-if-absent) and present it as elicited
+       — over-competence at its purest, hardest to see because the recalled
+       answer is *correct*. The control's real value is testing whether phase-2's
+       draw-it-out discipline holds against a design the agent already knows.
+       Placed as an operational bullet (refines the already-core over-competence
+       concept; orthogonal to the fit-as-jurisdiction thread, so not
+       probationary).
+    2. **Confirms decision 1 (don't over-label):** high-structural coverage with
+       one named sliver, no invented realization. No change.
+    3. **Confirms decision 5's "offer scaled to topological weight":** code-gen
+       is a trivial leaf with no downstream, correctly *not* offered for a
+       genesis pass — positive confirmation we don't mine everything. No change.
+    4. **Re-confirms the phase-3 failure question** (second case after crafting):
+       forced collision + idempotency, and sorted collision *detection* (a
+       structural store contract — pushes a `putIfAbsent(code,url): boolean`
+       door) from collision *response* (a small control decision the human owns).
+       No change.
 
 ### rank-dedup-list — `not-started`
 
@@ -213,7 +240,7 @@ restarted from scratch, decided at the time.
   coverage statement should read, honestly, "signature pinned; everything of
   interest is the held body" — a valid output, not a recusal.
 
-### pricing-request-handler — `not-started`
+### pricing-request-handler — `closed` (reopenable)
 
 - **Seed:** "an HTTP endpoint that takes a cart and returns the total price
   with discounts applied."
@@ -222,6 +249,35 @@ restarted from scratch, decided at the time.
   clothing). Does the coverage map honestly flag the pricing hole as the point?
 - **Predicted map:** request/response seams and the cart/price shapes pin; the
   discount/pricing computation is the dominant held hole; genesis offered on it.
+- **Log:**
+  - 2026-07-18 — Adversarial trace, played human insisting the discount logic is
+    opaque/proprietary (branch B). **Predicted map held:** `price(cart):
+    PricedCart` and the cart/price shapes pinned, the discount computation held
+    as one interior hole; the skeleton reads healthy while the point is the hole
+    (asteroids in request/response clothing). Findings:
+    1. **Confirms decision 1 (don't under-find)** in a second costume —
+       coverage/proportionality is the axis, not structural absence. No change.
+    2. **Salience mechanism — first computable form (persisted).** A held hole's
+       structural weight as *interior-fraction + downstream-dominance* ("the
+       entire interior of the sole orchestrator; every non-boundary node is
+       downstream of it") — gravity-free, but converges with gravity on a
+       deceptively-healthy case. Advanced the open "salience mechanism" bullet,
+       with an explicit note to keep hunting for other such signals.
+    3. **Phase-3 failure question now 3-for-3 (persisted → "Lessons from use").**
+       Forced the itemized `PricedCart` breakdown + empty/invalid branches;
+       joins `CraftResult` and collision/idempotency as evidence it's the
+       highest-yield step in the phase.
+    4. **Genesis offer doubles as a diagnostic (persisted → decision 5).** Offered
+       on "pricing," it forces the human to reveal rule-set (exit b, structure
+       recovered — branch A) vs. proprietary algorithm (exit a, mark realization)
+       — both terminator exits in one case, and the offer's value even when not
+       mining.
+    5. **Rules-vs-computation fork — second instance, promoted (persisted →
+       "Which nodes earn a spec").** Pricing's "configurable rules vs. proprietary
+       logic" is crafting's "per recipes vs. emergent." Two instances justified
+       promoting the fork to an operational tell, with its trigger spelled out
+       (a domain-judgment verb whose governing knowledge the seed leaves
+       unlocated; counter-tell = nobody authors/tunes an intrinsic computation).
 
 ### oauth-callback — `not-started`
 
