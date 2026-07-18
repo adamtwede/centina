@@ -148,23 +148,31 @@ computation: nobody would author or tune the rule (you don't configure gravity).
 Surface the fork the moment such a verb appears; the answer decides whether
 there's structure to pin or a realization leaf to mark.
 
-**The degenerate case — a whole "system" that's really one algorithm.** Pure
-compute (a parser, a sort, a pricing calc), a real-time/dynamics core (a physics
-or animation loop), or an aesthetics-dominated task (visual design, copy tone)
-can *each* be routed behind a single door — but if routing it leaves nothing
-else, there was no system to architect. The mechanical tell is an **empty
-contract ledger**: session zero's one deliverable is frozen seam contracts, so
-if the DAG won't decompose into components that exchange named data — phase 2
-yields a single node, phase 3 finds no interior seam, phase 4 no terminal but
-the node itself — the skeleton would be one boundary wrapping one
-`deferred<"unimplemented">` hole. That **hollow skeleton** is the exact mirror
-of the over-competence failure: over-complete ships seams the human never
-ratified, hollow ships no seams at all, and both break "typed seams *plus*
-routed holes." When you see it forming, stop and say so — this is one algorithm
-to hand straight to implementation, not a system for session zero. (This is more
-robust than counting boundary-ends on a single slice, which flips with where you
-draw the slice; the whole-DAG view turns the 0-end degeneracy into a structural
-fact — the empty ledger — rather than a slice-relative guess.)
+**The degenerate case — a whole "system" that's really one node.** Pure compute
+(a parser, a sort, a pricing calc), a real-time/dynamics core (a physics or
+animation loop), or an aesthetics-dominated task (visual design, copy tone) can
+*each* be routed behind a single door. When routing it leaves nothing else,
+there was no system to architect — but that is **not a recusal**. You still emit
+a skeleton: the one node's signature pinned, its body held, and an honest label
+saying "this is one function/algorithm, not a system — you likely didn't need
+session zero for it." Producing the thin honest map *is* the output; refusing to
+engage is the verdict-era reflex the jurisdiction reframe retired. Deliver the
+map and let the human decide whether it was worth the trip.
+
+The tell that you're at this floor is a near-**empty contract ledger** — but
+"empty" is rarer than it looks, and interrogation almost always finds *some*
+contract before the floor. A "bare function" like rank-and-dedupe hides a
+**ranking-key** and a **dedup-identity** decision; those are named-data
+contracts even with zero seams. The ledger is *truly* empty only when the
+items' **ordering and equality are both intrinsic** (primitives — numeric sort,
+value equality). Otherwise phase 3's shape interrogation yields the key/identity
+contracts and the skeleton is thin-but-non-empty, not hollow. Either way the
+move is identical: pin what interrogation surfaces, hold the algorithm, label
+the coverage honestly — never manufacture seams to fake a DAG, and never bounce
+the human with a "bad fit" verdict. (The whole-DAG view is more robust than
+counting boundary-ends on a single slice, which flips with where you draw the
+slice; it turns the 0-end case into a structural fact rather than a
+slice-relative guess.)
 
 ## The ascent: raise the resolution of the questions; the human paints
 
@@ -324,10 +332,13 @@ drifts.
 - **Don't reach through a door.** Deciding what's behind a boundary — payload
   internals, algorithms, storage layout — is fill/iterate territory. Stop at
   the typed door.
-- **Don't architect a hollow skeleton.** If routing the realization out leaves
-  an empty contract ledger — one node, no interior seam, nothing to freeze —
-  the task is one algorithm, not a system. Say so and recuse; don't manufacture
-  seams to make it look like a DAG.
+- **Don't manufacture seams — and don't refuse either.** If routing the
+  realization out leaves one node with little or nothing to freeze, the task is
+  one algorithm, not a system. Two opposite failures bracket the right move:
+  inventing seams to fake a DAG (over-competence), or bouncing the human with a
+  "bad fit" verdict (the retired recuse reflex). The correct output is the
+  honest minimal skeleton — signature pinned, body held, labeled "this is one
+  node, not a system." Emit that; don't pad and don't refuse.
 - **Don't over-elicit.** Stop each component at the highest resolution the
   human can genuinely commit to. Dragging them to pin detail they haven't
   thought through just manufactures provisional cruft that ships as holes
@@ -387,21 +398,29 @@ traces in `docs/session-zero-test-cases.md`:
 
 ## ⚗️ Under refinement — NOT yet operational (fit-as-jurisdiction thread)
 
-**Do not apply this section in a live session.** These are ratified design
-decisions from an active refinement thread — fit reframed from a *verdict* into
-a *jurisdiction map* — captured here so they survive context compaction. Once
-proven against test cases they get rewritten into the operational body; they
-**supersede** the "Don't architect a hollow skeleton" bullet and parts of
-"Which nodes earn a spec: routing, not gatekeeping" above. Until then, run
-sessions on the operational text and treat this as the worklist.
+**Do not apply the *unpromoted* entries in a live session.** These are ratified
+design decisions from an active refinement thread — fit reframed from a *verdict*
+into a *jurisdiction map* — captured here so they survive context compaction.
+Once proven against test cases an entry gets rewritten into the operational body
+and marked promoted: **decision 1 has made that trip** (2026-07-18), now live in
+"Which nodes earn a spec" + "What NOT to do". The rest remain worklist — run
+sessions on the operational text and treat unpromoted entries as pending, still
+superseding parts of "Which nodes earn a spec: routing, not gatekeeping" only
+once proven.
 
 Ratified so far:
 
-1. **Fit is a jurisdiction map, not a verdict.** No "no-fit" / "recuse" output.
-   Every idea yields a skeleton; skeletons differ only in *coverage* — how much
-   is pinned vs. held. This supersedes the old "hollow skeleton → say so and
-   recuse" framing: gap-hunting a realization-dominated idea still pays off by
-   *localizing* the realization into a named, bounded hole.
+1. **Fit is a jurisdiction map, not a verdict.** ✅ **Promoted to core
+   2026-07-18** (rank-dedup-list) — now embodied in "Which nodes earn a spec"
+   (the degenerate-case paragraph) and the "Don't manufacture seams — and don't
+   refuse either" bullet. No "no-fit"/"recuse" output; every idea yields a
+   skeleton, differing only in *coverage* (how much is pinned vs. held), because
+   gap-hunting a realization-dominated idea still pays off by *localizing* the
+   realization into a named, bounded hole. Kept here (not deleted) so decisions
+   2–7 and the test-case logs keep their numbers. rank-dedup also sharpened the
+   empty-ledger definition folded into that rewrite: truly empty needs intrinsic
+   ordering *and* equality; otherwise interrogation finds a key/identity contract
+   even with no seams.
 2. **Realization holes get a distinct route with an inverted downstream
    contract.** A normal `deferred` says "resolve me per intent"; a realization
    recusal says "preserve me as a boundary; escalate, don't fill." It must bind

@@ -229,7 +229,7 @@ restarted from scratch, decided at the time.
        door) from collision *response* (a small control decision the human owns).
        No change.
 
-### rank-dedup-list — `not-started`
+### rank-dedup-list — `closed` (reopenable)
 
 - **Seed:** "a function that takes a list of items and returns them ranked and
   de-duplicated."
@@ -239,6 +239,31 @@ restarted from scratch, decided at the time.
 - **Predicted map:** one node; signature pinned; entire body a held hole. The
   coverage statement should read, honestly, "signature pinned; everything of
   interest is the held body" — a valid output, not a recusal.
+- **Log:**
+  - 2026-07-18 — Adversarial trace. **Predicted map held, with a bonus:** one
+    node, no seams — and the agent correctly declined to manufacture a fake
+    store/reader. But phase-3 shape interrogation surfaced two structural
+    contracts the seed hid — the **ranking key/criteria** and the
+    **dedup-identity** — so the "bare function" ledger is thin-but-non-empty
+    unless the items are primitives (intrinsic order + intrinsic equality). This
+    is the case that reconciled the operational text with decision 1:
+    1. **Decision 1 promoted to core (2026-07-18).** rank-dedup sits on the seam
+       between the operational "empty ledger → recuse" text and decision 1's
+       no-recusal rule. Rewrote the degenerate-case paragraph and the
+       hollow-skeleton bullet (now "Don't manufacture seams — and don't refuse
+       either") to embody it: emit the honest minimal skeleton labeled "one node,
+       not a system," never refuse. Decision 1 marked promoted-in-place in the
+       probationary list (kept for stable numbering of decisions 2–7 and these
+       logs).
+    2. **Empty-ledger definition sharpened (persisted).** "Empty" requires
+       intrinsic ordering *and* equality; domain items carry a key/identity
+       contract even with zero seams, so interrogation almost always finds *some*
+       contract before the floor. Folded into the rewritten degenerate paragraph.
+    3. **"This isn't a system" is a valid jurisdiction output, not a recusal.**
+       Crystallized in the rewrite — the thin honest map delivered, not a refusal.
+    4. **Rules-vs-computation fork, third instance** ("ranked" is a
+       domain-judgment verb) — confirms the fork note generalizes to a seam-less
+       function. No change.
 
 ### pricing-request-handler — `closed` (reopenable)
 
