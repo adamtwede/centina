@@ -2,7 +2,8 @@
 
 > The German word for the falsework that holds an arch during construction is
 > *Lehrgerüst* — literally, "teaching frame": the frame that teaches the arch
-> its shape until the keystone goes in and it can stand alone.
+> its shape until the keystone goes in and it can stand alone. Italian has its
+> own word for the same frame: *centina*.
 
 **Centina** (Italian: the centering frame an arch is built over) is
 spec-flavored TypeScript: a way to write structured, rule-checked pseudocode
@@ -72,9 +73,9 @@ routed*:
 | Hole | Spelling | Routing |
 |---|---|---|
 | deferred decision | `const f = deferred<(a: A) => B>()` | human decides during iterate: this spec, a separate spec, or agent autonomy |
-| agent-directed | `// @agent: ...` comment | coding agent resolves at build time |
-| external | `/** @external "src" */ declare function ...` | lives in existing code / an API / a system |
-| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared data seam; doors are the privileged entry/exit points |
+| agent-directed | `// @agent: ...` comment | coding agent resolves at spec-iteration (centina-iterate skill) or plan-doc build time |
+| external | `/** @external "src" */ declare function ...` | lives in: existing code / an API / an external system |
+| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black box data seam; doors are the privileged entry/exit points |
 
 Two operating principles carried over from AISL, one revised:
 
@@ -88,17 +89,17 @@ Two operating principles carried over from AISL, one revised:
 ## State of the project
 
 Post-pivot, early. What exists: the vocabulary module (`centina.ts`), the
-permissive tsconfig, and the founding fixture `prototype.centina.ts` — a 1:1
-port of the AISL prototype whose six current tsc errors are *preserved
-findings* (real gaps the pipeline caught in the spec, awaiting the author's
-decisions), not bugs in the port. The checker is not yet built. `ROADMAP.md`
-tracks the order of work.
+permissive tsconfig, and the founding fixture
+`specs/hill-climbing-loop/hill-climbing-loop.centina.ts` — a 1:1 port of the
+AISL prototype whose six current tsc errors are *preserved findings* (real
+gaps the pipeline caught in the spec, awaiting the author's decisions), not
+bugs in the port. The checker is not yet built. `ROADMAP.md` tracks the order
+of work.
 
 ## Repository layout
 
 - `centina.ts` — the spec vocabulary (`Noun`, `deferred`, `Agent`)
-- `*.centina.ts` — specs (currently: `prototype.centina.ts`, the founding fixture)
 - `docs/boundaries.md` — boundary design: affordances-not-transports, roles, drawing guidelines
 - `docs/fit-validation.md` — the running design memo: goals, falsifiability frame, findings log
-- `specs/` — per-feature FIT.md precedents and AISL-era spec history
-- `prototype.aisl`, `widgets.aisl` — AISL v0 sources kept as port references (toolchain retired; full history at tag `aisl-v0-standalone-language`)
+- `specs/` — per-feature specs, each in its own folder (dash-separated names going forward); `specs/hill-climbing-loop/` holds the founding fixture (`hill-climbing-loop.centina.ts`), its boundary declarator (`task-matcher.centina.ts`), and its AISL-era ancestor (`prototype.aisl`). Older subfolders (underscore-named) are frozen AISL-era FIT.md/PLAN.md precedents.
+- `widgets.aisl` — an AISL v0 source kept as a port reference (toolchain retired; full history at tag `aisl-v0-standalone-language`)

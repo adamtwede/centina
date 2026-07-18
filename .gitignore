@@ -24,3 +24,6 @@ harness-config.json
 
 .serena/
 .tokensave/
+
+# Harness / token-optimization state (not project content)
+.claude/.headroom_wrap_marker.json

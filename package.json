@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Centina — spec-flavored TypeScript: type-checked falsework for coding tasks. TypeScript is the grammar; a spec-plane checker (not tsc) is the arbiter of done.",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "tsx checker/cli.ts"
   },
   "keywords": [],
   "author": "",
@@ -11,6 +12,7 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^26.0.0",
+    "ts-morph": "^28.0.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }

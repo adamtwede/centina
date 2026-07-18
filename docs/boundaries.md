@@ -7,7 +7,8 @@
 > syntax below is AISL v0 (preserved at tag `aisl-v0-standalone-language`).
 > The Centina spelling is a JSDoc-tagged `declare class`
 > (`/** @datasource | @datasink | @boundary */`) — see `centina.ts` and the
-> worked use in `prototype.centina.ts`. Checker enforcement is roadmapped.
+> worked use in `specs/hill-climbing-loop/hill-climbing-loop.centina.ts`.
+> Checker enforcement is roadmapped.
 
 **Status:** Designed, not yet implemented. This is a language-design document — the
 first concrete fragment of the eventual `SPEC.md` referenced in `ROADMAP.md`. It
@@ -284,9 +285,55 @@ typing rule, it is AISL's domain boundary.** It auto-recuses AISL from anything 
 essence is manufacturing — *algorithm* (how a result is computed), *dynamics* (how
 behavior unfolds over time), *aesthetics* (how something is perceived) — and points
 healthy iteration *inward*, deeper into provenance / flow / contract, rather than
-*outward* toward general-purpose programming. The `aisl-fit` skill
-(`.claude/skills/aisl-fit/SKILL.md`) operationalizes this as a structured "is this even
-an AISL task?" determination run before a spec is written.
+*outward* toward general-purpose programming. The `centina-session-zero` skill
+(`.claude/skills/centina-session-zero/SKILL.md`) operationalizes this as a
+per-node routing judgment during DAG construction — structural nodes earn a
+filled spec, realization-dominated ones route behind a door (see its "Which
+nodes earn a spec" section).
+
+## Provisional boundaries (Centina-era)
+
+A boundary standing in for a system that doesn't have its own spec yet (marked,
+typically, by an `@agent:` note like "this is probably a separate spec") is
+fine to declare inline in whatever spec first needed it — but it's a candidate
+for extraction into its own file (e.g. `task-matcher.centina.ts`), not gated on
+that note being present. Any inline boundary carries the same risk: a later
+spec that needs the same seam, unaware it already exists, reinvents it
+slightly differently.
+
+Two checks worth applying to any `@datasource`/`@datasink`/`@boundary`,
+whether or not it's flagged for extraction yet:
+
+- **Dependency direction.** A boundary's door signatures must not resolve to a
+  type declared in the *consuming* spec — that's the boundary depending on its
+  caller, backwards from how a real external system would typecheck. This
+  generalizes the affordance/transport split above: a boundary that imports its
+  caller's own record shapes has quietly become coupled to one specific
+  caller's internal representation, the same kind of conflation "affordances,
+  not transports" already rules out, just discovered at the type level instead
+  of the design level. Primitives, `unknown`, opaque `Noun<...>` brands, and
+  closed enums carry no such dependency and are fine at a door; a real
+  structured payload should be `unknown` at the door rather than an imported
+  local interface.
+- **Extraction readiness.** Once a boundary looks stable — a real seam other
+  specs would plausibly also want, not still being shaped — move it to its own
+  file. That file gets a clear "provisional boundary declarator" header and
+  contains only declarations (`declare class`/`type`/`interface`, plus one
+  instantiation if the boundary is naturally a shared singleton) — no function
+  bodies, no spec logic — so it stays trivially discoverable ahead of a future
+  spec that needs the same seam, and has a natural place to grow into once
+  someone actually specs out the real system behind it.
+- **A boundary's shape is driven by the consumer's actual needs, not by
+  exposing a provider spec's full surface.** `TaskMatcherEngine`'s two doors
+  (`matchTask`, `encodeTask`) exist because those are the only two things
+  `hill-climbing-loop.centina.ts` needs from task-matching — not a copy of
+  whatever task-matcher's real internals turn out to be. The inverse move —
+  wrapping an entire spec (its full set of internal functions, control flow,
+  local bookkeeping) in a class so some other spec *could* consume it as a
+  boundary — is backwards: it manufactures an affordance surface no real
+  consumer has asked for. Only introduce a boundary once a second, real
+  consumer needs a specific door, and declare exactly that door, authored
+  from the consumer's perspective — same as any other boundary.
 
 ## Deferred / open
 

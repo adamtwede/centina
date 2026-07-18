@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "centina.injection.comments",
+  "injectionSelector": "L:comment.line.double-slash, L:comment.block.documentation",
+  "patterns": [
+    { "include": "#agent-note" },
+    { "include": "#role-tag" },
+    { "include": "#external-tag" }
+  ],
+  "repository": {
+    "agent-note": {
+      "comment": "// @agent: <message> or // @agent(C1): <message> — a direct human-to-agent note, optionally labeled for stable reference.",
+      "match": "(@agent)(?:(\\()([^)]+)(\\)))?(:)",
+      "captures": {
+        "1": { "name": "keyword.other.centina.agent" },
+        "3": { "name": "keyword.other.centina.agentLabel" },
+        "5": { "name": "keyword.other.centina.agent" }
+      }
+    },
+    "role-tag": {
+      "comment": "/** @boundary|@datasource|@datasink */ — boundary role tags on a declare class.",
+      "match": "(@(?:boundary|datasource|datasink))\\b",
+      "captures": {
+        "1": { "name": "keyword.other.centina.role" }
+      }
+    },
+    "external-tag": {
+      "comment": "/** @external \"<source>\" */ — reference to code outside the spec.",
+      "match": "(@external)\\b",
+      "captures": {
+        "1": { "name": "keyword.other.centina.external" }
+      }
+    }
+  }
+}

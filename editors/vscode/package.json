@@ -1,0 +1,49 @@
+{
+  "name": "centina-injection",
+  "displayName": "Centina Highlighting",
+  "description": "TextMate injection grammar that tints @agent:, @external, boundary role tags, and deferred on top of the built-in TypeScript grammar — no new language, .centina.ts files stay plain TypeScript.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "centina.injection.comments",
+        "path": "./syntaxes/centina.comments.injection.json",
+        "injectTo": ["source.ts", "source.tsx"]
+      },
+      {
+        "scopeName": "centina.injection.code",
+        "path": "./syntaxes/centina.code.injection.json",
+        "injectTo": ["source.ts", "source.tsx"]
+      }
+    ],
+    "configurationDefaults": {
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": "keyword.other.centina.agent",
+            "settings": { "foreground": "#c678dd", "fontStyle": "bold" }
+          },
+          {
+            "scope": "keyword.other.centina.agentLabel",
+            "settings": {"foreground": "#c678dd", "fontStyle": "bold" }
+          },
+          {
+            "scope": "keyword.other.centina.role",
+            "settings": { "foreground": "#61afef", "fontStyle": "bold" }
+          },
+          {
+            "scope": "keyword.other.centina.external",
+            "settings": { "foreground": "#56b6c2", "fontStyle": "bold" }
+          },
+          {
+            "scope": "keyword.other.centina.deferred",
+            "settings": { "foreground": "#e5c07b", "fontStyle": "italic" }
+          }
+        ]
+      }
+    }
+  }
+}
