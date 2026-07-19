@@ -123,6 +123,25 @@ binary admit/reject asked before any spec was written. Now the routing
 primitives _are_ the answer: realization goes behind a door, and the only thing
 left to decide per node is whether anything structural remains once it does.
 
+**A node can straddle both planes — split on the seam, don't collapse it.**
+"Center of gravity" isn't always a whole-node verdict: one responsibility often
+bundles a structural half and a routed (realization / dynamics / external) half,
+and the move is to split it at the seam between them rather than label the whole
+node one way. Two seen in the test cases, on different plane-pairs:
+
+- _verify the token_ (oauth-callback) = a **trust-rules contract** — which
+  claims, from which source, must match what (structural, pins) — plus an opaque
+  **crypto primitive** (the signature math, routes `@external`).
+- _flush every N seconds_ (metrics-emitter) = a **drain-to-sink egress action**
+  (a structural seam) plus a **cadence** (the every-N-seconds trigger — dynamics,
+  routed `@external`; N itself is a config parameter).
+
+The failure is collapsing both halves into one hole: route the structural half
+behind a realization door and you lose the substance (the trust contract, the
+egress contract); pin the routed half and you over-reach into algorithm or
+dynamics. Interrogate the seam — "what part of this is a named-data relationship,
+and what part is the carrying-out?" — and route each half on its own plane.
+
 **The tell that a node is realization all the way down** is the
 **tasks-as-doors smell**: a door you can't name without an implementation verb
 (`computeLayout()`, `stepPhysics()`, `rankResults()`), or a door that keeps
@@ -148,16 +167,14 @@ computation: nobody would author or tune the rule (you don't configure gravity).
 Surface the fork the moment such a verb appears; the answer decides whether
 there's structure to pin or a realization leaf to mark.
 
-The split isn't always _either/or_ — a single verb can carry **both** halves at
-once, and collapsing them into one realization hole is the failure. **Validation
-/ "verify" verbs are the canonical co-occurrence** (oauth-callback): "verify the
-token" bundles a _trust-rules contract_ — which claims, from which source, must
-match what (`iss`/`aud`/`nonce`/`exp`, the identity key) — that is structural and
-pins, _and_ an opaque crypto primitive (the signature math) that routes
-`@external`. Interrogate such a verb into its two halves: "verified _against
-what_, establishing _what trust_?" surfaces the structural contract; what's left
-(the primitive) externalizes. Route the primitive out, keep the trust contract
-pinned — don't let the crypto flavor drag the provenance substance behind a door.
+The rules-vs-computation split isn't always _either/or_: a validation / "verify"
+verb typically carries **both** halves — a trust-rules contract (structural, it
+pins) and an opaque crypto primitive (`@external`). That's an instance of the
+straddle-both-planes principle above; "verify the token" is the canonical case
+(`iss`/`aud`/`nonce`/`exp` and the identity key are the contract; the signature
+math is the primitive). Interrogate the verb into its two halves — "verified
+_against what_, establishing _what trust_?" — and route each on its own plane
+rather than letting the crypto flavor drag the provenance substance behind a door.
 
 **The degenerate case — a whole "system" that's really one node.** Pure compute
 (a parser, a sort, a pricing calc), a real-time/dynamics core (a physics or

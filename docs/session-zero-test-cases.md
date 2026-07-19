@@ -339,13 +339,34 @@ restarted from scratch, decided at the time.
     4. **Phase-3 failure question, fourth instance** — forced the trust branches;
        bumped the "Lessons from use" evidence to four cases.
 
-### metrics-emitter — `not-started`
+### metrics-emitter — `closed` (reopenable)
 
 - **Seed:** "collect metrics from the app and flush them to a sink every N
   seconds."
 - **Pressures:** egress/dynamics overlap — the metric *shape* is structural but
   "every N seconds" is dynamics. Does session-zero pin the metric contract and
   route the *cadence* out?
+- **Predicted map:** a metric contract + sink terminal pin; the flush cadence
+  routes to `@external`/dynamics; partial coverage, cleanly split.
+- **Log:**
+  - 2026-07-19 — Adversarial trace. **Predicted map held:** `record(metric)`
+    ingress and `flush(batch)` egress pinned (Metric shape, sink-loss policy),
+    the every-N-seconds cadence routed `@external` as dynamics — a clean split of
+    a genuinely mixed node. Findings:
+    1. **Generalized principle persisted — "a node can straddle both planes."**
+       "Flush every N seconds" bundles a structural egress action + a dynamics
+       cadence, the same shape as oauth's "verify the token" (trust contract +
+       crypto primitive) on a different plane-pair. Lifted the co-occurrence idea
+       out of the fork note into the two-planes lens as a standalone principle
+       (split on the seam, don't collapse), with both cases as examples; the fork
+       note now points at it.
+    2. **Confirms the coverage-not-binary axis on a genuinely mixed node** (prior
+       cases were dominantly one plane). No change.
+    3. **Provenance sub-finding:** "who assigns the metric timestamp — caller or
+       collector?" is a provenance decision the seed hides. Log-only.
+    4. **Phase-3 failure question, fifth instance** (the sink-loss policy: drop /
+       retry / grow the buffer). Lesson already established at four; logged here,
+       *not* re-bumped in the skill to avoid churn.
 - **Predicted map:** a metric contract + sink terminal pin; the flush cadence
   routes to `@external`/realization; partial coverage, cleanly split.
 
