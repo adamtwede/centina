@@ -304,7 +304,7 @@ restarted from scratch, decided at the time.
        (a domain-judgment verb whose governing knowledge the seed leaves
        unlocated; counter-tell = nobody authors/tunes an intrinsic computation).
 
-### oauth-callback — `not-started`
+### oauth-callback — `closed` (reopenable)
 
 - **Seed:** "handle the OAuth redirect: the provider sends us back a code, we
   turn it into a session for the right user."
@@ -314,6 +314,30 @@ restarted from scratch, decided at the time.
 - **Predicted map:** high coverage; provider + session-store terminals; the
   trust / identity-entry seams are the substance and pin as contract;
   realization minimal. A "clean fit" control from the provenance side.
+- **Log:**
+  - 2026-07-19 — Adversarial trace. **Control passed:** the trust chain pinned as
+    structural contract (state consumption/CSRF, single-use replay, claim
+    validation, identity key `sub`, first-login provision-vs-reject, session
+    establishment); only the crypto signature primitive routed `@external`. The
+    reframe does **not** over-label security/crypto-flavored work as realization.
+    Findings:
+    1. **Rules-vs-computation fork, fourth instance + refinement (persisted).**
+       The fork's two halves can **co-occur in a single verb**: "verify the
+       token" bundles a trust-rules contract (which claims from which source must
+       match what — structural, pins) *and* an opaque crypto primitive (routes
+       `@external`). Collapsing both into one realization hole loses the
+       provenance substance behind a door. Added validation/"verify" verbs to the
+       fork note as the canonical co-occurrence case, with the two-halves
+       interrogation ("verified *against what*, establishing *what trust*?").
+    2. **Confirms decision 1's precision from the provenance side** (the control's
+       point): trust decisions are named-data relationships, so Centina pins them
+       — no over-labeling. No change.
+    3. **Canonical-task over-competence re-confirmed** against the hardest case
+       (OAuth is maximally famous): "where does the state come from?" is the
+       elicitation that must beat recall. Validates the existing "What NOT to do"
+       bullet. No change.
+    4. **Phase-3 failure question, fourth instance** — forced the trust branches;
+       bumped the "Lessons from use" evidence to four cases.
 
 ### metrics-emitter — `not-started`
 
