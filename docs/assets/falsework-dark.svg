@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 320" width="820" height="320" role="img" aria-labelledby="fw-title fw-desc">
+  <title id="fw-title">Falsework: an arch on its centering frame</title>
+  <desc id="fw-desc">A stone arch with a highlighted keystone at its apex, resting on a temporary triangulated centering frame (the falsework) that teaches the arch its shape until the keystone locks it and the frame can be struck.</desc>
+
+  <rect x="2" y="2" width="816" height="316" rx="14" fill="#161b22" stroke="#30363d"/>
+
+  <!-- ground + springing posts -->
+  <line x1="210" y1="278" x2="610" y2="278" stroke="#6e7681" stroke-width="2"/>
+  <line x1="250" y1="250" x2="250" y2="278" stroke="#6e7681" stroke-width="2"/>
+  <line x1="570" y1="250" x2="570" y2="278" stroke="#6e7681" stroke-width="2"/>
+
+  <!-- centering frame (falsework): the temporary support, in amber -->
+  <path d="M290,250 A120,120 0 0 1 530,250 Z" fill="#e0a458" fill-opacity="0.10"/>
+  <g stroke="#e0a458" stroke-width="1.1">
+    <line x1="410" y1="250" x2="299.13" y2="204.08"/>
+    <line x1="410" y1="250" x2="325.15" y2="165.15"/>
+    <line x1="410" y1="250" x2="364.08" y2="139.13"/>
+    <line x1="410" y1="250" x2="410" y2="130"/>
+    <line x1="410" y1="250" x2="455.92" y2="139.13"/>
+    <line x1="410" y1="250" x2="494.85" y2="165.15"/>
+    <line x1="410" y1="250" x2="520.87" y2="204.08"/>
+  </g>
+  <g stroke="#e0a458" stroke-width="1.1" stroke-dasharray="4 4" fill="none">
+    <path d="M330,250 A80,80 0 0 1 490,250"/>
+    <path d="M365,250 A45,45 0 0 1 455,250"/>
+  </g>
+
+  <!-- arch band (voussoirs) -->
+  <path d="M240,250 A170,170 0 0 1 580,250 L530,250 A120,120 0 0 0 290,250 Z"
+        fill="#343b45" stroke="#8b949e" stroke-width="1.5"/>
+  <!-- voussoir dividers -->
+  <g stroke="#8b949e" stroke-width="1">
+    <line x1="299.13" y1="204.08" x2="252.94" y2="184.94"/>
+    <line x1="325.15" y1="165.15" x2="289.79" y2="129.79"/>
+    <line x1="364.08" y1="139.13" x2="344.94" y2="92.94"/>
+    <line x1="455.92" y1="139.13" x2="475.06" y2="92.94"/>
+    <line x1="494.85" y1="165.15" x2="530.21" y2="129.79"/>
+    <line x1="520.87" y1="204.08" x2="567.06" y2="184.94"/>
+  </g>
+
+  <!-- keystone -->
+  <path d="M386.59,132.30 L376.83,83.26 L443.17,83.26 L433.41,132.30 Z"
+        fill="#2bb6a6" stroke="#4fd1c5" stroke-width="1.5"/>
+
+  <!-- labels -->
+  <text x="410" y="72" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#4fd1c5">keystone</text>
+  <text x="686" y="222" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#e0a458">centering frame</text>
+  <text x="686" y="240" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" fill="#b0895a">(the falsework — struck once the keystone locks)</text>
+</svg>

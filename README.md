@@ -5,6 +5,14 @@
 > its shape until the keystone goes in and it can stand alone. Italian has its
 > own word for the same frame: *centina*.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/falsework-dark.svg">
+    <img src="docs/assets/falsework.svg" width="640"
+         alt="An arch with a highlighted keystone at its apex, resting on a temporary centering frame — the falsework — that teaches the arch its shape until the keystone locks it and the frame can be struck.">
+  </picture>
+</p>
+
 **Centina** is spec-flavored TypeScript: a medium for writing structured,
 rule-checked pseudocode — *falsework* — for a coding task before it is built.
 TypeScript supplies the grammar and the expressiveness; a spec-plane checker,
@@ -52,6 +60,14 @@ re-grounding the trajectory at every step so that error never has room to grow
 large before it is corrected. There is no closed form that gets you to the
 answer in one leap; there is only the discipline of taking small, verified
 steps.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/error-floor-dark.svg">
+    <img src="docs/assets/error-floor.svg" width="720"
+         alt="Two paths cross the same distance. A single heroic leap from prose to code drifts steadily out of the tolerance corridor as error compounds; a path of small verified steps, each re-grounded back toward the center, stays bounded within the corridor.">
+  </picture>
+</p>
 
 The wager of Centina is that the new human–agent coding paradigm needs some
 form of the same discipline: **frequent, structured re-grounding of intent
@@ -143,8 +159,10 @@ Two checkers cooperate:
   surface live in the editor through a TypeScript language-service plugin, so
   spec diagnostics appear alongside `tsc`'s as you type.
 
-A spec is not "done" when it compiles. It is done when every gap in it is
-**deliberate, typed, and routed**.
+> [!IMPORTANT]
+> A spec is not "done" when it compiles. It is done when **every gap in it is
+> deliberate, typed, and routed** — deferred to the human, delegated to an
+> agent, referenced from external code, or quarantined behind a boundary.
 
 ### The spec as a first-class artifact — and PLAN.md as its near-deterministic output
 
@@ -181,8 +199,11 @@ engagement:
   asked to edit anyway, it pushes back once (naming the risk that the human may
   be offloading thinking meant to stay theirs), then complies if they persist.
 
-The agent is a **scribe, not an architect**. That is the mechanism that keeps
-over-competence from ever getting a foothold.
+> [!IMPORTANT]
+> The agent is a **scribe, not an architect.** Supplying *form* — skeletons,
+> syntax, holes — is its job; authoring *meaning* is never delegated. That
+> separation is the mechanism that keeps over-competence from getting a
+> foothold.
 
 ## The core mechanism: the typed hole with routing
 
@@ -254,9 +275,25 @@ its remit rather than a
 bounced request. The value is in *localizing* the realization into a named,
 bounded hole.
 
+Every node gets read on two planes, and where its center of gravity sits
+decides how it is routed:
+
+| Plane | What it captures | Where it lands in a spec |
+|---|---|---|
+| **Structural** | relationships between named data — provenance, flow, contract ("*X* comes from *Y*, in shape *Z*") | a filled-in component |
+| **Realization** | the carrying-out — algorithm, dynamics, aesthetics; no nameable data relationship | routed behind a door: a terminal, a Skill, or a held hole |
+
 The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each
 **`<component>.centina.ts`** filled in (iterate) → **`PLAN.md`** per
 boundary-set (the implementation).
+
+```mermaid
+flowchart LR
+  prose(["prose idea"]) -->|centina-session-zero| skel["skeleton set<br/>+ ARCHITECTURE.md"]
+  skel -->|human fills| filled["filled spec"]
+  filled -->|centina-iterate| clean(["spec-complete"])
+  clean -. near-deterministic .-> plan["PLAN.md"] --> impl(["implementation"])
+```
 
 ## A walkthrough: one seam, prose to spec-complete
 
@@ -286,6 +323,14 @@ to simply make the decisions and run with them:
   does not. Each is ratified into the contract.
 - *Terminal (phase 4):* OrderStore terminates at the existing orders database —
   an `@external` edge, concrete source TBD, *recorded, not fabricated*.
+
+The ratified DAG — two components, one typed seam, one terminal:
+
+```mermaid
+flowchart LR
+  Dashboard["Dashboard"] -->|"readMostRecent(customer) : RecentOrder"| Store["OrderStore (@datasource)"]
+  Store -. "@external · source TBD" .-> DB[("orders database")]
+```
 
 **Session-zero emits the skeleton** — typed seam, routed holes, no bodies.
 `shared.ts` carries the ratified vocabulary:
@@ -322,8 +367,15 @@ export const presentOrder = deferred<(order: RecentOrder) => DashboardView>()
 ```
 
 `npm run check` reports that hole and the `DashboardView` name it leans on but
-nothing yet defines. That is the handoff: **interfaces present and
-concrete, one decision held.**
+nothing yet defines:
+
+```console
+$ npm run check -- specs/order-dashboard/dashboard.centina.ts
+  [warning] hole-enumeration  :12 — deferred<...>() hole — routing still owed
+  [error]   tsc               :12 — cannot find name 'DashboardView'
+```
+
+That is the handoff: **interfaces present and concrete, one decision held.**
 
 **The human fills, then runs the centina-iterate skill.** Later the human resolves the held
 question — cancelled orders get their own view — and writes it in themselves
@@ -340,9 +392,10 @@ and routed. `PLAN.md` now follows near-deterministically, and the three
 decisions the prose would have buried are on the record, made by the person who
 should have made them.
 
-Here's your mental model in two sentences: You decide what, the agent, with your
-express approval at every critical juncture, decides how. Nothing that matters is
-left to chance.
+> [!TIP]
+> The mental model in two sentences: **you decide *what*; the agent, with your
+> express approval at every critical juncture, decides *how*.** Nothing that
+> matters is left to chance.
 
 ## The goals (the invariant everything else serves)
 
@@ -369,19 +422,12 @@ A good planning-mode conversation and a Centina spec both aim to align a human
 and an agent before code is written. The difference is what each *leaves
 behind* and where the authority sits:
 
-- **A checkable artifact instead of a transcript.** Prose alignment lives in a
-  scrollback and evaporates; a spec is a durable, versioned, mechanically
-  checked artifact that a fresh agent (or a future human) picks up cold.
-- **The meaning/implementation line is enforced, not merely intended.** In a
-  conversation the agent can smuggle a decision into fluent prose and no one
-  notices. In a spec, anything the human did not decide is a *visible hole* the
-  checker will not let pass as resolved.
-- **Deferral is first-class.** "We'll figure that out later" is not a dropped
-  thread; it is a typed hole with an explicit route, tracked in a ledger until
-  it is closed.
-- **The re-grounding checkpoint is built in.** The n-body discipline —
-  correct before compounding — is structural, not a matter of remembering to
-  be careful.
+| | Planning-mode conversation | Centina spec |
+|---|---|---|
+| **What it leaves behind** | a transcript in a scrollback — it evaporates | a durable, versioned, mechanically checked artifact a fresh agent picks up cold |
+| **The meaning/impl line** | the agent can smuggle a decision into fluent prose, unnoticed | anything the human didn't decide is a *visible hole* the checker won't pass as resolved |
+| **Deferral** | "we'll figure it out later" is a dropped thread | a typed hole with an explicit route, tracked in a ledger until it's closed |
+| **Re-grounding** | a matter of remembering to be careful | structural — the n-body discipline, correct-before-compounding, built in |
 
 For an experienced developer this is leverage, not overhead: it is a way to
 **keep a powerful coding model appropriately restrained while still harnessing

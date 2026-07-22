@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" width="820" height="400" role="img" aria-labelledby="ef-title ef-desc">
+  <title id="ef-title">Compounding error versus stepwise re-grounding</title>
+  <desc id="ef-desc">Two paths cross the same distance. The top one — a single heroic leap from prose to code — drifts steadily out of the tolerance corridor as error compounds. The bottom one advances in small verified steps, each re-grounded back toward the center, so error stays bounded within the corridor.</desc>
+
+  <defs>
+    <marker id="ef-arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f0776c"/>
+    </marker>
+    <marker id="ef-arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2bb6a6"/>
+    </marker>
+  </defs>
+
+  <rect x="2" y="2" width="816" height="396" rx="14" fill="#161b22" stroke="#30363d"/>
+
+  <text x="410" y="30" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="14" font-weight="600" fill="#adbac7">Crossing the same distance, two ways</text>
+
+  <!-- TOP: one heroic leap -->
+  <g stroke="#30363d" stroke-width="1" stroke-dasharray="5 5">
+    <line x1="180" y1="80" x2="780" y2="80"/>
+    <line x1="180" y1="130" x2="780" y2="130"/>
+  </g>
+  <line x1="180" y1="105" x2="780" y2="105" stroke="#30363d" stroke-width="1" stroke-dasharray="1 6"/>
+  <text x="26" y="101" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#e6edf3">one heroic leap</text>
+  <text x="26" y="118" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#8b949e">prose → code</text>
+
+  <path d="M180,105 C 360,102 520,84 776,44" fill="none" stroke="#f0776c" stroke-width="3" marker-end="url(#ef-arrow-red)"/>
+  <line x1="762" y1="80" x2="762" y2="52" stroke="#f0776c" stroke-width="1.2" marker-start="url(#ef-arrow-red)" marker-end="url(#ef-arrow-red)"/>
+  <text x="700" y="40" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="600" fill="#f0776c">error compounds</text>
+
+  <!-- BOTTOM: small verified steps -->
+  <g stroke="#30363d" stroke-width="1" stroke-dasharray="5 5">
+    <line x1="180" y1="272" x2="780" y2="272"/>
+    <line x1="180" y1="328" x2="780" y2="328"/>
+  </g>
+  <line x1="180" y1="300" x2="780" y2="300" stroke="#30363d" stroke-width="1" stroke-dasharray="1 6"/>
+  <text x="26" y="296" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#e6edf3">small verified steps</text>
+  <text x="26" y="313" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#8b949e">re-grounded each pass</text>
+
+  <path d="M180,300 L250,286 L258,298 L330,285 L338,297 L410,284 L418,297 L490,285 L498,298 L570,285 L578,298 L650,285 L658,298 L730,286 L738,299 L780,292"
+        fill="none" stroke="#2bb6a6" stroke-width="2.5" stroke-linejoin="round"/>
+  <g fill="#2bb6a6">
+    <circle cx="258" cy="298" r="3"/>
+    <circle cx="338" cy="297" r="3"/>
+    <circle cx="418" cy="297" r="3"/>
+    <circle cx="498" cy="298" r="3"/>
+    <circle cx="578" cy="298" r="3"/>
+    <circle cx="658" cy="298" r="3"/>
+    <circle cx="738" cy="299" r="3"/>
+  </g>
+  <line x1="300" y1="262" x2="335" y2="291" stroke="#2bb6a6" stroke-width="1.1" marker-end="url(#ef-arrow-teal)"/>
+  <text x="298" y="256" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="600" fill="#4fd1c5">re-ground</text>
+
+  <text x="410" y="380" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" font-style="italic" fill="#8b949e">Error never reaches zero — but small, re-grounded steps keep it bounded, where one leap lets it compound past recovery.</text>
+</svg>
