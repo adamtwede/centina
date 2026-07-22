@@ -23,6 +23,22 @@ and it is up front about being scaffolding rather than product.
 The rest of this document is the argument for why a medium like this is
 becoming necessary, and how Centina answers it.
 
+## Contents
+
+- [Why this exists: the error floor](#why-this-exists-the-error-floor)
+- [The practical failure: over-competence](#the-practical-failure-over-competence)
+- [Centina's answer](#centinas-answer)
+- [Getting started](#getting-started)
+- [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
+- [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
+- [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions)
+- [A walkthrough: one seam, prose to spec-complete](#a-walkthrough-one-seam-prose-to-spec-complete)
+- [The goals (the invariant everything else serves)](#the-goals-the-invariant-everything-else-serves)
+- [What this offers over planning-mode conversation](#what-this-offers-over-planning-mode-conversation)
+- [State of the project](#state-of-the-project)
+- [Commands](#commands)
+- [Repository layout](#repository-layout)
+
 ---
 
 ## Why this exists: the error floor
@@ -90,15 +106,19 @@ introduce **latent technical entropy** — decisions that look settled but were
 never actually made by a human — that will not surface as a problem until much
 later, when it is far more expensive to address.
 
-**A single sentence is enough to carry it**. Picture a planning conversation
+**A single sentence can demonstrate the problem**. Picture a planning conversation
 settling on *"the dashboard shows the user's most recent order."* It reads
 like a decision, but it is three undecided ones in a trench coat: what happens
 when the user has **no** orders (the empty case), whether *"recent"* sorts by
 when the order was created or when it was last touched, and whether a draft or
 cancelled order counts as an order at all — a question about the *shape* of the
-thing. The agent will answer all three, silently and plausibly, the moment it
-writes code; none was ever the human's call, and each is far cheaper to surface
-now than to reverse-engineer from a bug later.
+thing. Even if the agent asks for clarification, conversational prose, even 
+interspersed with structured outputs, obfuscates meaning and intent, which will 
+end up accumulating the longer the session and the more complex the design becomes. 
+The agent wants to be helpful, so it will let you sail past critical questions over 
+meaning and intent, answering them silently and plausibly the moment it drafts an 
+implementation plan or writes code; none was ever the human's call, and each is far, 
+far cheaper to uncover during early design than to reverse-engineer from later failures.
 
 The insidious part is that a fluent agent's confabulated architecture looks
 *identical* to an elicited one. A clean, plausible, well-shaped design
@@ -144,6 +164,16 @@ that a machine can check it, while reading like organized prose rather than a
 program to run. Read a `.centina.ts` file as *authorial intent expressed in
 typed declarations*, not as code with literal runtime semantics.
 
+> [!CAUTION]
+> **A Centina spec is not executable code — do not run it, ship it, or treat it
+> as an implementation.** It is a formal *semantic descriptor* for a piece of
+> software's design and architecture: an **"intent-as-code" artifact** whose
+> whole purpose is to state design intent precisely, with hidden ambiguity
+> minimized and every known unknown surfaced as a marked, routed hole. The
+> TypeScript grammar is a checkable notation for that intent, nothing more; the
+> function bodies, casts, and control flow are pseudocode illustrating *shape
+> and intent*, not runtime behavior to be executed.
+
 Two checkers cooperate:
 
 - **`tsc`, run under a deliberately permissive config** (`tsconfig.json`),
@@ -170,7 +200,8 @@ A Centina spec is a durable software artifact in its own right, not a
 throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`)
 should follow from it *nearly deterministically* — two agents handed the same
 frozen spec should produce substantially the same plan, because the meaning
-has already been pinned and only the carrying-out is left.
+has already been pinned and only the carrying-out is left, which itself is well-defined, 
+tightly-controlled, and clearly marked.
 
 It is useful to think of a Centina spec as **"code" for a coding-agent
 "runtime."** The spec is the program; the agent is the interpreter; PLAN.md
@@ -205,6 +236,37 @@ engagement:
 > separation is the mechanism that keeps over-competence from getting a
 > foothold.
 
+## Getting started
+
+Centina runs inside your existing coding-agent session — there is nothing to
+install and no server to run. To stand up your first spec:
+
+1. **Clone the Centina repo.**
+
+   ```console
+   git clone https://github.com/adamtwede/centina.git
+   ```
+
+2. **From the Centina root, start your agent session.**
+
+   ```console
+   cd centina
+   claude   # or whichever coding agent you use
+   ```
+
+3. **Invoke the `centina-session-zero` skill.** It will prompt you to begin
+   describing what you want to build and guide you through each gated phase from
+   there — eliciting the shape, routing every undecided question into a visible
+   hole, and emitting a skeleton spec set plus an `ARCHITECTURE.md` at the end.
+
+   ```console
+   /centina-session-zero
+   ```
+
+For what actually happens in that session — and in `centina-iterate`, the
+follow-on that refines a single spec toward complete — see
+[How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions).
+
 ## The core mechanism: the typed hole with routing
 
 Centina's central primitive is the **typed hole**. A spec is finished not when
@@ -227,8 +289,7 @@ callers are held to it even though nothing exists behind it yet. That is what
 lets a *consumer* be specified against a seam that has not been built, and
 built in parallel with it.
 
-Two operating principles carry over from Centina's origins as the AISL spec
-language (see [History](#history-the-aisl-pivot)):
+Two operating principles that form the foundation:
 
 - **Boundaries model affordances, not transports** — a boundary is a set of
   *doors* (what you can do at a seam), and direction is inferred from each
@@ -237,9 +298,109 @@ language (see [History](#history-the-aisl-pivot)):
 - **Provenance is bookkeeping, not prohibition.** Every value's origin should
   be *visible* — names must resolve, and every `as` cast is a recorded
   assumption — but the spec-writer is free to assemble records and sketch
-  structure without fighting a privilege system. (An earlier, stricter
-  "never manufacture data" enforcement arm was retired after real usage; see
-  `docs/fit-validation.md`.)
+  structure without fighting a privilege system.
+
+## The vocabulary, primitive by primitive
+
+The typed hole is the centerpiece, but a spec is written in a handful of other
+primitives too. They fall on the two sides of the responsibility split: some
+are **domain content** (they describe the real system the spec is about), and
+some are **authoring markers** (metadata addressed to the checker and the
+coding agent, never part of what the spec models). Each is ordinary
+TypeScript — the whole vocabulary lives in `centina.ts`.
+
+### Domain content — describing the system
+
+**`Unshaped<Name>` — an opaque domain noun.** A named thing the spec talks
+about without committing to its shape. The brand makes it *nominal*: an
+`Unshaped<"Formula">` can never be confused with an `Unshaped<"Feedback">`, and
+no ordinary object accidentally satisfies either. A value of an `Unshaped` type
+can only enter the spec from a declared source (a door, an `@external`, an
+`Agent` cast) — and that entry point *is* its provenance record.
+
+```ts
+type Formula = Unshaped<"Formula">
+// A Formula can't be conjured from a literal; it must arrive from a declared
+// source — here, the agent below, where the `as` records the shape assumption.
+```
+
+**`Agent<Model>` — the model a spec converses with.** The one boundary Centina
+ships pre-built. `prompt`/`review` return `unknown`, so the author *records the
+shape assumption* with an `as` at each call — bookkeeping, not prohibition. The
+`Model` parameter carries the agent's identity with no cast: an
+`Agent<ModelId>` hands the same `ModelId` back from `.modelId`.
+
+```ts
+const supervisor = new Agent(ModelId.CLAUDE_OPUS)
+const plan = supervisor.prompt("Draft an implementation plan for…") as Task[]
+//                                                                   ^ recorded assumption
+```
+
+> [!IMPORTANT]
+> `Agent` (a value in the spec's pseudocode) is the *runtime* model the finished
+> system will converse with — **never** the coding agent helping you write the
+> spec. That second, spec-authoring channel is the `@agent:` comment below.
+> Same word, unrelated concepts.
+
+**`Skill<In, Out>` — a delegated capability with a declared contract.** A named,
+invocable capability the spec's `Agent` can call — distinct from a raw `prompt`.
+Its type parameters *are* its contract, declared once and enforced at every call
+site: pass the `Skill` as `invokeSkill`'s first argument and the remaining
+inputs are checked against `In` while the result is typed `Out`, with no cast.
+Unlike a raw `prompt` (whose `as` is recorded per call), a skill's shape
+assumption is recorded *once*, at the declaration — so two call sites can't
+silently disagree about its shape.
+
+```ts
+const explain: Skill<[Formula, FormulaType], string> = { name: "formula-explanation" }
+//                  ^ input types            ^ output
+const text = agent.invokeSkill(explain, someFormula, FormulaType.UNKNOWN) // : string
+```
+
+### Authoring markers — metadata for the checker and the agent
+
+**`deferred<…>()` — the typed hole.** The signature is real and type-checks its
+callers; the *routing* is what varies. Bare means routing is still owed (a
+warning); the three kinds resolve it (see the table above).
+
+```ts
+const score  = deferred<(step: Step, output: string) => Score>()   // routing owed → warning
+const rank   = deferred<"spec", (c: Candidate[]) => Candidate>()   // its own spec, unwritten
+const decide = deferred<"open", (node: Node) => Decision>()        // implementer's discretion
+const lookup = deferred<"unimplemented", (n: Name) => Row>()       // hard stop until a body exists
+```
+
+**`@external "src"` — a reference into existing code.** A plain `declare`
+tagged with its source. The declaration site is where the assumption about the
+outside world is recorded; call sites then use the declared type with no cast.
+
+```ts
+/** @external "node:crypto" */
+declare function randomUUID(): string
+```
+
+**Boundaries — `@datasource` / `@datasink` / `@boundary`.** A declared,
+black-box data seam, spelled as a JSDoc tag on a `declare class`. Direction is
+inferred from each door's return type — `void` = write, non-`void` = read —
+never from its name (`@datasource` = read-only, `@datasink` = write-only,
+`@boundary` = both). See `docs/boundaries.md`.
+
+```ts
+/** @datasource The store of placed orders. */
+export declare class OrderStore {
+  readMostRecent(customer: string): RecentOrder // non-void ⇒ a read door
+}
+```
+
+**`@agent:` / `@agent(label):` — a note to the coding agent.** The
+spec-authoring channel between you and whichever agent is running a session
+with you — resolved at spec-iteration or plan-build time, never part of the
+spec's domain content. An optional label gives a note a stable name to
+reference later.
+
+```ts
+// @agent(C1): confirm whether a cancelled order needs its own banner before planning.
+```
 
 ## How you actually use it: gap-hunting sessions
 
@@ -452,8 +613,7 @@ suggests. What exists:
   language-service plugin, with a TextMate injection grammar tinting the
   Centina markers.
 - **Worked specs** —
-  `specs/hill-climbing-loop/` (the founding fixture, a 1:1 port of the author's
-  AISL prototype, `npm run typecheck` clean), plus `specs/wordboard/` and
+  `specs/hill-climbing-loop/` (the founding fixture, `npm run typecheck` clean), plus `specs/wordboard/` and
   `specs/grid-inventory/`, two systems stood up through `centina-session-zero`
   (skeleton set + `ARCHITECTURE.md` each).
 - **`tsconfig.json`** — the deliberately permissive spec-plane config;
@@ -462,18 +622,6 @@ suggests. What exists:
 
 `ROADMAP.md` tracks build order and open questions (chief among them the
 prose-vs-Centina head-to-head that tests goal 3 directly).
-
-## History: the AISL pivot
-
-Centina began as **AISL**, a from-scratch spec language with its own
-lexer, parser, and checker. In July 2026 the author pivoted: real
-spec-writing showed that TypeScript already had every *structural* feature
-AISL was reaching for, while the genuinely novel inventions (`deferred`,
-`@agent:` direction, boundaries) needed a *checker*, not a grammar. Hence
-spec-flavored TypeScript. The entire AISL v0 toolchain and its docs are
-preserved at the git tag **`aisl-v0-standalone-language`** — consult the tag,
-not this working tree, for anything AISL-era. `docs/fit-validation.md` is the
-running design memo that records the evidence behind the pivot.
 
 ## Commands
 
