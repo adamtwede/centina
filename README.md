@@ -10,7 +10,7 @@ rule-checked pseudocode — *falsework* — for a coding task before it is built
 TypeScript supplies the grammar and the expressiveness; a spec-plane checker,
 not the TypeScript compiler, is the arbiter of "done." A Centina spec is built
 first and checked for structure, so it teaches the implementation its shape,
-and it is honest about being scaffolding rather than product.
+and it is up front about being scaffolding rather than product.
 
 The rest of this document is the argument for why a medium like this is
 becoming necessary, and how Centina answers it.
@@ -249,13 +249,100 @@ realization-dominated responsibility (an algorithm, a physics loop, a
 rendering step) is never *rejected* from a spec — it is *routed behind a door*
 (a terminal, a delegated Skill, or a held `deferred<"unimplemented">` hole),
 and the spec keeps the typed seam around it. Even an idea that turns out to be
-"one algorithm, not a system" yields an honest, minimal skeleton rather than a
+"one algorithm, not a system" yields a minimal skeleton that is explicit about
+its remit rather than a
 bounced request. The value is in *localizing* the realization into a named,
 bounded hole.
 
 The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each
 **`<component>.centina.ts`** filled in (iterate) → **`PLAN.md`** per
 boundary-set (the implementation).
+
+## A walkthrough: one seam, prose to spec-complete
+
+To ground the two skills, follow a single seam of that same order dashboard —
+the one whose prose hid three decisions — through both stages. (Heavily
+condensed; a real session is many more exchanges.)
+
+**The prose seed.** The human opens `centina-session-zero` with a sentence:
+
+> "A signed-in customer sees a dashboard with their most recent order and its
+> status."
+
+**Session-zero elicits the shape, gate by gate** — it _draws structure out_ and presents
+the choices, something coding agents are really good at, aiding the human developer 
+in weighing the tradeoffs against their stated priorities, _without_ allowing the agent
+to simply make the decisions and run with them:
+
+- *Intent (phase 1):* restated back in the human's own terms, ratified.
+- *Components (phase 2):* the human names two nodes — a **Dashboard**
+  orchestrator and an **OrderStore** it reads from. (The agent resists naming
+  the store first; the human draws it.)
+- *Seam (phase 3):* the door from Dashboard into OrderStore — a read (non-`void`
+  return). Then the highest-yield question, *what happens on the empty /
+  not-found case?*, forces exactly the three decisions the prose smuggled past:
+  **no orders** returns an explicit empty result, not null; *"recent"* sorts by
+  **when the order was placed**; a **cancelled** order still counts, a **draft**
+  does not. Each is ratified into the contract.
+- *Terminal (phase 4):* OrderStore terminates at the existing orders database —
+  an `@external` edge, concrete source TBD, *recorded, not fabricated*.
+
+**Session-zero emits the skeleton** — typed seam, routed holes, no bodies.
+`shared.ts` carries the ratified vocabulary:
+
+```ts
+export enum OrderStatus { PLACED, SHIPPED, DELIVERED, CANCELLED }
+
+// The order as the dashboard needs it. `placedAt` is the sort key (phase 3);
+// there is no DRAFT — drafts are deliberately not orders here (phase 3).
+export type Order = { id: string; status: OrderStatus; placedAt: number }
+
+// The empty case is a first-class shape, not a null (phase 3).
+export type RecentOrder = Order | "none"
+```
+
+and the boundary declarator states the door, its direction inferred from the
+return type:
+
+```ts
+/** @datasource The store of placed orders, backed by existing order data. */
+export declare class OrderStore {
+  // Most recent by `placedAt`; "none" when the customer has no qualifying order.
+  readMostRecent(customer: string): RecentOrder
+}
+```
+
+The one thing the human has *not* settled — whether a cancelled order surfaces
+with its own banner or folds into the normal view — ships as a hole, never a
+guess:
+
+```ts
+// In dashboard.centina.ts. Routing still undecided → the checker flags it.
+export const presentOrder = deferred<(order: RecentOrder) => DashboardView>()
+```
+
+`npm run check` reports that hole and the `DashboardView` name it leans on but
+nothing yet defines. That is the handoff: **interfaces present and
+concrete, one decision held.**
+
+**The human fills, then runs the centina-iterate skill.** Later the human resolves the held
+question — cancelled orders get their own view — and writes it in themselves
+(the agent holds no pen past the skeleton). They open `centina-iterate`, and
+the checker surfaces the residue one item at a time:
+
+- `DashboardView` is referenced but undefined → the human adds its shape.
+- the `deferred` hole's routing is still owed (a warning) → the human commits it
+  to `deferred<"open", …>`, the implementer's discretion, since banner-vs-fold
+  is a rendering call, not a contract.
+
+Re-check: clean. The spec is **spec-complete** — every gap deliberate, typed,
+and routed. `PLAN.md` now follows near-deterministically, and the three
+decisions the prose would have buried are on the record, made by the person who
+should have made them.
+
+Here's your mental model in two sentences: You decide what, the agent, with your
+express approval at every critical juncture, decides how. Nothing that matters is
+left to chance.
 
 ## The goals (the invariant everything else serves)
 
