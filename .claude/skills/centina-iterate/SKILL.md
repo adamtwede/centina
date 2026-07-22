@@ -106,6 +106,31 @@ spec logic. This keeps it trivially greppable/discoverable by a future spec
 before that spec reinvents the same boundary, and gives the eventual real spec
 for that system a natural home to grow into.
 
+## Starting from a fresh session-zero skeleton
+
+If this is the first `centina-iterate` pass on a component and its holes are
+still untouched since `centina-session-zero` emitted it (the file is
+essentially all typed seams plus `deferred`/`@agent:` holes, with no
+human-authored bodies yet), say so plainly and offer **starting-point
+suggestions** before diving into diagnostics — an empty-looking file with a
+wall of `tsc` errors is not a useful place to drop a human with no
+orientation. Suggest an order, don't pick one:
+
+- Holes with the most **downstream dependents** (other holes or components
+  that reference this one) tend to unblock the most subsequent work if
+  resolved first.
+- Holes on the **primary/most-traveled path** through the component (the
+  logic every call exercises) usually clarify the shape of everything nearby
+  faster than a rarely-hit edge case.
+- If neither is obvious, the **simplest hole** — the one with the fewest
+  unknowns — is a reasonable default just to get momentum going.
+
+This is process guidance, not meaning: naming which hole is worth tackling
+first is a structural observation the agent is allowed to make (Rule 0 is
+about deciding what a hole *resolves to*, not about suggesting an order to
+approach them in). Let the human pick the actual starting point; then proceed
+into the normal check/fix loop below.
+
 ## Process
 
 1. **Run the check** against the target file:

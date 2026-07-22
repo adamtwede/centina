@@ -257,7 +257,14 @@ them past what they've genuinely decided.
    from here; the hole ledger is live; each component is ready for
    `centina-iterate`. A node whose fit was genuinely in doubt has already been
    routed by the check above (structural → filled component; realization →
-   behind a door) before it's handed on.
+   behind a door) before it's handed on. Close by asking the human directly
+   whether they want to start a `centina-iterate` session on one of the
+   components **right now**, or would rather fill spec content in on their own
+   time and come back to `centina-iterate` later — name both as legitimate;
+   the skeleton and ARCHITECTURE.md don't go stale waiting. If several
+   components came out of this session, ask which one they want to start
+   with. If they say "later," the handoff is still complete — don't treat a
+   deferred start as unfinished business.
 
 ### A stop-heuristic for phases 2–4
 

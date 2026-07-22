@@ -259,8 +259,17 @@ install and no server to run. To stand up your first spec:
    there — eliciting the shape, routing every undecided question into a visible
    hole, and emitting a skeleton spec set plus an `ARCHITECTURE.md` at the end.
 
+   `.claude/skills/*/SKILL.md` is Claude Code's Agent Skills format — Claude
+   Code auto-discovers it, or you can invoke it directly (`/centina-session-zero`).
+   Other coding agents generally won't auto-discover it, but the skill is just
+   plain markdown: point any capable agent at the file and ask it to follow it.
+
    ```console
+   # Claude Code
    /centina-session-zero
+
+   # any other coding agent
+   Read and follow .claude/skills/centina-session-zero/SKILL.md
    ```
 
 For what actually happens in that session — and in `centina-iterate`, the
