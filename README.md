@@ -272,6 +272,24 @@ install and no server to run. To stand up your first spec:
    Read and follow .claude/skills/centina-session-zero/SKILL.md
    ```
 
+**What you end up with.** Session zero hands off a skeleton spec set plus
+`ARCHITECTURE.md`; running `centina-iterate` on each component then walks it to
+clean and, once it's clean, derives that component's `PLAN.md` from it —
+reconciling `ARCHITECTURE.md`'s contract and hole ledgers against the
+now-finished component immediately beforehand, so the ledger never claims more
+than what's actually settled. Repeat `centina-iterate` per component until the
+seams you intend to implement now all have plans (see
+[Which specs earn a plan](docs/plan-organization.md) — not every component
+needs one immediately; a mocked boundary is a legitimate stopping point).
+
+The end state is a self-contained package: one or more `PLAN.md` files (pegged
+to boundary-sets, not necessarily one per file — see
+`docs/plan-organization.md`) plus a reconciled `ARCHITECTURE.md` recording the
+DAG, the frozen contracts, and what's still deferred. That package is designed
+to travel — hand it to any coding agent, in this repo or an entirely different
+codebase, and it has everything it needs to implement against, with no
+in-session context required.
+
 For what actually happens in that session — and in `centina-iterate`, the
 follow-on that refines a single spec toward complete — see
 [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions).

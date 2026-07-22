@@ -362,6 +362,13 @@ carry:
 6. **Rejected alternatives** — components or contracts considered and set
    aside, and why. Keeps the next session from reopening settled ground.
 
+This document does not go stale by design: `centina-iterate` reconciles the
+contract and hole ledgers against each component as it goes clean, before
+deriving that component's PLAN.md (see "Reconciling ARCHITECTURE.md before the
+plan" in its SKILL.md) — so at any point some entries may reflect components
+not yet iterated, but none reflect a component that's already gone clean
+inaccurately.
+
 ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
 lineage — a plan-per-boundary-set (see `docs/plan-organization.md`)
 is derivable from a frozen contract ledger, and drifts exactly when the ledger

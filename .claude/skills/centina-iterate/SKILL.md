@@ -181,6 +181,39 @@ into the normal check/fix loop below.
    same way, but don't block calling the loop "done" — confirm with the human
    whether they want to address open warnings now or leave them.
 
+## Reconciling ARCHITECTURE.md before the plan
+
+If the spec came out of a `centina-session-zero` run, `specs/<system>/ARCHITECTURE.md`
+exists alongside it and carries a **contract ledger** and a **hole ledger** for
+the whole system (`docs/plan-organization.md`: "a plan-per-boundary-set is
+derivable from a frozen contract ledger, and drifts exactly when the ledger
+drifts"). Fixes made during this loop routinely make that ledger stale —
+resolving a `deferred` hole's routing, pinning a provisional contract, fleshing
+out an `@agent:` stub into real structure, or extracting a boundary into its
+own file (see "Boundary declarations as extraction candidates" above) all
+change something the ledger described. **Once the spec goes clean and before
+writing PLAN.md**, reread `ARCHITECTURE.md` against the now-clean spec and
+reconcile it:
+
+- Contract ledger entries touching this component's seams move from
+  provisional → decided, or get their signature updated if it changed during
+  fill.
+- Hole ledger entries this component closed are marked resolved/routed, not
+  left showing as still-open.
+- Terminal-node entries get their concrete `@external` source filled in if it
+  was previously "TBD" and got pinned during fill.
+- If a boundary was extracted into its own file, note the new file location.
+- Risks/watch-items get updated — resolved risks removed or marked closed, new
+  ones surfaced during fill added.
+
+This is a mechanical reconciliation, not new authorship — every entry being
+updated reflects a decision the human already ratified earlier in this same
+loop, so the agent may write the update directly (the same standing as writing
+PLAN.md itself), but call out what changed in the ledger before moving on so
+the human isn't surprised by a silently-updated file. If other components in
+the system haven't been through `centina-iterate` yet, their ledger entries are
+untouched — reconciliation only ever covers the component just finished.
+
 ## Writing the implementation plan
 
 When the check is clean and the human is satisfied with the spec, derive an
@@ -193,8 +226,8 @@ implementation plan and write it as a PLAN.md file alongside the spec:
 - **Provenance**: the first section must name the spec file that produced
   it, e.g. `**Spec source**: hill-climbing-loop.centina.ts`. This makes the plan's
   origin traceable. If the spec came out of a `centina-session-zero` run, name
-  its `ARCHITECTURE.md` too — it carries the contract ledger and scope this
-  plan should respect.
+  its `ARCHITECTURE.md` too — reconciled per the step above, so what the plan
+  cites is accurate at the moment the plan is written.
 - **Completeness**: the plan must be self-contained enough that a capable
   coding agent can implement the feature with little or no additional input
   from the human. It should name every file that changes, describe each
