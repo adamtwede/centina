@@ -370,6 +370,62 @@ restarted from scratch, decided at the time.
 - **Predicted map:** a metric contract + sink terminal pin; the flush cadence
   routes to `@external`/realization; partial coverage, cleanly split.
 
+### grid-inventory — `in-progress` (live interactive session)
+
+- **Seed:** "a grid-based inventory system for a modular game-systems ecosystem,
+  configurable as single-cell (Minecraft) or multi-cell (Diablo); fully
+  isolatable, no outbound deps; partners (paper doll, character sheet, crafting,
+  world) modeled as consumers of a common client door-set."
+- **Pressures:** first **live** case (author drives as the human, not an
+  adversarial trace). A genuine high-stakes fork the author wants *decided* by the
+  session (one configurable system vs. two). Tests whether the elicitation earns a
+  fork resolution rather than deferring it as a hole.
+- **Predicted map:** one core Inventory node; Persistence terminal; a single
+  generic InventoryClient boundary role; the multi-cell fit algorithm as the
+  dominant held realization hole. Fork adjudicated at the query/addressing surface.
+- **Log:**
+  - 2026-07-21 — In progress. Fork **resolved in-session** toward a *unified
+    contract, implementation-count deferred to fill* — the reframe that dissolved
+    it was **contract-vs-implementation separability** (partners depend on the
+    frozen door-set; single-vs-multi lives below the seam, reversible). The
+    item-shape unified early (footprint-always-1×1); the last adjudicator was the
+    addressing model, resolved to coordinate-addressed / covering-placement /
+    root-derivable. Surfaced a live instance of the rules-vs-computation fork (a
+    designer-authored **Policy** seam for stacking) and a **policy-locus =
+    decision-data-provenance** principle (item-only decisions → per-ItemType;
+    inventory-state decisions → per-Inventory). Finding:
+    1. **Priority elicitation on high-stakes forks — promoted straight to core
+       (2026-07-21), author-ruled, skipping probation.** On a high-cost fork,
+       solicit the human's priorities *before* framing options, then map each
+       option's tradeoffs against them proactively (including what *doesn't*
+       apply). The skill had "diagram as falsification" but nothing on priority
+       elicitation; a less experienced writer wouldn't volunteer priorities as
+       this author did, leaving the agent framing an unweighable tradeoff. First
+       lesson earned in a **live** run rather than a trace. Landed in
+       "Cross-cutting discipline."
+    2. **Intent-as-spec encoding — promoted straight to core (2026-07-21),
+       author-ruled, into BOTH skills.** When a settled decision about
+       intent/meaning isn't carried by the spec code but easily could be (the
+       triggering case: "sort's comparator never sees an empty cell" → type it
+       `[ItemInstance, ...ItemInstance[]]`), the agent should call it out. In
+       session-zero the agent has standing authority to emit the encoding into
+       the skeleton at phase 5 without separate confirmation (mention + a
+       provenance comment suffice), because choosing the *form* that carries an
+       already-ratified decision is the agent's job, not authorship. In iterate
+       the agent proposes with an example and the human applies it (Rule 0a). The
+       untypeable case (array homogeneity) falls back to an `@agent:` note.
+       Landed in session-zero "Cross-cutting discipline" and iterate "Lessons
+       from use". Second live-run lesson.
+  - 2026-07-21 — Phases 4–5 closed. Phase 4: persistence ruled snapshot/restore
+    doors (opaque `Snapshot`, no terminal); instance ids client-minted and
+    carried (not Inventory-generated); **DAG closes with zero terminals** — the
+    isolatability goal realized by construction. Phase 5 (the sanctioned write)
+    emitted `specs/grid-inventory/{shared.ts, grid-inventory.centina.ts,
+    ARCHITECTURE.md}`, tsc-clean. Skeleton resolved to one core node + one
+    internal Policy seam, no terminals; the fit/packing algorithm is the lone
+    `deferred<"unimplemented">` (the placement-regime impl-count lives in its
+    held interior). At handoff.
+
 ## Backlog (heavier / lower-priority candidates)
 
 Run these once the simple set has exercised the reframe; they carry more
