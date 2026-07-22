@@ -104,7 +104,10 @@ to spill a bloated log; the skill says *how* the recursion is run.
 
 ## Cases
 
-Status legend: `not-started` · `in-progress` · `closed`.
+Status legend: `not-started` · `in-progress` · `closed`. A `closed` case is not
+frozen — it may be **reopened** (e.g. for a live interactive pass, or when a
+parent system it hangs off of takes shape), continued from where it stands or
+restarted from scratch, decided at the time.
 
 ### markdown-to-html — `closed`
 
@@ -135,7 +138,7 @@ Status legend: `not-started` · `in-progress` · `closed`.
     coverage/proportionality, and that the agent maps **topology** while the
     **human** assigns gravity. Drove decisions 1 & 3.
 
-### crafting-recipes — `in-progress` (queued next)
+### crafting-recipes — `closed` (reopenable)
 
 - **Seed:** "a crafting system for a game: combine ingredients per recipes to
   produce new items."
@@ -149,9 +152,45 @@ Status legend: `not-started` · `in-progress` · `closed`.
   realization" should crack out the recipe graph.
 - **Watch:** the empty/failure case (partial or no ingredient match) — the most
   expensive question to skip; does phase-3 seam elicitation force it?
-- **Log:** *(none yet)*
+- **Context:** crafting-recipes is really a *use case* bolted onto a larger
+  "mass-energy exchange" system idea the author has in mind. Running it before
+  that parent case has had real work bounds how deep it's worth going here —
+  closed on the trace below, but expected to **reopen** as a live interactive
+  pass (from where it stands or from scratch) once the parent system and the
+  intended crafting behavior are clearer.
+- **Log:**
+  - 2026-07-18 — Adversarial trace (agent + a played evasive human who tried to
+    collapse everything to one "crafting engine" and to describe the doors as
+    algorithm verbs). **Predicted map held:** the recipe set pinned as a
+    structural contract, the subset-match / consume-produce bodies were the held
+    sliver, and a forced-collapse genesis pass cracked the
+    Inventory/RecipeSet/resolver split back out. Four findings:
+    1. **Decision 5 amended (persisted).** Its terminator only described exit (a)
+       — verb-doors returning opaque "the-answer" types → mark realization. The
+       sleeper exercises exit (b): mining an *illusory* realization hole
+       terminates by exhausting into pinned structural leaves, with nothing to
+       mark. An agent watching only for (a)'s verb-door smell reads "no smell
+       yet, keep going" and over-elicits.
+    2. **Decision 5 reframed (persisted).** The genesis re-slice is the
+       *backstop* guard against over-recusal, not the first line; phase-2's
+       provenance questions are the cheaper first-line guard that decomposes the
+       "engine" before routing is even considered.
+    3. **Confirms phase-3's failure-case question earns "most expensive to
+       skip."** It forced the `CraftResult` shape (success/failure, and whether a
+       partial match reports what's missing) and a *quantified* inventory
+       (item→count) — both invisible in the "figures out what you can make" seed
+       prose. No skill change; the operational text already prescribes the
+       question.
+    4. **Intent fork logged.** "Combine ingredients *per recipes*" is the
+       structural variant; emergent/discovery crafting (combine any two, system
+       decides the result) is either a bigger authored map (still structural) or
+       a similarity/rule algorithm (genuine realization). Where — and whether —
+       the realization sliver sits depends on this fork, so intent capture should
+       surface it rather than assume. **Promoted 2026-07-18** (with
+       pricing-request-handler supplying the second instance) into the "Which
+       nodes earn a spec" rules-vs-computation fork note.
 
-### url-shortener — `not-started`
+### url-shortener — `closed` (reopenable)
 
 - **Seed:** "a web service where I paste a long URL and get back a short code;
   visiting the short code redirects to the original."
@@ -163,8 +202,34 @@ Status legend: `not-started` · `in-progress` · `closed`.
   the create/resolve seams pin cleanly; short-code *generation* is the only
   realization sliver (agent-discretion or `@external`); the collision and
   not-found cases pin as contract.
+- **Log:**
+  - 2026-07-18 — Adversarial trace. **Control passed:** the predicted map held
+    exactly — WebBoundary / Shortener / MappingStore, both seams and both
+    failure branches pinned, and code generation routed as a small
+    agent-discretion/`@external` sliver (algorithm *not* pinned, per Rule 0), not
+    inflated into a mined region. The reframe does not over-label a clean case.
+    Findings:
+    1. **Canonical-task over-competence (persisted → "What NOT to do").** Because
+       the shortener is a famous design, the agent can recall the whole
+       architecture (KV store, base62, put-if-absent) and present it as elicited
+       — over-competence at its purest, hardest to see because the recalled
+       answer is *correct*. The control's real value is testing whether phase-2's
+       draw-it-out discipline holds against a design the agent already knows.
+       Placed as an operational bullet (refines the already-core over-competence
+       concept; orthogonal to the fit-as-jurisdiction thread, so not
+       probationary).
+    2. **Confirms decision 1 (don't over-label):** high-structural coverage with
+       one named sliver, no invented realization. No change.
+    3. **Confirms decision 5's "offer scaled to topological weight":** code-gen
+       is a trivial leaf with no downstream, correctly *not* offered for a
+       genesis pass — positive confirmation we don't mine everything. No change.
+    4. **Re-confirms the phase-3 failure question** (second case after crafting):
+       forced collision + idempotency, and sorted collision *detection* (a
+       structural store contract — pushes a `putIfAbsent(code,url): boolean`
+       door) from collision *response* (a small control decision the human owns).
+       No change.
 
-### rank-dedup-list — `not-started`
+### rank-dedup-list — `closed` (reopenable)
 
 - **Seed:** "a function that takes a list of items and returns them ranked and
   de-duplicated."
@@ -174,8 +239,33 @@ Status legend: `not-started` · `in-progress` · `closed`.
 - **Predicted map:** one node; signature pinned; entire body a held hole. The
   coverage statement should read, honestly, "signature pinned; everything of
   interest is the held body" — a valid output, not a recusal.
+- **Log:**
+  - 2026-07-18 — Adversarial trace. **Predicted map held, with a bonus:** one
+    node, no seams — and the agent correctly declined to manufacture a fake
+    store/reader. But phase-3 shape interrogation surfaced two structural
+    contracts the seed hid — the **ranking key/criteria** and the
+    **dedup-identity** — so the "bare function" ledger is thin-but-non-empty
+    unless the items are primitives (intrinsic order + intrinsic equality). This
+    is the case that reconciled the operational text with decision 1:
+    1. **Decision 1 promoted to core (2026-07-18).** rank-dedup sits on the seam
+       between the operational "empty ledger → recuse" text and decision 1's
+       no-recusal rule. Rewrote the degenerate-case paragraph and the
+       hollow-skeleton bullet (now "Don't manufacture seams — and don't refuse
+       either") to embody it: emit the honest minimal skeleton labeled "one node,
+       not a system," never refuse. Decision 1 marked promoted-in-place in the
+       probationary list (kept for stable numbering of decisions 2–7 and these
+       logs).
+    2. **Empty-ledger definition sharpened (persisted).** "Empty" requires
+       intrinsic ordering *and* equality; domain items carry a key/identity
+       contract even with zero seams, so interrogation almost always finds *some*
+       contract before the floor. Folded into the rewritten degenerate paragraph.
+    3. **"This isn't a system" is a valid jurisdiction output, not a recusal.**
+       Crystallized in the rewrite — the thin honest map delivered, not a refusal.
+    4. **Rules-vs-computation fork, third instance** ("ranked" is a
+       domain-judgment verb) — confirms the fork note generalizes to a seam-less
+       function. No change.
 
-### pricing-request-handler — `not-started`
+### pricing-request-handler — `closed` (reopenable)
 
 - **Seed:** "an HTTP endpoint that takes a cart and returns the total price
   with discounts applied."
@@ -184,8 +274,37 @@ Status legend: `not-started` · `in-progress` · `closed`.
   clothing). Does the coverage map honestly flag the pricing hole as the point?
 - **Predicted map:** request/response seams and the cart/price shapes pin; the
   discount/pricing computation is the dominant held hole; genesis offered on it.
+- **Log:**
+  - 2026-07-18 — Adversarial trace, played human insisting the discount logic is
+    opaque/proprietary (branch B). **Predicted map held:** `price(cart):
+    PricedCart` and the cart/price shapes pinned, the discount computation held
+    as one interior hole; the skeleton reads healthy while the point is the hole
+    (asteroids in request/response clothing). Findings:
+    1. **Confirms decision 1 (don't under-find)** in a second costume —
+       coverage/proportionality is the axis, not structural absence. No change.
+    2. **Salience mechanism — first computable form (persisted).** A held hole's
+       structural weight as *interior-fraction + downstream-dominance* ("the
+       entire interior of the sole orchestrator; every non-boundary node is
+       downstream of it") — gravity-free, but converges with gravity on a
+       deceptively-healthy case. Advanced the open "salience mechanism" bullet,
+       with an explicit note to keep hunting for other such signals.
+    3. **Phase-3 failure question now 3-for-3 (persisted → "Lessons from use").**
+       Forced the itemized `PricedCart` breakdown + empty/invalid branches;
+       joins `CraftResult` and collision/idempotency as evidence it's the
+       highest-yield step in the phase.
+    4. **Genesis offer doubles as a diagnostic (persisted → decision 5).** Offered
+       on "pricing," it forces the human to reveal rule-set (exit b, structure
+       recovered — branch A) vs. proprietary algorithm (exit a, mark realization)
+       — both terminator exits in one case, and the offer's value even when not
+       mining.
+    5. **Rules-vs-computation fork — second instance, promoted (persisted →
+       "Which nodes earn a spec").** Pricing's "configurable rules vs. proprietary
+       logic" is crafting's "per recipes vs. emergent." Two instances justified
+       promoting the fork to an operational tell, with its trigger spelled out
+       (a domain-judgment verb whose governing knowledge the seed leaves
+       unlocated; counter-tell = nobody authors/tunes an intrinsic computation).
 
-### oauth-callback — `not-started`
+### oauth-callback — `closed` (reopenable)
 
 - **Seed:** "handle the OAuth redirect: the provider sends us back a code, we
   turn it into a session for the right user."
@@ -195,8 +314,32 @@ Status legend: `not-started` · `in-progress` · `closed`.
 - **Predicted map:** high coverage; provider + session-store terminals; the
   trust / identity-entry seams are the substance and pin as contract;
   realization minimal. A "clean fit" control from the provenance side.
+- **Log:**
+  - 2026-07-19 — Adversarial trace. **Control passed:** the trust chain pinned as
+    structural contract (state consumption/CSRF, single-use replay, claim
+    validation, identity key `sub`, first-login provision-vs-reject, session
+    establishment); only the crypto signature primitive routed `@external`. The
+    reframe does **not** over-label security/crypto-flavored work as realization.
+    Findings:
+    1. **Rules-vs-computation fork, fourth instance + refinement (persisted).**
+       The fork's two halves can **co-occur in a single verb**: "verify the
+       token" bundles a trust-rules contract (which claims from which source must
+       match what — structural, pins) *and* an opaque crypto primitive (routes
+       `@external`). Collapsing both into one realization hole loses the
+       provenance substance behind a door. Added validation/"verify" verbs to the
+       fork note as the canonical co-occurrence case, with the two-halves
+       interrogation ("verified *against what*, establishing *what trust*?").
+    2. **Confirms decision 1's precision from the provenance side** (the control's
+       point): trust decisions are named-data relationships, so Centina pins them
+       — no over-labeling. No change.
+    3. **Canonical-task over-competence re-confirmed** against the hardest case
+       (OAuth is maximally famous): "where does the state come from?" is the
+       elicitation that must beat recall. Validates the existing "What NOT to do"
+       bullet. No change.
+    4. **Phase-3 failure question, fourth instance** — forced the trust branches;
+       bumped the "Lessons from use" evidence to four cases.
 
-### metrics-emitter — `not-started`
+### metrics-emitter — `closed` (reopenable)
 
 - **Seed:** "collect metrics from the app and flush them to a sink every N
   seconds."
@@ -204,7 +347,84 @@ Status legend: `not-started` · `in-progress` · `closed`.
   "every N seconds" is dynamics. Does session-zero pin the metric contract and
   route the *cadence* out?
 - **Predicted map:** a metric contract + sink terminal pin; the flush cadence
+  routes to `@external`/dynamics; partial coverage, cleanly split.
+- **Log:**
+  - 2026-07-19 — Adversarial trace. **Predicted map held:** `record(metric)`
+    ingress and `flush(batch)` egress pinned (Metric shape, sink-loss policy),
+    the every-N-seconds cadence routed `@external` as dynamics — a clean split of
+    a genuinely mixed node. Findings:
+    1. **Generalized principle persisted — "a node can straddle both planes."**
+       "Flush every N seconds" bundles a structural egress action + a dynamics
+       cadence, the same shape as oauth's "verify the token" (trust contract +
+       crypto primitive) on a different plane-pair. Lifted the co-occurrence idea
+       out of the fork note into the two-planes lens as a standalone principle
+       (split on the seam, don't collapse), with both cases as examples; the fork
+       note now points at it.
+    2. **Confirms the coverage-not-binary axis on a genuinely mixed node** (prior
+       cases were dominantly one plane). No change.
+    3. **Provenance sub-finding:** "who assigns the metric timestamp — caller or
+       collector?" is a provenance decision the seed hides. Log-only.
+    4. **Phase-3 failure question, fifth instance** (the sink-loss policy: drop /
+       retry / grow the buffer). Lesson already established at four; logged here,
+       *not* re-bumped in the skill to avoid churn.
+- **Predicted map:** a metric contract + sink terminal pin; the flush cadence
   routes to `@external`/realization; partial coverage, cleanly split.
+
+### grid-inventory — `in-progress` (live interactive session)
+
+- **Seed:** "a grid-based inventory system for a modular game-systems ecosystem,
+  configurable as single-cell (Minecraft) or multi-cell (Diablo); fully
+  isolatable, no outbound deps; partners (paper doll, character sheet, crafting,
+  world) modeled as consumers of a common client door-set."
+- **Pressures:** first **live** case (author drives as the human, not an
+  adversarial trace). A genuine high-stakes fork the author wants *decided* by the
+  session (one configurable system vs. two). Tests whether the elicitation earns a
+  fork resolution rather than deferring it as a hole.
+- **Predicted map:** one core Inventory node; Persistence terminal; a single
+  generic InventoryClient boundary role; the multi-cell fit algorithm as the
+  dominant held realization hole. Fork adjudicated at the query/addressing surface.
+- **Log:**
+  - 2026-07-21 — In progress. Fork **resolved in-session** toward a *unified
+    contract, implementation-count deferred to fill* — the reframe that dissolved
+    it was **contract-vs-implementation separability** (partners depend on the
+    frozen door-set; single-vs-multi lives below the seam, reversible). The
+    item-shape unified early (footprint-always-1×1); the last adjudicator was the
+    addressing model, resolved to coordinate-addressed / covering-placement /
+    root-derivable. Surfaced a live instance of the rules-vs-computation fork (a
+    designer-authored **Policy** seam for stacking) and a **policy-locus =
+    decision-data-provenance** principle (item-only decisions → per-ItemType;
+    inventory-state decisions → per-Inventory). Finding:
+    1. **Priority elicitation on high-stakes forks — promoted straight to core
+       (2026-07-21), author-ruled, skipping probation.** On a high-cost fork,
+       solicit the human's priorities *before* framing options, then map each
+       option's tradeoffs against them proactively (including what *doesn't*
+       apply). The skill had "diagram as falsification" but nothing on priority
+       elicitation; a less experienced writer wouldn't volunteer priorities as
+       this author did, leaving the agent framing an unweighable tradeoff. First
+       lesson earned in a **live** run rather than a trace. Landed in
+       "Cross-cutting discipline."
+    2. **Intent-as-spec encoding — promoted straight to core (2026-07-21),
+       author-ruled, into BOTH skills.** When a settled decision about
+       intent/meaning isn't carried by the spec code but easily could be (the
+       triggering case: "sort's comparator never sees an empty cell" → type it
+       `[ItemInstance, ...ItemInstance[]]`), the agent should call it out. In
+       session-zero the agent has standing authority to emit the encoding into
+       the skeleton at phase 5 without separate confirmation (mention + a
+       provenance comment suffice), because choosing the *form* that carries an
+       already-ratified decision is the agent's job, not authorship. In iterate
+       the agent proposes with an example and the human applies it (Rule 0a). The
+       untypeable case (array homogeneity) falls back to an `@agent:` note.
+       Landed in session-zero "Cross-cutting discipline" and iterate "Lessons
+       from use". Second live-run lesson.
+  - 2026-07-21 — Phases 4–5 closed. Phase 4: persistence ruled snapshot/restore
+    doors (opaque `Snapshot`, no terminal); instance ids client-minted and
+    carried (not Inventory-generated); **DAG closes with zero terminals** — the
+    isolatability goal realized by construction. Phase 5 (the sanctioned write)
+    emitted `specs/grid-inventory/{shared.ts, grid-inventory.centina.ts,
+    ARCHITECTURE.md}`, tsc-clean. Skeleton resolved to one core node + one
+    internal Policy seam, no terminals; the fit/packing algorithm is the lone
+    `deferred<"unimplemented">` (the placement-regime impl-count lives in its
+    held interior). At handoff.
 
 ## Backlog (heavier / lower-priority candidates)
 

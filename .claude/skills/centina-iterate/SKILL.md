@@ -236,6 +236,23 @@ completed status:
 
 ## Lessons from use
 
+### Encode ratified intent into the type system — surface it, let the human apply it
+
+Intent-as-spec is one of Centina's headline concerns, and TypeScript is the
+grammar precisely so a decision about _meaning_ can be made load-bearing and
+checkable rather than left to a prose note an implementer can skip. When a
+decision the human has already settled _isn't_ carried by the spec code but
+_easily could be_ — a non-empty-array precondition as `[T, ...T[]]`, a
+discriminated union that makes an illegal status unrepresentable, a branded
+identity, an exhaustive enum — call it out and show a concrete example of the
+encoding. Then stop: per Rule 0a the human holds the pen, so surface the option
+and let _them_ decide whether to apply it. (This is the one place iterate differs
+from `centina-session-zero`, where the agent has standing authority to emit such
+an encoding into the skeleton directly — here it only proposes.) When the
+constraint genuinely can't be typed (e.g. array homogeneity), an `@agent:` note
+is the honest fallback rather than a forced encoding. (From the grid-inventory
+live session, 2026-07-21.)
+
 ### Warning triage is design discussion, not cleanup
 
 Diagnostics that survive an initial cleanup pass often reveal genuine design
