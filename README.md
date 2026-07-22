@@ -1,9 +1,14 @@
 # Centina
 
-> The German word for the falsework that holds an arch during construction is
-> *Lehrgerüst* — literally, "teaching frame": the frame that teaches the arch
-> its shape until the keystone goes in and it can stand alone. Italian has its
-> own word for the same frame: *centina*.
+> Most building traditions have a word for the temporary frame that holds an
+> arch in shape while it's under construction, until its keystone locks and
+> the frame can be struck: the frame that teaches the arch its shape until it
+> can stand alone. German calls it *Lehrgerüst* — literally "teaching frame."
+> French calls it *cintre*; Spanish, *cimbra*. This project takes its name
+> from the Italian term, *centina* — the word that named the frames behind
+> Brunelleschi's dome and the rest of the Renaissance's structural
+> ambition, an engineering discipline in its own right rather than incidental
+> carpentry.
 
 <p align="center">
   <picture>
@@ -25,19 +30,27 @@ becoming necessary, and how Centina answers it.
 
 ## Contents
 
-- [Why this exists: the error floor](#why-this-exists-the-error-floor)
-- [The practical failure: over-competence](#the-practical-failure-over-competence)
-- [Centina's answer](#centinas-answer)
-- [Getting started](#getting-started)
-- [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
-- [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
-- [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions)
-- [A walkthrough: one seam, prose to spec-complete](#a-walkthrough-one-seam-prose-to-spec-complete)
-- [The goals (the invariant everything else serves)](#the-goals-the-invariant-everything-else-serves)
-- [What this offers over planning-mode conversation](#what-this-offers-over-planning-mode-conversation)
-- [State of the project](#state-of-the-project)
-- [Commands](#commands)
-- [Repository layout](#repository-layout)
+- [Centina](#centina)
+  - [Contents](#contents)
+  - [Why this exists: the error floor](#why-this-exists-the-error-floor)
+  - [The practical failure: over-competence](#the-practical-failure-over-competence)
+  - [Centina's answer](#centinas-answer)
+    - [The responsibility split: meaning is the human's, implementation is the agent's](#the-responsibility-split-meaning-is-the-humans-implementation-is-the-agents)
+    - [TypeScript as pseudocode, checked for meaning — not compiled](#typescript-as-pseudocode-checked-for-meaning--not-compiled)
+    - [The spec as a first-class artifact — and PLAN.md as its near-deterministic output](#the-spec-as-a-first-class-artifact--and-planmd-as-its-near-deterministic-output)
+    - [The restraints on the agent](#the-restraints-on-the-agent)
+  - [Getting started](#getting-started)
+  - [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
+  - [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
+    - [Domain content — describing the system](#domain-content--describing-the-system)
+    - [Authoring markers — metadata for the checker and the agent](#authoring-markers--metadata-for-the-checker-and-the-agent)
+  - [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions)
+  - [A walkthrough: one seam, prose to spec-complete](#a-walkthrough-one-seam-prose-to-spec-complete)
+  - [The goals (the invariant everything else serves)](#the-goals-the-invariant-everything-else-serves)
+  - [What this offers over planning-mode conversation](#what-this-offers-over-planning-mode-conversation)
+  - [State of the project](#state-of-the-project)
+  - [Commands](#commands)
+  - [Repository layout](#repository-layout)
 
 ---
 
