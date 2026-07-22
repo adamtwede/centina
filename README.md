@@ -5,101 +5,365 @@
 > its shape until the keystone goes in and it can stand alone. Italian has its
 > own word for the same frame: *centina*.
 
-**Centina** (Italian: the centering frame an arch is built over) is
-spec-flavored TypeScript: a way to write structured, rule-checked pseudocode
-for a coding task *before* it's built. TypeScript supplies the grammar and the
-expressiveness; a spec-plane checker — not the TypeScript compiler — is the
-arbiter of "done." A Centina spec is falsework: built first, structurally
-checked, it teaches the implementation its shape, and it is honest about being
-scaffolding rather than product.
+**Centina** is spec-flavored TypeScript: a medium for writing structured,
+rule-checked pseudocode — *falsework* — for a coding task before it is built.
+TypeScript supplies the grammar and the expressiveness; a spec-plane checker,
+not the TypeScript compiler, is the arbiter of "done." A Centina spec is built
+first and checked for structure, so it teaches the implementation its shape,
+and it is honest about being scaffolding rather than product.
 
-## Why this exists (the origin story)
+The rest of this document is the argument for why a medium like this is
+becoming necessary, and how Centina answers it.
 
-Have you ever struggled to explain to your coding agent of choice what you want it to do with the masterful clarity you need? Have you shaken your head in dismay as you burn precious tokens going back and forth trying to articulate what you want it to do? Have you ever sent your coding agent off to do something, only to have it produce something that doesn't do what you expected, and you realize you don't even know where to start explaining how to fix it? No? Well, I have. Here is my story.
+---
 
-Recently, I wanted to implement a moderately complex process that included escalation paths, loops, recursion, etc. I started typing out my initial prompt and within a few minutes became frustrated that I couldn't explain clearly what I wanted without laborious, tedious back-references, ambiguous terms, and constant parentheticals. I couldn't even explain it to *myself*, let alone an agent. After a handful of false starts, I thought to myself, "There has to be a better way!" So, I went looking for one.
+## Why this exists: the error floor
 
-I'm a latecomer to the agentic coding world. A holdout. A rebel turncoat. As such, I figured surely someone smarter than me (many people qualify) had already solved this problem. Naturally, I first asked the usual suspects: various popular chat agents. They all gave me the same few unsatisfying answers ("Goodness! What a brilliant idea! Nobody has ever thought of this! You're probably a genius!" shut up, baby, I know it). So I deigned to try an actual search engine, looking for a way to approach my agent's "planning mode" with something more structured, something less haphazardly free-form than \*ugh\* *organic conversation* (I already get enough of this with my kids, you know?) but, to my surprise, found nothing I liked. There were some diagramming tools, some hot tips and tricks, and a whole bunch of agent skills that promised to take my confusing, meandering, resignedly self-conscious prose and turn it into an implementation plan good enough to make Linus Torvalds weep with joy. (Spoiler: There's no crying in coding.)
+Start with what an AI model *is*. A coding agent is a pattern-recognizer
+trained on enormous quantities of noisy, chaotic data. That training is what
+makes it powerful, and it is also what makes it, formally, a **chaotic
+system** — one whose outputs are exquisitely sensitive to conditions we can
+neither fully specify nor fully observe. Chaotic systems have a property that
+no amount of engineering removes: a **floor on how much error you can
+eliminate**. However sophisticated the model becomes, some irreducible error
+remains in its outputs in the aggregate.
 
-I gave up the search and decided that the best way forward was to simply try and sketch the idea out for myself without involving the agent at all, as though I were back in the old days where we still wrote code by hand like common people. I thought if I could get a better handle on exactly *what* I was planning to ask for, maybe I could write a usable prompt to get things started on *how*. Almost without thinking, I started writing psuedocode. I know people are always bullying poor psuedocode, but it's actually pretty great. You can use familiar, structured programming conventions without being hobbled by the requirements of actually producing executable code (totally unreasonable in 2026). However, as I wrote and my pseudocode became more complex, making sure I was maintaining consistency in spelling, local conventions, proposed control flow, etc., started becoming really tedious, threatening to undermine the entire reason I was doing it.
+Two consequences follow, and they compound each other:
 
-I thought to myself, "There has to be a better way!" So, I went looking for one. Just kidding. I already did that. I decided to just make one. The result of that was AISL — a from-scratch spec
-language with its own lexer, parser, and checker. Building and *using* AISL
-taught the lesson that produced Centina: everything structural I reached for
-while writing real specs (typed records, optional parameters, ordinary control
-flow), TypeScript already had — and everything genuinely novel I invented
-while writing (deferred decisions, agent-directed questions, declared data
-boundaries) needed a *checker*, not a grammar. So the grammar was retired and
-the ideas kept. AISL v0 is preserved in full at the git tag
-`aisl-v0-standalone-language`.
+1. **As outputs grow more sophisticated, their errors grow harder to
+   detect.** A crude mistake announces itself. A subtle one — a plausible
+   assumption, a quietly-wrong edge case, an interface that is *almost*
+   right — hides inside work that otherwise reads as correct. The better the
+   model, the more its errors look like competence.
+
+2. **Undetected marginal errors compound invisibly** until they cross a
+   visibility threshold — at which point the failure is finally obvious, but
+   its *origin* is not. By then it may be genuinely intractable to trace where
+   the error started, and any attempt to correct it manually or with an agent
+   risks introducing still more error. You are debugging accumulated drift,
+   not a bug.
+
+How to live with this is an open question, but other disciplines that grapple
+with chaotic systems offer a cue. Consider the **n-body problem** in
+astrophysics: how bodies move under their mutual gravitation. For three or
+more bodies there is no general analytical solution. So the problem is worked
+**numerically** — solved again and again over short intervals of time,
+re-grounding the trajectory at every step so that error never has room to grow
+large before it is corrected. There is no closed form that gets you to the
+answer in one leap; there is only the discipline of taking small, verified
+steps.
+
+The wager of Centina is that the new human–agent coding paradigm needs some
+form of the same discipline: **frequent, structured re-grounding of intent
+against a checkable artifact, before error has room to compound** — not one
+heroic prompt that leaps from idea to implementation.
+
+## The practical failure: over-competence
+
+That abstract problem has a very concrete daily face in agentic coding, and it
+is not incompetence. It is **over**competence.
+
+Hand a capable model a problem and it will go and solve it — often by making
+assumptions, filling gaps, and generating structure you did not expect,
+intend, or want. Models have gotten better at asking questions, and planning
+modes have grown more capable, but there is a ceiling on what conversational
+prose can carry. Past a certain complexity, prose is simply not a precise
+enough medium to *design* a solution in. It smooths over exactly the seams
+where intent and implementation diverge, and it lets the agent quietly
+introduce **latent technical entropy** — decisions that look settled but were
+never actually made by a human — that will not surface as a problem until much
+later, when it is far more expensive to address.
+
+**A single sentence is enough to carry it**. Picture a planning conversation
+settling on *"the dashboard shows the user's most recent order."* It reads
+like a decision, but it is three undecided ones in a trench coat: what happens
+when the user has **no** orders (the empty case), whether *"recent"* sorts by
+when the order was created or when it was last touched, and whether a draft or
+cancelled order counts as an order at all — a question about the *shape* of the
+thing. The agent will answer all three, silently and plausibly, the moment it
+writes code; none was ever the human's call, and each is far cheaper to surface
+now than to reverse-engineer from a bug later.
+
+The insidious part is that a fluent agent's confabulated architecture looks
+*identical* to an elicited one. A clean, plausible, well-shaped design
+disguises which parts were the human's conviction and which were the agent's
+guess. The human then ratifies a coherent picture, half of which they never
+decided — and the entropy is baked in before a line of real code exists.
+
+This is the compounding-error problem arriving one prompt at a time. It
+demands an approach that harnesses what the model is genuinely good at without
+handing it the one thing it should not hold: authority over *meaning*.
+
+---
+
+## Centina's answer
+
+### The responsibility split: meaning is the human's, implementation is the agent's
+
+Centina draws a hard line through the planning work:
+
+- **Meaning and intent belong to the human.** What the data *is*, the shapes
+  it takes, the directions it flows, which decisions are made and which are
+  deliberately deferred — this is the human software architect's thinking, and
+  it is precisely the part that cannot be delegated without reintroducing the
+  entropy above.
+- **Implementation belongs to the coding agent.** How the pinned intent is
+  carried out — the algorithms, the code — is where the agent's strength lives
+  and where it should be pointed.
+
+The whole medium exists to keep those two separated *continuously*, so that by
+the time an agent is implementing, there is nothing left for it to invent.
+
+### TypeScript as pseudocode, checked for meaning — not compiled
+
+A Centina spec is a **valid TypeScript file** (suffix `.centina.ts`) that
+imports a small vocabulary module (`centina.ts`). There is no new grammar, so
+every editor on earth already parses, highlights, and completes a spec with no
+extension installed.
+
+But the point is not to compile it, and not to produce executable code.
+TypeScript is used here as a **rigorous pseudocode** — a way to state
+structure (names, shapes, arities, directions, contracts) precisely enough
+that a machine can check it, while reading like organized prose rather than a
+program to run. Read a `.centina.ts` file as *authorial intent expressed in
+typed declarations*, not as code with literal runtime semantics.
+
+Two checkers cooperate:
+
+- **`tsc`, run under a deliberately permissive config** (`tsconfig.json`),
+  kept for what it is genuinely good at — name resolution, arity, shape — and
+  relieved of the duties that fight a spec-writer (unused locals, missing
+  implementations; `declare` is legal and encouraged). A clean `tsc` run is
+  the necessary floor, not the ceiling.
+- **The Centina spec-plane checker** (`checker/`, `npm run check`), which
+  layers the rules that are actually Centina's: enumerating typed holes and
+  their routing, enforcing boundary direction, assumption-bookkeeping on `as`
+  casts, naming-consistency on the free-text namespaces no compiler validates,
+  and a "does this spec say what it is for" explanation check. The same rules
+  surface live in the editor through a TypeScript language-service plugin, so
+  spec diagnostics appear alongside `tsc`'s as you type.
+
+A spec is not "done" when it compiles. It is done when every gap in it is
+**deliberate, typed, and routed**.
+
+### The spec as a first-class artifact — and PLAN.md as its near-deterministic output
+
+A Centina spec is a durable software artifact in its own right, not a
+throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`)
+should follow from it *nearly deterministically* — two agents handed the same
+frozen spec should produce substantially the same plan, because the meaning
+has already been pinned and only the carrying-out is left.
+
+It is useful to think of a Centina spec as **"code" for a coding-agent
+"runtime."** The spec is the program; the agent is the interpreter; PLAN.md
+and the eventual implementation are its output. And like the n-body integrator
+above, this puts a **re-grounding checkpoint** between intent and
+implementation: a structured place where accumulated ambiguity is forced to
+the surface and corrected *before* it compounds into code. Every iteration on
+the spec is one short, verified step.
+
+### The restraints on the agent
+
+For that checkpoint to work, the agent has to be kept off the parts that are
+the human's. Centina's toolchain enforces this through explicit rules of
+engagement:
+
+- **The agent never decides meaning** (Rule 0). Data nouns, shapes,
+  directions, and the resolution of deferred holes are the human's to author.
+  The agent supplies *form* — skeletons, syntax, holes — and elicits the rest
+  with questions.
+- **The agent helps generate the skeleton, not the content.** It may lay down
+  typed seams and marked holes that trace to something the human ratified;
+  anything the human did *not* decide comes out as a routed hole, never a
+  plausible fill. An over-complete skeleton is the bug, not the feature.
+- **The agent does not hold the pen on an existing spec** (Rule 0a). During a
+  refinement session it surfaces decisions and lets the human write them; if
+  asked to edit anyway, it pushes back once (naming the risk that the human may
+  be offloading thinking meant to stay theirs), then complies if they persist.
+
+The agent is a **scribe, not an architect**. That is the mechanism that keeps
+over-competence from ever getting a foothold.
+
+## The core mechanism: the typed hole with routing
+
+Centina's central primitive is the **typed hole**. A spec is finished not when
+it has no gaps, but when every gap is *deliberate, typed, and routed* —
+deferred to the human, delegated to an agent, referenced from external code,
+or quarantined behind a boundary.
+
+| Hole | Spelling | Routing |
+|---|---|---|
+| deferred decision | `const f = deferred<(a: A) => B>()` | routing itself undecided — the checker flags it (a decision still owed) |
+| → routed to this/another spec | `deferred<"spec", F>()` | belongs in a separate `.centina.ts`, part of a larger workflow |
+| → left to the implementer | `deferred<"open", F>()` | the planning agent's discretion; not a gap the human must close |
+| → held for a human-authored body | `deferred<"unimplemented", F>()` | a real body is owed before planning; a hard stop until filled |
+| agent-directed note | `// @agent: ...` / `// @agent(C1): ...` | the coding agent resolves it at spec-iteration or plan-build time; optional label gives it a stable name to reference |
+| external | `/** @external "src" */ declare ...` | lives in existing code / an API / an external system |
+| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black-box data seam; doors are the privileged entry/exit points |
+
+The signature behind a hole is real and participates fully in type checking —
+callers are held to it even though nothing exists behind it yet. That is what
+lets a *consumer* be specified against a seam that has not been built, and
+built in parallel with it.
+
+Two operating principles carry over from Centina's origins as the AISL spec
+language (see [History](#history-the-aisl-pivot)):
+
+- **Boundaries model affordances, not transports** — a boundary is a set of
+  *doors* (what you can do at a seam), and direction is inferred from each
+  door's return type (`void` = write, non-`void` = read), never from its name.
+  See `docs/boundaries.md`.
+- **Provenance is bookkeeping, not prohibition.** Every value's origin should
+  be *visible* — names must resolve, and every `as` cast is a recorded
+  assumption — but the spec-writer is free to assemble records and sketch
+  structure without fighting a privilege system. (An earlier, stricter
+  "never manufacture data" enforcement arm was retired after real usage; see
+  `docs/fit-validation.md`.)
+
+## How you actually use it: gap-hunting sessions
+
+Two project skills drive Centina as a collaborative, gated process. Both are
+**gap-hunting** sessions: their job is to help a human architect pin down
+structure while making every unresolved decision *visible* as a routed hole
+rather than an invisible guess.
+
+- **`centina-session-zero`** — the front of the funnel for a whole *system*.
+  It drives a gated conversation that turns a prose idea into a **component
+  DAG**: the high-level components, the typed contracts on the seams between
+  them, and the terminal nodes where the system meets existing technology. Only
+  then does it emit a **skeleton spec set** (typed seams + routed holes, no
+  internal processing) and an `ARCHITECTURE.md` recording the DAG, the contract
+  ledger, and the hole ledger. Each phase is gated: nothing advances until the
+  human ratifies it, and anything left unratified becomes a marked hole. The
+  guiding image is *diffusion inverted* — the agent raises the **resolution of
+  the questions** it asks each pass; the human paints in the pixels.
+
+- **`centina-iterate`** — refines a *single* spec toward clean. It runs the
+  checker, walks the human through each diagnostic, separates mechanical fixes
+  from genuine design ambiguities the pseudocode left implicit, settles them
+  *with* the human, and re-checks until the spec is clean and the human is
+  satisfied — then derives `PLAN.md` from the frozen spec.
+
+Crucially, "fit" is treated as a **jurisdiction map, not a verdict**. A
+realization-dominated responsibility (an algorithm, a physics loop, a
+rendering step) is never *rejected* from a spec — it is *routed behind a door*
+(a terminal, a delegated Skill, or a held `deferred<"unimplemented">` hole),
+and the spec keeps the typed seam around it. Even an idea that turns out to be
+"one algorithm, not a system" yields an honest, minimal skeleton rather than a
+bounced request. The value is in *localizing* the realization into a named,
+bounded hole.
+
+The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each
+**`<component>.centina.ts`** filled in (iterate) → **`PLAN.md`** per
+boundary-set (the implementation).
 
 ## The goals (the invariant everything else serves)
 
-Centina produces structured, rule-checked pseudocode that:
+The four goals are the project's *only* invariant; every rule and primitive is
+a means under test against them. Note that each is **comparative** — the
+baseline is conversational prose. Centina produces structured, rule-checked
+pseudocode that:
 
 1. makes it easier for a human to describe and understand a complex coding
    task, at a given level of detail, to themselves and other humans, than
    conversational prose;
 2. makes it more likely that unknowns, ambiguities, and oversights are caught
-   during spec writing and review rather than surviving into implementation;
+   during spec-writing and review rather than surviving into implementation;
 3. makes it more likely that a coding agent produces an implementation plan
    that accurately reflects the spec-writer's intention;
 4. provides a foundation to iterate on, before and after planning and
    implementation.
 
-Bonus: a spec is a self-documenting record for future reference.
+*Bonus: a spec is a self-documenting record for future reference.*
 
-## How it works
+## What this offers over planning-mode conversation
 
-A Centina spec is a **valid TypeScript file** (suffix `.centina.ts`) importing
-a small vocabulary module (`centina.ts`). No new grammar exists, so every
-editor on earth already parses, highlights, and autocompletes a spec. On top
-of that:
+A good planning-mode conversation and a Centina spec both aim to align a human
+and an agent before code is written. The difference is what each *leaves
+behind* and where the authority sits:
 
-- **tsc runs in a deliberately permissive config** (`tsconfig.json`), kept for
-  what it's genuinely good at — name resolution, arity, shape — and relieved
-  of duties that fight a spec-writer (unused locals, missing implementations:
-  `declare` is legal and encouraged).
-- **The spec-plane checker** (planned, see `ROADMAP.md`) layers the rules that
-  are actually Centina's: enumerating typed holes and their routing, boundary
-  direction enforcement, assumption bookkeeping on casts, naming-consistency
-  checks. Delivered as a CLI plus a TypeScript language-service plugin, so
-  spec diagnostics appear live in the editor alongside (and filtering) tsc's.
+- **A checkable artifact instead of a transcript.** Prose alignment lives in a
+  scrollback and evaporates; a spec is a durable, versioned, mechanically
+  checked artifact that a fresh agent (or a future human) picks up cold.
+- **The meaning/implementation line is enforced, not merely intended.** In a
+  conversation the agent can smuggle a decision into fluent prose and no one
+  notices. In a spec, anything the human did not decide is a *visible hole* the
+  checker will not let pass as resolved.
+- **Deferral is first-class.** "We'll figure that out later" is not a dropped
+  thread; it is a typed hole with an explicit route, tracked in a ledger until
+  it is closed.
+- **The re-grounding checkpoint is built in.** The n-body discipline —
+  correct before compounding — is structural, not a matter of remembering to
+  be careful.
 
-The core idea is the **typed hole with routing**. A spec is not finished when
-it compiles; it's finished when every gap in it is *deliberate, typed, and
-routed*:
+For an experienced developer this is leverage, not overhead: it is a way to
+**keep a powerful coding model appropriately restrained while still harnessing
+its strengths**, and thereby to raise the ceiling on the software they can
+reliably produce with it.
 
-| Hole | Spelling | Routing |
-|---|---|---|
-| deferred decision | `const f = deferred<(a: A) => B>()` | human decides during iterate: this spec, a separate spec, or agent autonomy |
-| agent-directed | `// @agent: ...` comment | coding agent resolves at spec-iteration (centina-iterate skill) or plan-doc build time |
-| external | `/** @external "src" */ declare function ...` | lives in: existing code / an API / an external system |
-| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black box data seam; doors are the privileged entry/exit points |
-
-Two operating principles carried over from AISL, one revised:
-
-- **Boundaries model affordances, not transports** — see `docs/boundaries.md`,
-  which survives the pivot intact.
-- **Provenance is bookkeeping, not prohibition** (revised): every value's
-  origin should be *visible* — names must resolve, and every `as` cast is a
-  recorded assumption — but the spec-writer is free to assemble records and
-  sketch structure without fighting a privilege system.
+---
 
 ## State of the project
 
-Post-pivot, early. What exists: the vocabulary module (`centina.ts`), the
-permissive tsconfig, and the founding fixture
-`specs/hill-climbing-loop/hill-climbing-loop.centina.ts` — a 1:1 port of the
-AISL prototype whose six current tsc errors are *preserved findings* (real
-gaps the pipeline caught in the spec, awaiting the author's decisions), not
-bugs in the port. The checker is not yet built. `ROADMAP.md` tracks the order
-of work.
+Early post-pivot, and further along than a first read of the old docs
+suggests. What exists:
+
+- **`centina.ts`** — the vocabulary module: opaque domain nouns
+  (`Unshaped<"...">`), `deferred` (the typed hole with routing), `Skill<In,
+  Out>` (a delegated agent capability with a declared contract), and `Agent`
+  (the one boundary Centina ships pre-built — the model a spec converses with).
+- **The checker harness** (`checker/`, `npm run check`) — merges `tsc`'s
+  structural diagnostics with its spec-plane rules (hole enumeration, boundary
+  direction, boundary dependency-direction, assumption bookkeeping, naming
+  consistency, spec-explanation), surfaced live in-editor via a TypeScript
+  language-service plugin, with a TextMate injection grammar tinting the
+  Centina markers.
+- **Worked specs** —
+  `specs/hill-climbing-loop/` (the founding fixture, a 1:1 port of the author's
+  AISL prototype, `npm run typecheck` clean), plus `specs/wordboard/` and
+  `specs/grid-inventory/`, two systems stood up through `centina-session-zero`
+  (skeleton set + `ARCHITECTURE.md` each).
+- **`tsconfig.json`** — the deliberately permissive spec-plane config;
+  **`.prettierrc`** — the formatting convention (`semi: false`) for
+  `.centina.ts` files.
+
+`ROADMAP.md` tracks build order and open questions (chief among them the
+prose-vs-Centina head-to-head that tests goal 3 directly).
+
+## History: the AISL pivot
+
+Centina began as **AISL**, a from-scratch spec language with its own
+lexer, parser, and checker. In July 2026 the author pivoted: real
+spec-writing showed that TypeScript already had every *structural* feature
+AISL was reaching for, while the genuinely novel inventions (`deferred`,
+`@agent:` direction, boundaries) needed a *checker*, not a grammar. Hence
+spec-flavored TypeScript. The entire AISL v0 toolchain and its docs are
+preserved at the git tag **`aisl-v0-standalone-language`** — consult the tag,
+not this working tree, for anything AISL-era. `docs/fit-validation.md` is the
+running design memo that records the evidence behind the pivot.
+
+## Commands
+
+- `npm run typecheck` — `tsc` over the vocabulary and all `*.centina.ts`
+  specs (the structural floor).
+- `npm run check` — the full Centina checker: `tsc`'s diagnostics plus the
+  spec-plane rules. `npm run check -- <file...>` scopes to given specs and
+  their transitive local imports.
 
 ## Repository layout
 
-- `centina.ts` — the spec vocabulary (`Noun`, `deferred`, `Agent`)
-- `docs/boundaries.md` — boundary design: affordances-not-transports, roles, drawing guidelines
-- `docs/fit-validation.md` — the running design memo: goals, falsifiability frame, findings log
-- `specs/` — per-feature specs, each in its own folder (dash-separated names going forward); `specs/hill-climbing-loop/` holds the founding fixture (`hill-climbing-loop.centina.ts`), its boundary declarator (`task-matcher.centina.ts`), and its AISL-era ancestor (`prototype.aisl`). Older subfolders (underscore-named) are frozen AISL-era FIT.md/PLAN.md precedents.
-- `widgets.aisl` — an AISL v0 source kept as a port reference (toolchain retired; full history at tag `aisl-v0-standalone-language`)
+- `centina.ts` — the spec vocabulary (`Unshaped`, `deferred`, `Skill`,
+  `Agent`).
+- `checker/` — the spec-plane checker harness, rules, and the TS
+  language-service plugin.
+- `editors/vscode/` — the (unpublished) TextMate injection grammar.
+- `docs/boundaries.md` — boundary design: affordances-not-transports, the
+  three roles, direction-from-returns, drawing guidelines.
+- `docs/fit-validation.md` — the running design memo: goals, the
+  falsifiability frame, and the findings log that drove the pivot.
+- `.claude/skills/` — `centina-session-zero` and `centina-iterate`, the
+  current toolchain.
+- `specs/` — per-feature specs, each in its own dash-named folder. Older
+  underscore-named subfolders are frozen AISL-era precedents; `*.aisl` files
+  remain in-tree only as port references (toolchain retired; full history at
+  tag `aisl-v0-standalone-language`).
