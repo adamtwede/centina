@@ -10,7 +10,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   arbiter. Rationale and evidence in `docs/fit-validation.md`. Renamed the
   project **Centina** (the Italian centering frame an arch is built over;
   npm-clean, no software collisions).
-- **Vocabulary module** (`centina.ts`) — `Noun<Name>` (opaque branded domain
+- **Vocabulary module** (`centina.ts`) — `Unshaped<Name>` (opaque branded domain
   nouns), `deferred<F>()` (typed hole with unresolved routing), `Agent<Model>`
   (the shipped boundary; `prompt`/`review` return `unknown`, casts are the
   assumption bookkeeping). Boundary roles and externals are JSDoc-tagged
@@ -58,7 +58,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   and the tag `aisl-v0-standalone-language`), but re-targeted: ordinary
   property access on a named type is already checked structurally by `tsc`,
   so the rule watches the two free-text namespaces no compiler pass ever
-  validates — `Noun<"...">` brand literals and `@external "<source>"`
+  validates — `Unshaped<"...">` brand literals and `@external "<source>"`
   strings. Collects each namespace's spellings into a frequency map and warns
   when a less-common spelling is a near-miss (restricted edit distance,
   transposition included, scaled by name length) of a *strictly* more common
@@ -106,7 +106,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
 
 - **`deferred` resolution classifier** (`centina.ts`, `checker/rules/holeEnumeration.ts`) — resolves the open question below: `deferred<F>()` stays exactly as it read before (no routing decided yet — now surfaced as a `warning`, not `info`, since it's a decision still owed), and an optional leading kind argument narrows it: `deferred<"unimplemented", F>()` (needs a real body before planning can begin — `error`), `deferred<"spec", F>()` (routed to a separate spec, part of a larger Centina-driven planning workflow — `info`), `deferred<"open", F>()` (left to the implementing agent's discretion when the plan is written — `info`). The kind always reads before `F` (`DeferredKind` exported from `centina.ts`); ordinary overload arity resolution (1 vs. 2 explicit type arguments) picks the right signature, verified against both forms plus a rejected bogus kind via `tsc`.
 - **Spec-explanation rule** (`checker/rules/specExplanation.ts`) — a spec's code alone doesn't establish what it exists to describe, so this rule warns (heuristically, by length only — presence, not quality, same posture as the other rules) when a spec's first statement isn't preceded by a real leading comment. Verified clean against both real specs (each already opens with a substantial header) and a scratch file with no leading comment.
-- **Labeled `@agent` notes** (`editors/vscode/syntaxes/centina.comments.injection.json`, `checker/rules/holeEnumeration.ts`, `checker/rules/namingConsistency.ts`) — an `@agent:` note may carry an author-chosen label, `@agent(C1): ...`, giving it a stable name to reference later (in conversation or a PLAN.md) instead of an ephemeral line number. The label tints in its own color, distinct from the `@agent` tag itself. `hole-enumeration` surfaces the label in its finding message when present; `naming-consistency` flags (`error`) two notes in the same file claiming the same label — unlike the Noun-brand/`@external` drift checks, this isn't a near-miss judgment call, a duplicate label is a direct conflict with the whole point of the convention. Scoped per file, since the same label in two unrelated specs isn't a conflict. Verified against the real specs (a real `@agent(C1):` note surfaces correctly, no false duplicate) and a scratch-forced duplicate, reverted after confirming the rule fires.
+- **Labeled `@agent` notes** (`editors/vscode/syntaxes/centina.comments.injection.json`, `checker/rules/holeEnumeration.ts`, `checker/rules/namingConsistency.ts`) — an `@agent:` note may carry an author-chosen label, `@agent(C1): ...`, giving it a stable name to reference later (in conversation or a PLAN.md) instead of an ephemeral line number. The label tints in its own color, distinct from the `@agent` tag itself. `hole-enumeration` surfaces the label in its finding message when present; `naming-consistency` flags (`error`) two notes in the same file claiming the same label — unlike the Unshaped-brand/`@external` drift checks, this isn't a near-miss judgment call, a duplicate label is a direct conflict with the whole point of the convention. Scoped per file, since the same label in two unrelated specs isn't a conflict. Verified against the real specs (a real `@agent(C1):` note surfaces correctly, no false duplicate) and a scratch-forced duplicate, reverted after confirming the rule fires.
 - **Scoped/incremental checker runs** (`checker/harness.ts`'s `resolveScope`,
   wired into `checker/cli.ts`) — `npm run check -- <file...>` now runs the
   full rule set on just the requested file(s) plus every local spec they

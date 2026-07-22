@@ -1,6 +1,6 @@
 import { Symbol as MorphSymbol } from "ts-morph"
 
-/** Resolves through an import alias (e.g. `import { Noun } from "./centina"`) to the symbol's real declaring site. */
+/** Resolves through an import alias (e.g. `import { Unshaped } from "./centina"`) to the symbol's real declaring site. */
 export function resolveAliasedSymbol(
   symbol: MorphSymbol | undefined,
 ): MorphSymbol | undefined {

@@ -8,7 +8,7 @@ import { isFromVocabulary } from "../vocabulary"
 // common one as a likely typo/drift — not something the checker resolves on
 // its own. Under tsc, ordinary property access on a named type is already
 // checked structurally, so the two namespaces worth watching here are the
-// ones no compiler pass ever validates: Noun<"..."> brand literals and
+// ones no compiler pass ever validates: Unshaped<"..."> brand literals and
 // @external "<source>" strings.
 
 interface NameUsage {
@@ -20,13 +20,13 @@ interface NameUsage {
 const EXTERNAL_SOURCE_PATTERN = /@external\s+"([^"]+)"/g
 const AGENT_LABEL_PATTERN = /@agent\(([^)]+)\)/g
 
-function collectNounUsages(sourceFiles: SourceFile[]): NameUsage[] {
+function collectUnshapedUsages(sourceFiles: SourceFile[]): NameUsage[] {
   const usages: NameUsage[] = []
   for (const sourceFile of sourceFiles) {
     for (const typeRef of sourceFile.getDescendantsOfKind(
       SyntaxKind.TypeReference,
     )) {
-      if (typeRef.getTypeName().getText() !== "Noun") continue
+      if (typeRef.getTypeName().getText() !== "Unshaped") continue
       if (!isFromVocabulary(typeRef.getTypeName().getSymbol())) continue
       const [arg] = typeRef.getTypeArguments()
       if (!arg || !Node.isLiteralTypeNode(arg)) continue
@@ -138,7 +138,7 @@ function findDrift(
   return findings
 }
 
-// Unlike Noun brands and @external sources, an @agent label's whole purpose
+// Unlike Unshaped brands and @external sources, an @agent label's whole purpose
 // is to be a stable, unambiguous reference — so two notes in the same file
 // claiming the same label is a genuine conflict, not a drift candidate to
 // weigh against a "more common" spelling. Scoped per file: the same label in
@@ -173,7 +173,7 @@ export const namingConsistencyRule: Rule = {
   name: "naming-consistency",
   check(sourceFiles) {
     return [
-      ...findDrift(collectNounUsages(sourceFiles), (name) => `Noun<"${name}">`),
+      ...findDrift(collectUnshapedUsages(sourceFiles), (name) => `Unshaped<"${name}">`),
       ...findDrift(
         collectExternalSourceUsages(sourceFiles),
         (name) => `@external "${name}"`,

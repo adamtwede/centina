@@ -597,7 +597,7 @@ Open / to prove with test cases:
   not two; confirm the serialized form (an ARCHITECTURE.md section vs. a sibling
   state file) against a case that actually crosses a compaction.
 - A warning-level checker rule for realization-shaped doors: return-type-is-a-
-  real-contract (authored `Noun`/enum/object shape vs. opaque "the answer") as
+  real-contract (authored `Unshaped`/enum/object shape vs. opaque "the answer") as
   the strong signal, affordance-name-shape (`read*/write*/exchange*` + a noun)
   as corroboration; heuristic, presence-not-quality, human rules.
 - The salience mechanism: per-hole loudness already exists (`deferred` errors

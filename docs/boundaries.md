@@ -311,7 +311,7 @@ whether or not it's flagged for extraction yet:
   caller's own record shapes has quietly become coupled to one specific
   caller's internal representation, the same kind of conflation "affordances,
   not transports" already rules out, just discovered at the type level instead
-  of the design level. Primitives, `unknown`, opaque `Noun<...>` brands, and
+  of the design level. Primitives, `unknown`, opaque `Unshaped<...>` brands, and
   closed enums carry no such dependency and are fine at a door; a real
   structured payload should be `unknown` at the door rather than an imported
   local interface.

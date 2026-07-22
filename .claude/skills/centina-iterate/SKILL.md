@@ -86,7 +86,7 @@ during a normal iteration pass:
   not resolve to a type declared in the *consuming* spec (a local interface,
   or an object-shaped type alias) — that's the boundary depending on its own
   caller, backwards from how a real external system would typecheck.
-  Primitives, `unknown`, opaque `Noun<...>` brands, and closed enums are
+  Primitives, `unknown`, opaque `Unshaped<...>` brands, and closed enums are
   fine, since they carry no shape for the boundary to depend on. If a door
   needs a real structured payload, prefer `unknown` at the door over
   importing the caller's own record type.

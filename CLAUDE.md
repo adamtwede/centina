@@ -53,7 +53,7 @@ clarifying comment in `centina.ts` next to the `Agent` class.
 
 Early post-pivot. What exists:
 
-- `centina.ts` — the vocabulary module (`Noun`, `deferred`, `Agent`); the
+- `centina.ts` — the vocabulary module (`Unshaped`, `deferred`, `Agent`); the
   comment header documents the boundary/external JSDoc-tag spellings.
 - `specs/hill-climbing-loop/hill-climbing-loop.centina.ts` — the founding
   fixture, a 1:1 port of the author's `prototype.aisl` rewrite. The port's 6

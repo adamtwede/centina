@@ -23,20 +23,20 @@ function flattenType(type: Type): Type[] {
   return [type]
 }
 
-/** Is this type's alias a `Noun<...>` brand from centina.ts? Opaque by design — exempt regardless of where it's declared. */
-function isNounBrand(type: Type): boolean {
+/** Is this type's alias an `Unshaped<...>` brand from centina.ts? Opaque by design — exempt regardless of where it's declared. */
+function isUnshapedBrand(type: Type): boolean {
   const aliasSymbol = type.getAliasSymbol()
   if (!aliasSymbol) return false
   return aliasSymbol.getDeclarations().some((declaration) => {
     if (!Node.isTypeAliasDeclaration(declaration)) return false
     const typeNode = declaration.getTypeNode()
     if (!typeNode || !Node.isTypeReference(typeNode)) return false
-    if (typeNode.getTypeName().getText() !== "Noun") return false
+    if (typeNode.getTypeName().getText() !== "Unshaped") return false
     return isFromVocabulary(typeNode.getTypeName().getSymbol())
   })
 }
 
-/** Primitives, `unknown`/`any`/`never`, enums, and Noun brands carry no shape for a boundary to depend on. */
+/** Primitives, `unknown`/`any`/`never`, enums, and Unshaped brands carry no shape for a boundary to depend on. */
 function isExempt(type: Type): boolean {
   if (type.isAny() || type.isUnknown() || type.isNever()) return true
   if (type.isVoid() || type.isUndefined() || type.isNull()) return true
@@ -48,7 +48,7 @@ function isExempt(type: Type): boolean {
   )
     return true
   if (type.isEnum() || type.isEnumLiteral()) return true
-  if (isNounBrand(type)) return true
+  if (isUnshapedBrand(type)) return true
   return false
 }
 
