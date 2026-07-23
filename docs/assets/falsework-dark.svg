@@ -44,6 +44,6 @@
 
   <!-- labels -->
   <text x="410" y="72" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#4fd1c5">keystone</text>
-  <text x="686" y="222" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#e0a458">centering frame</text>
-  <text x="686" y="240" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" fill="#b0895a">(the falsework — struck once the keystone locks)</text>
+  <text x="410" y="262" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#e0a458">centering frame</text>
+  <text x="410" y="275" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" fill="#b0895a">(the falsework, removed once the keystone locks)</text>
 </svg>
