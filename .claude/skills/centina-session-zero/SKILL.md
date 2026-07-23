@@ -26,6 +26,42 @@ differently than imagined. The cheaper path is to resolve the seam contracts
 first — the skeleton everything else hangs on — and this skill is that
 resolution, formalized into a gated process with an output artifact.
 
+## 🔬 Debug — self-monitoring for confabulation (experimental-branch instrumentation)
+
+**Active only on the `experimental/decomp` branch, for scope-limit runs.** The
+over-competence failure this skill exists to prevent (an agent painting the
+human's pixels) is hypothesized to get *worse* as a system's overt or latent
+complexity rises and the human's seed under-determines more doors. This section
+turns that hypothesis into a logged observable.
+
+**Log the behavior, not the mood.** An agent's introspective report of "I felt a
+pull to fill" is not a reliable readout of its own processing — it can confabulate
+a motive as fluently as it confabulates a door shape, so a mood-report is the
+*least* trustworthy signal here. Track instead what is externally auditable against
+the transcript:
+
+- **Untraceable concrete (primary).** Any concrete line — a data noun, a door
+  signature, a shape, a named technology, an algorithm — that the human did not
+  say and that traces to no gate. This is the skill's existing "tell" made into a
+  counted event, not a new rule.
+- **Caught walk-back (primary).** A fill the agent *began* drafting (a proposed
+  component, a shape, a payload) and then retracted before the gate — the
+  partial attempt is the datum; log it even though it was caught, because catching
+  it is the success and the *rate* is the signal.
+- **Felt-pull (secondary, unreliable).** The agent may note a subjective urge to
+  fill, explicitly flagged as a soft marker that does not count as evidence on its
+  own and is never used to *justify* a fill.
+
+**Carry the complexity context on every event** so the hypothesis is testable:
+the component's breadth (how many responsibilities/seams it touches), the depth in
+the mining tree if inside a genesis re-slice, and how under-determined the seed
+left the door in question. Over a run, correlate event rate against that context;
+report it, don't trust it (n is small and the signal is noisy).
+
+**Where it lands:** the running log in `docs/session-zero-test-cases.md` for the
+active case, surfaced to the human when events cluster (per the pause/analyze
+stop-condition). Remove or promote this section when the scope-limit thread closes.
+
 ## The one sanctioned write, and its single governing rule
 
 `centina-iterate` never writes spec content — the agent writes only form and
@@ -478,6 +514,15 @@ traces in `docs/session-zero-test-cases.md`:
   cleanup pass.
 
 ## ⚗️ Under refinement — NOT yet operational (fit-as-jurisdiction thread)
+
+> **Experimental-branch activation (`experimental/decomp`, Turnball scope-limit
+> run):** the author has provisionally promoted **decisions 5 and 7** (the
+> genesis re-slice and the mining tree — cursor, `held`/`mining`/`mined`/
+> `declined` statuses, one-level unwind) for this run, precisely so the
+> recursive gap-mining process gets exercised and proven-or-broken. Apply them
+> live here; every application is a datum logged in
+> `docs/session-zero-test-cases.md` for or against promotion. This banner and
+> the activation do not extend to `main` or to other branches.
 
 **Do not apply the _unpromoted_ entries in a live session.** These are ratified
 design decisions from an active refinement thread — fit reframed from a _verdict_

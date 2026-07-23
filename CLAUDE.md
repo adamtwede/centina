@@ -82,7 +82,15 @@ tracks build order.
   nouns, shapes, directions, and the resolution of `deferred` holes are the
   human's thinking. Supplying *form* (skeletons, syntax, holes) is fine. The
   author has lifted Rule 0 only for internal language-design sessions (where
-  the subject is Centina itself, not a task being specced).
+  the subject is Centina itself, not a task being specced). **That lift does
+  not extend to a `centina-session-zero`/`centina-iterate` skill run — even
+  one whose *purpose* is to pressure-test the skill or the language — unless
+  the author explicitly invokes it for that run. Inside a skill run the
+  subject is a task being specced (e.g. the game), and whether the agent
+  confabulates or elicits at high scope is often the very thing under test, so
+  Rule 0 and Rule 0a stay live for all spec content by default. A run being an
+  "experiment on Centina" is not itself the trigger; the author saying so, for
+  that run, is.**
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
   During a `centina-iterate`/`centina-session-zero` session, the agent should
   not volunteer to write changes into a `.centina.ts` file — surface the
