@@ -1,7 +1,11 @@
 /**
  * Task Matcher (spec)
  *
- * Describes a software component that matches tasks to previous attempts and corresponding feedback. It defines the types and interfaces necessary for task matching, feedback handling, and decision-making processes. It finds possible matches for the incoming task request based on the following (not comprehensive) criteria:
+ * Describes a software component that matches tasks to previous attempts and
+ * corresponding feedback. It defines the types and interfaces necessary for
+ * task matching, feedback handling, and decision-making processes.
+ * It finds possible matches for the incoming task request based on the
+ * following (not comprehensive) criteria:
  * - task name similarity
  * - task description similarity
  * - feedback given to potentially-similar previous recorded tasks
@@ -66,7 +70,6 @@ export class TaskMatcherEngine {
     return matchId ? taskCorpusStore.getRecordById(matchId) : undefined
   }
   encodeTask(taskRunRecord: TaskRunRecord) {
-    // for (const run of taskRunRecord) {
     for (const attempt of taskRunRecord.attemptRecord) {
       if (!attempt.feedback) continue
 
@@ -82,7 +85,6 @@ export class TaskMatcherEngine {
         precedents,
       )
     }
-    // }
     taskCorpusStore.persist(taskRunRecord)
   }
 }

@@ -19,7 +19,7 @@
 </p>
 
 **Centina** is spec-flavored TypeScript: a medium for writing structured,
-rule-checked pseudocode — *falsework* — for a coding task before it is built.
+rule-checked pseudocode, i.e., *falsework*, for a coding task before it is built.
 TypeScript supplies the grammar and the expressiveness; a spec-plane checker,
 not the TypeScript compiler, is the arbiter of "done." A Centina spec is built
 first and checked for structure, so it teaches the implementation its shape,
@@ -36,14 +36,14 @@ becoming necessary, and how Centina answers it.
   - [The practical failure: over-competence](#the-practical-failure-over-competence)
   - [Centina's answer](#centinas-answer)
     - [The responsibility split: meaning is the human's, implementation is the agent's](#the-responsibility-split-meaning-is-the-humans-implementation-is-the-agents)
-    - [TypeScript as pseudocode, checked for meaning — not compiled](#typescript-as-pseudocode-checked-for-meaning--not-compiled)
-    - [The spec as a first-class artifact — and PLAN.md as its near-deterministic output](#the-spec-as-a-first-class-artifact--and-planmd-as-its-near-deterministic-output)
+    - [TypeScript as pseudocode, checked for meaning, but not compiled](#typescript-as-pseudocode-checked-for-meaning-but-not-compiled)
+    - [The spec as a first-class artifact, and PLAN.md as its near-deterministic output](#the-spec-as-a-first-class-artifact-and-planmd-as-its-near-deterministic-output)
     - [The restraints on the agent](#the-restraints-on-the-agent)
   - [Getting started](#getting-started)
   - [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
   - [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
     - [Domain content — describing the system](#domain-content--describing-the-system)
-    - [Authoring markers — metadata for the checker and the agent](#authoring-markers--metadata-for-the-checker-and-the-agent)
+    - [Authoring markers: metadata for the checker and the agent](#authoring-markers-metadata-for-the-checker-and-the-agent)
   - [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions)
   - [A walkthrough: one seam, prose to spec-complete](#a-walkthrough-one-seam-prose-to-spec-complete)
   - [The goals (the invariant everything else serves)](#the-goals-the-invariant-everything-else-serves)
@@ -59,7 +59,7 @@ becoming necessary, and how Centina answers it.
 Start with what an AI model *is*. A coding agent is a pattern-recognizer
 trained on enormous quantities of noisy, chaotic data. That training is what
 makes it powerful, and it is also what makes it, formally, a **chaotic
-system** — one whose outputs are exquisitely sensitive to conditions we can
+system**, one whose outputs are exquisitely sensitive to conditions we can
 neither fully specify nor fully observe. Chaotic systems have a property that
 no amount of engineering removes: a **floor on how much error you can
 eliminate**. However sophisticated the model becomes, some irreducible error
@@ -68,13 +68,13 @@ remains in its outputs in the aggregate.
 Two consequences follow, and they compound each other:
 
 1. **As outputs grow more sophisticated, their errors grow harder to
-   detect.** A crude mistake announces itself. A subtle one — a plausible
+   detect.** A crude mistake announces itself. A subtle one, a plausible
    assumption, a quietly-wrong edge case, an interface that is *almost*
-   right — hides inside work that otherwise reads as correct. The better the
+   right, hides inside work that otherwise reads as correct. The better the
    model, the more its errors look like competence.
 
 2. **Undetected marginal errors compound invisibly** until they cross a
-   visibility threshold — at which point the failure is finally obvious, but
+   visibility threshold, at which point the failure is finally obvious, but
    its *origin* is not. By then it may be genuinely intractable to trace where
    the error started, and any attempt to correct it manually or with an agent
    risks introducing still more error. You are debugging accumulated drift,
@@ -84,7 +84,7 @@ How to live with this is an open question, but other disciplines that grapple
 with chaotic systems offer a cue. Consider the **n-body problem** in
 astrophysics: how bodies move under their mutual gravitation. For three or
 more bodies there is no general analytical solution. So the problem is worked
-**numerically** — solved again and again over short intervals of time,
+**numerically**, which means it is solved again and again over short intervals of time,
 re-grounding the trajectory at every step so that error never has room to grow
 large before it is corrected. There is no closed form that gets you to the
 answer in one leap; there is only the discipline of taking small, verified
@@ -108,15 +108,15 @@ heroic prompt that leaps from idea to implementation.
 That abstract problem has a very concrete daily face in agentic coding, and it
 is not incompetence. It is **over**competence.
 
-Hand a capable model a problem and it will go and solve it — often by making
+Hand a capable model a problem and it will go and solve it, often by making
 assumptions, filling gaps, and generating structure you did not expect,
 intend, or want. Models have gotten better at asking questions, and planning
 modes have grown more capable, but there is a ceiling on what conversational
 prose can carry. Past a certain complexity, prose is simply not a precise
 enough medium to *design* a solution in. It smooths over exactly the seams
 where intent and implementation diverge, and it lets the agent quietly
-introduce **latent technical entropy** — decisions that look settled but were
-never actually made by a human — that will not surface as a problem until much
+introduce **latent technical entropy**, decisions that look settled but were
+never actually made by a human that will not surface as a problem until much
 later, when it is far more expensive to address.
 
 **A single sentence can demonstrate the problem**. Picture a planning conversation
@@ -124,7 +124,7 @@ settling on *"the dashboard shows the user's most recent order."* It reads
 like a decision, but it is three undecided ones in a trench coat: what happens
 when the user has **no** orders (the empty case), whether *"recent"* sorts by
 when the order was created or when it was last touched, and whether a draft or
-cancelled order counts as an order at all — a question about the *shape* of the
+cancelled order counts as an order at all, a question about the *shape* of the
 thing. Even if the agent asks for clarification, conversational prose, even 
 interspersed with structured outputs, obfuscates meaning and intent, which will 
 end up accumulating the longer the session and the more complex the design becomes. 
@@ -137,7 +137,7 @@ The insidious part is that a fluent agent's confabulated architecture looks
 *identical* to an elicited one. A clean, plausible, well-shaped design
 disguises which parts were the human's conviction and which were the agent's
 guess. The human then ratifies a coherent picture, half of which they never
-decided — and the entropy is baked in before a line of real code exists.
+decided, and the entropy is baked in before a line of real code exists.
 
 This is the compounding-error problem arriving one prompt at a time. It
 demands an approach that harnesses what the model is genuinely good at without
@@ -151,19 +151,19 @@ handing it the one thing it should not hold: authority over *meaning*.
 
 Centina draws a hard line through the planning work:
 
-- **Meaning and intent belong to the human.** What the data *is*, the shapes
+- **Meaning and intent belong to the human.** *What* the data *is*, the shapes
   it takes, the directions it flows, which decisions are made and which are
-  deliberately deferred — this is the human software architect's thinking, and
+  deliberately deferred. This is the human software architect's thinking, and
   it is precisely the part that cannot be delegated without reintroducing the
   entropy above.
-- **Implementation belongs to the coding agent.** How the pinned intent is
-  carried out — the algorithms, the code — is where the agent's strength lives
+- **Implementation belongs to the coding agent.** *How* the pinned intent is
+  carried out (the algorithms, the code, aka the *realization*) is where the agent's strength lives
   and where it should be pointed.
 
 The whole medium exists to keep those two separated *continuously*, so that by
 the time an agent is implementing, there is nothing left for it to invent.
 
-### TypeScript as pseudocode, checked for meaning — not compiled
+### TypeScript as pseudocode, checked for meaning, but not compiled
 
 A Centina spec is a **valid TypeScript file** (suffix `.centina.ts`) that
 imports a small vocabulary module (`centina.ts`). There is no new grammar, so
@@ -171,7 +171,7 @@ every editor on earth already parses, highlights, and completes a spec with no
 extension installed.
 
 But the point is not to compile it, and not to produce executable code.
-TypeScript is used here as a **rigorous pseudocode** — a way to state
+TypeScript is used here as a **rigorous pseudocode**, a way to state
 structure (names, shapes, arities, directions, contracts) precisely enough
 that a machine can check it, while reading like organized prose rather than a
 program to run. Read a `.centina.ts` file as *authorial intent expressed in
@@ -207,11 +207,11 @@ Two checkers cooperate:
 > deliberate, typed, and routed** — deferred to the human, delegated to an
 > agent, referenced from external code, or quarantined behind a boundary.
 
-### The spec as a first-class artifact — and PLAN.md as its near-deterministic output
+### The spec as a first-class artifact, and PLAN.md as its near-deterministic output
 
 A Centina spec is a durable software artifact in its own right, not a
 throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`)
-should follow from it *nearly deterministically* — two agents handed the same
+should follow from it *nearly deterministically*; two agents handed the same
 frozen spec should produce substantially the same plan, because the meaning
 has already been pinned and only the carrying-out is left, which itself is well-defined, 
 tightly-controlled, and clearly marked.
@@ -232,7 +232,7 @@ engagement:
 
 - **The agent never decides meaning** (Rule 0). Data nouns, shapes,
   directions, and the resolution of deferred holes are the human's to author.
-  The agent supplies *form* — skeletons, syntax, holes — and elicits the rest
+  The agent supplies *form* — skeletons, syntax, holes, and elicits the rest
   with questions.
 - **The agent helps generate the skeleton, not the content.** It may lay down
   typed seams and marked holes that trace to something the human ratified;
@@ -251,7 +251,7 @@ engagement:
 
 ## Getting started
 
-Centina runs inside your existing coding-agent session — there is nothing to
+Centina runs inside your existing coding-agent session. There is nothing to
 install and no server to run. To stand up your first spec:
 
 1. **Clone the Centina repo.**
@@ -269,7 +269,7 @@ install and no server to run. To stand up your first spec:
 
 3. **Invoke the `centina-session-zero` skill.** It will prompt you to begin
    describing what you want to build and guide you through each gated phase from
-   there — eliciting the shape, routing every undecided question into a visible
+   there: eliciting the shape, routing every undecided question into a visible
    hole, and emitting a skeleton spec set plus an `ARCHITECTURE.md` at the end.
 
    `.claude/skills/*/SKILL.md` is Claude Code's Agent Skills format — Claude
@@ -287,30 +287,30 @@ install and no server to run. To stand up your first spec:
 
 **What you end up with.** Session zero hands off a skeleton spec set plus
 `ARCHITECTURE.md`; running `centina-iterate` on each component then walks it to
-clean and, once it's clean, derives that component's `PLAN.md` from it —
+clean and, once it's clean, derives that component's `PLAN.md` from it,
 reconciling `ARCHITECTURE.md`'s contract and hole ledgers against the
 now-finished component immediately beforehand, so the ledger never claims more
 than what's actually settled. Repeat `centina-iterate` per component until the
 seams you intend to implement now all have plans (see
-[Which specs earn a plan](docs/plan-organization.md) — not every component
+[Which specs earn a plan](docs/plan-organization.md): Not every component
 needs one immediately; a mocked boundary is a legitimate stopping point).
 
 The end state is a self-contained package: one or more `PLAN.md` files (pegged
 to boundary-sets, not necessarily one per file — see
 `docs/plan-organization.md`) plus a reconciled `ARCHITECTURE.md` recording the
 DAG, the frozen contracts, and what's still deferred. That package is designed
-to travel — hand it to any coding agent, in this repo or an entirely different
+to travel. Hand it to any coding agent, in this repo or an entirely different
 codebase, and it has everything it needs to implement against, with no
 in-session context required.
 
-For what actually happens in that session — and in `centina-iterate`, the
-follow-on that refines a single spec toward complete — see
+For what actually happens in that session (and in `centina-iterate`, the
+follow-on that refines a single spec toward complete) see
 [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions).
 
 ## The core mechanism: the typed hole with routing
 
 Centina's central primitive is the **typed hole**. A spec is finished not when
-it has no gaps, but when every gap is *deliberate, typed, and routed* —
+it has no gaps, but when every gap is *deliberate, typed, and routed*, i.e.,
 deferred to the human, delegated to an agent, referenced from external code,
 or quarantined behind a boundary.
 
@@ -324,8 +324,8 @@ or quarantined behind a boundary.
 | external | `/** @external "src" */ declare ...` | lives in existing code / an API / an external system |
 | boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black-box data seam; doors are the privileged entry/exit points |
 
-The signature behind a hole is real and participates fully in type checking —
-callers are held to it even though nothing exists behind it yet. That is what
+The signature behind a hole is real and participates fully in type checking.
+Callers are held to it even though nothing exists behind it yet. That is what
 lets a *consumer* be specified against a seam that has not been built, and
 built in parallel with it.
 
@@ -347,7 +347,7 @@ primitives too. They fall on the two sides of the responsibility split: some
 are **domain content** (they describe the real system the spec is about), and
 some are **authoring markers** (metadata addressed to the checker and the
 coding agent, never part of what the spec models). Each is ordinary
-TypeScript — the whole vocabulary lives in `centina.ts`.
+TypeScript; the whole vocabulary lives in `centina.ts`.
 
 ### Domain content — describing the system
 
@@ -372,8 +372,8 @@ shape assumption* with an `as` at each call — bookkeeping, not prohibition. Th
 
 ```ts
 const supervisor = new Agent(ModelId.CLAUDE_OPUS)
-const plan = supervisor.prompt("Draft an implementation plan for…") as Task[]
-//                                                                   ^ recorded assumption
+const someFormula = agent.prompt("Generate a random formula.") as Formula
+//                                                             ^ recorded assumption
 ```
 
 > [!IMPORTANT]
@@ -397,7 +397,7 @@ const explain: Skill<[Formula, FormulaType], string> = { name: "formula-explanat
 const text = agent.invokeSkill(explain, someFormula, FormulaType.UNKNOWN) // : string
 ```
 
-### Authoring markers — metadata for the checker and the agent
+### Authoring markers: metadata for the checker and the agent
 
 **`deferred<…>()` — the typed hole.** The signature is real and type-checks its
 callers; the *routing* is what varies. Bare means routing is still owed (a
@@ -434,7 +434,7 @@ export declare class OrderStore {
 
 **`@agent:` / `@agent(label):` — a note to the coding agent.** The
 spec-authoring channel between you and whichever agent is running a session
-with you — resolved at spec-iteration or plan-build time, never part of the
+with you, to be resolved at spec-iteration or plan-build time, never part of the
 spec's domain content. An optional label gives a note a stable name to
 reference later.
 
@@ -481,8 +481,8 @@ decides how it is routed:
 
 | Plane | What it captures | Where it lands in a spec |
 |---|---|---|
-| **Structural** | relationships between named data — provenance, flow, contract ("*X* comes from *Y*, in shape *Z*") | a filled-in component |
-| **Realization** | the carrying-out — algorithm, dynamics, aesthetics; no nameable data relationship | routed behind a door: a terminal, a Skill, or a held hole |
+| **Structural** | relationships between named data: provenance, flow, contract ("*X* comes from *Y*, in shape *Z*") | a filled-in component |
+| **Realization** | the carrying-out: algorithm, dynamics, aesthetics; no nameable data relationship | routed behind a door: a terminal, a Skill, or a held hole |
 
 The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each
 **`<component>.centina.ts`** filled in (iterate) → **`PLAN.md`** per
@@ -498,8 +498,8 @@ flowchart LR
 
 ## A walkthrough: one seam, prose to spec-complete
 
-To ground the two skills, follow a single seam of that same order dashboard —
-the one whose prose hid three decisions — through both stages. (Heavily
+To ground the two skills, follow a single seam of that same order dashboard, 
+the one whose prose hid three decisions, through both stages. (Heavily
 condensed; a real session is many more exchanges.)
 
 **The prose seed.** The human opens `centina-session-zero` with a sentence:
@@ -513,10 +513,10 @@ in weighing the tradeoffs against their stated priorities, _without_ allowing th
 to simply make the decisions and run with them:
 
 - *Intent (phase 1):* restated back in the human's own terms, ratified.
-- *Components (phase 2):* the human names two nodes — a **Dashboard**
+- *Components (phase 2):* the human names two nodes: a **Dashboard**
   orchestrator and an **OrderStore** it reads from. (The agent resists naming
   the store first; the human draws it.)
-- *Seam (phase 3):* the door from Dashboard into OrderStore — a read (non-`void`
+- *Seam (phase 3):* the door from Dashboard into OrderStore: a read (non-`void`
   return). Then the highest-yield question, *what happens on the empty /
   not-found case?*, forces exactly the three decisions the prose smuggled past:
   **no orders** returns an explicit empty result, not null; *"recent"* sorts by
@@ -558,8 +558,8 @@ export declare class OrderStore {
 }
 ```
 
-The one thing the human has *not* settled — whether a cancelled order surfaces
-with its own banner or folds into the normal view — ships as a hole, never a
+The one thing the human has *not* settled, that is, whether a cancelled order surfaces
+with its own banner or folds into the normal view, ships as a hole, never a
 guess:
 
 ```ts
@@ -579,7 +579,7 @@ $ npm run check -- specs/order-dashboard/dashboard.centina.ts
 That is the handoff: **interfaces present and concrete, one decision held.**
 
 **The human fills, then runs the centina-iterate skill.** Later the human resolves the held
-question — cancelled orders get their own view — and writes it in themselves
+question: cancelled orders get their own view — and writes it in themselves
 (the agent holds no pen past the skeleton). They open `centina-iterate`, and
 the checker surfaces the residue one item at a time:
 
@@ -601,7 +601,7 @@ should have made them.
 ## The goals (the invariant everything else serves)
 
 The four goals are the project's *only* invariant; every rule and primitive is
-a means under test against them. Note that each is **comparative** — the
+a means under test against them. Note that each is **comparative**. The
 baseline is conversational prose. Centina produces structured, rule-checked
 pseudocode that:
 
@@ -639,8 +639,7 @@ reliably produce with it.
 
 ## State of the project
 
-Early post-pivot, and further along than a first read of the old docs
-suggests. What exists:
+What exists:
 
 - **`centina.ts`** — the vocabulary module: opaque domain nouns
   (`Unshaped<"...">`), `deferred` (the typed hole with routing), `Skill<In,
@@ -684,7 +683,4 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
   falsifiability frame, and the findings log that drove the pivot.
 - `.claude/skills/` — `centina-session-zero` and `centina-iterate`, the
   current toolchain.
-- `specs/` — per-feature specs, each in its own dash-named folder. Older
-  underscore-named subfolders are frozen AISL-era precedents; `*.aisl` files
-  remain in-tree only as port references (toolchain retired; full history at
-  tag `aisl-v0-standalone-language`).
+- `specs/` — per-feature specs, each in its own dash-named folder.

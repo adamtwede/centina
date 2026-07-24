@@ -4,13 +4,30 @@
 //
 // loop:
 // 1. supervisor prompts target with an implementation step.
-// 2. we feed step to task matcher to see if there is any relevant feedback from previous attempts at this step or similar steps, and incorporate that into the prompt for the target model.
+// 2. we feed step to task matcher to see if there is any relevant feedback from
+// previous attempts at this step or similar steps, and incorporate that into the
+// prompt for the target model.
 // 3. supervisor reviews/scores target output.
-// 4. supervisor makes a decision about what to do based on score (and, in later iterations, previous atttempts): give feedback, break step down, escalate to a more capable model, or mark step as complete.
-// 5a. if feedback is given, the loop repeats with the same step and the feedback from the previous attempt is incorporated into the prompt for the target model, so we go back to step 1.
-// 5b. if the step needs to be broken down, the supervisor model does so, then makes a recursive call to restart the loop with the new sub-steps, so we repeat step 1, only this time within a recursive loop with its entry point here.
-// 5c. if we need to escalate, we swap in a more capable model and repeat step 1, so we go back to step 1 UNLESS we have escalated to the supervisor model. if so, the supervisor model attempts the task itself (if in autonomous mode), marking it complete, or pauses the loop to alert the human for review. in either case, the step and its context, along with the models that attempted it, are feed to the task matching processor so that future similar tasks can be escalated immediately.
-// 5d. if step is marked complete, we gather the accumulated feedback (if any) for the model that completed it and feed it to the task matching processor to be disseminated into "durable" storage. all feedback should be tagged with information about the model(s) that have attempted it.
+// 4. supervisor makes a decision about what to do based on score (and, in later
+// iterations, previous atttempts): give feedback, break step down, escalate to
+// a more capable model, or mark step as complete.
+// 5a. if feedback is given, the loop repeats with the same step and the feedback
+// from the previous attempt is incorporated into the prompt for the target model,
+// so we go back to step 1.
+// 5b. if the step needs to be broken down, the supervisor model does so, then
+// makes a recursive call to restart the loop with the new sub-steps, so we repeat
+// step 1, only this time within a recursive loop with its entry point here.
+// 5c. if we need to escalate, we swap in a more capable model and repeat step 1,
+// so we go back to step 1 UNLESS we have escalated to the supervisor model.
+// if so, the supervisor model attempts the task itself (if in autonomous mode),
+// marking it complete, or pauses the loop to alert the human for review.
+// in either case, the step and its context, along with the models that attempted
+// it, are fed to the task matching processor so that future similar tasks can be
+// escalated immediately.
+// 5d. if step is marked complete, we gather the accumulated feedback (if any) for
+// the model that completed it and feed it to the task matching processor to be
+// disseminated into "durable" storage. all feedback should be tagged with information
+// about the model(s) that have attempted it.
 // 6. move to the next step (see below), if any, or terminate task run.
 
 import { Agent, Skill, deferred } from "../../centina"
@@ -109,8 +126,6 @@ function implementationLoop(
       // still wins the prompt slot when present — this is about not losing the
       // diagnostic signal, not changing which feedback the target model sees.
       const matchedTask = taskMatcher(implementationStep, targetModel)
-
-      // taskRunRecord.attemptRecord = matchedTask ? matchedTask.attemptRecord : []
 
       if (loopRunFeedback) {
         stepPromptText = `${stepPromptText}, and incorporate this feedback into the prompt: ${loopRunFeedback}`
@@ -227,11 +242,14 @@ function decomposeStep(
   supervisorModel: Agent<ModelId>,
 ): Task[] | null {
   const decompositionAttempt = supervisorModel.prompt(
-    `Break this down into simpler steps but not to the point of explicit step-by-step instructions: ${highLevelStep}`,
+    `Break this down into simpler steps but not to the point of
+    explicit step-by-step instructions: ${highLevelStep}`,
   )
   return supervisorModel.review(
     decompositionAttempt,
-    `Does this represent a meaningful decomposition of "${highLevelStep}" into distinct sub-steps, without degenerating into step-by-step instructions? If not — or if it's unchanged/degenerate — respond with null.`,
+    `Does this represent a meaningful decomposition of "${highLevelStep}" into 
+    distinct sub-steps, without degenerating into step-by-step instructions? 
+    If not — or if it's unchanged/degenerate — respond with null.`,
   ) as Task[] | null
 }
 
@@ -242,11 +260,16 @@ function proposeFeedback(
   targetModel: Agent<ModelId>,
 ): Feedback {
   return supervisorModel.prompt(
-    `Review this output for ${implementationStep} and provide structured feedback for ${targetModel} that identifies the specific areas of failure and suggests improvements *without* providing step-by-step instructions: ${targetModelOutput}`,
+    `Review this output for ${implementationStep} and provide structured feedback 
+    for ${targetModel} that identifies the specific areas of failure and suggests 
+    improvements *without* providing step-by-step instructions: ${targetModelOutput}`,
   ) as Feedback
 }
 
-// supervisor model looks at whether or not the target model is improving or not over the course of X attempts at implementing the given step, in part by comparing ImplementationAttempt.score across multiple consecutive attempts, analyzing the trend, and making a determination about how to proceed:
+// supervisor model looks at whether or not the target model is improving or not
+// over the course of X attempts at implementing the given step, in part by
+// comparing ImplementationAttempt.score across multiple consecutive attempts,
+// analyzing the trend, and making a determination about how to proceed:
 const makeDecision = deferred<
   "spec",
   (
@@ -259,7 +282,10 @@ const makeDecision = deferred<
   ) => Decision
 >()
 
-// supervisor model incorporates feedback into the task matcher examining the destination code, which indicates where the feedback should be stored, e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model system prompt, skill, harness config, or a map keyed by "task type," etc.
+// supervisor model incorporates feedback into the task matcher examining the
+// destination code, which indicates where the feedback should be stored,
+// e.g., PLAN.md (or equivalent), AGENTS.md (or equivalent), target model
+// system prompt, skill, harness config, or a map keyed by "task type," etc.
 function encodeStepImplementationAttemptRunIntoTaskMatcher(
   taskRunLog: TaskRunRecord,
 ): void {
