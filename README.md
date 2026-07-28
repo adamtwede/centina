@@ -561,6 +561,17 @@ flowchart LR
   clean -. near-deterministic .-> plan["PLAN.md"] --> impl(["implementation"])
 ```
 
+> [!TIP]
+> **A word on models and effort level:** Accurately gauging which model and thinking/effort 
+> level to use in any agentic coding session is part experience and part trial-and-error. Centina 
+> is no different in that respect, but strong directives in the skills and project docs should prevent 
+> your agent from trying to tackle too much at once. Centina is designed from first principles to 
+> guide you through recursively breaking your project up into manageable chunks, an approach 
+> that aligns both human and AI model along the same axis. 
+> 
+> Start somewhere near the middle, and if your agent seems to be missing important details, 
+> dial it up. Otherwise, leave it alone or dial it down and watch for any degradation in performance.
+
 ## A walkthrough: one seam, prose to spec-complete
 
 To ground the two skills, follow a single seam of that same order dashboard, 
