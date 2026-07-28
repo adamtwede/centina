@@ -107,21 +107,7 @@ heroic prompt that leaps from idea to implementation.
 
 ## When to use it (and when not to)
 
-Centina isn't a good fit for every problem. For relatively simple projects,
-variations on well-trod ground, or with few unknowns, using Centina is probably 
-overkill. For issues in existing codebases, size matters. Large refactors
-may benefit from the sort of affordance analysis Centina offers, but will require
-finding the seam between the proposed refactor and the rest. The
-Centina agent skills will attempt to help in finding that seam, but some refactors
-are too entangled with the existing code to cleanly separate, and in such cases
-you'll wind up reverse-architecting the entire project, which may be more work
-than simply attacking the refactor with a more standard approach. Full rewrites
-of major components in an existing project, or ground-up rewrites of an entire
-project are more promising candidates for Centina. The ideal use cases are green field
-projects of moderate-to-high complexity, complex new features in existing projects
-that can be cleanly marked off from existing code through well-defined interfaces,
-and as-yet unplanned or unspecced features in projects under active development 
-with moderate-to-high levels of ambiguity or lots of unknowns.
+Centina isn't a good fit for every problem. Here's a quick rundown.
 
 Best fit:
 
