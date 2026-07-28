@@ -51,5 +51,5 @@
   <line x1="300" y1="262" x2="335" y2="291" stroke="#1f9e8f" stroke-width="1.1" marker-end="url(#ef-arrow-teal)"/>
   <text x="298" y="256" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="600" fill="#17786d">re-ground</text>
 
-  <text x="410" y="380" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" font-style="italic" fill="#57606a">Error never reaches zero — but small, re-grounded steps keep it bounded, where one leap lets it compound past recovery.</text>
+  <text x="410" y="380" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="11.5" font-style="italic" fill="#57606a">Error never reaches zero — but small, re-grounded steps keep it bounded, where a too-large leap lets it compound past recovery.</text>
 </svg>

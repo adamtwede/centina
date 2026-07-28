@@ -33,14 +33,15 @@ becoming necessary, and how Centina answers it.
 - [Centina](#centina)
   - [Contents](#contents)
   - [Why this exists: the error floor](#why-this-exists-the-error-floor)
-  - [When to use it (and when not to)](#when-to-use-it-and-when-not-to)
-    - [What Centina most definitely isn't for](#what-centina-most-definitely-isnt-for)
   - [The practical failure: over-competence](#the-practical-failure-over-competence)
   - [Centina's answer](#centinas-answer)
     - [The responsibility split: meaning is the human's, implementation is the agent's](#the-responsibility-split-meaning-is-the-humans-implementation-is-the-agents)
     - [TypeScript as pseudocode, checked for meaning, but not compiled](#typescript-as-pseudocode-checked-for-meaning-but-not-compiled)
     - [The spec as a first-class artifact, and PLAN.md as its near-deterministic output](#the-spec-as-a-first-class-artifact-and-planmd-as-its-near-deterministic-output)
     - [The restraints on the agent](#the-restraints-on-the-agent)
+  - [Who should use it](#who-should-use-it)
+  - [When to use it (and when not to)](#when-to-use-it-and-when-not-to)
+    - [What Centina most definitely isn't for](#what-centina-most-definitely-isnt-for)
   - [Getting started](#getting-started)
   - [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
   - [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
@@ -85,7 +86,7 @@ Two consequences follow, and they compound each other:
 How to live with this is an open question, but other disciplines that grapple
 with chaotic systems offer a cue. Consider the **n-body problem** in
 astrophysics: how bodies move under their mutual gravitation. For three or
-more bodies there is no general analytical solution. So the problem is worked
+more bodies there is no general analytical solution. The problem is worked
 **numerically**, which means it is solved again and again over short intervals of time,
 re-grounding the trajectory at every step so that error never has room to grow
 large before it is corrected. There is no closed form that gets you to the
@@ -104,43 +105,6 @@ The wager of Centina is that the new human–agent coding paradigm needs some
 form of the same discipline: **frequent, structured re-grounding of intent
 against a checkable artifact, before error has room to compound** — not one
 heroic prompt that leaps from idea to implementation.
-
-## When to use it (and when not to)
-
-Centina isn't a good fit for every problem. Here's a quick rundown.
-
-Best fit:
-
-- new projects of moderate-to-high complexity
-- new features of moderate-to-high complexity in existing projects
-- new features of moderate-to-high complexity in under-development projects
-
-Likely fit:
-
-- full rewrites of major components in existing projects
-- ground-up rewrites of existing projects
-- refactors of large or complex, highly-decoupled components in existing projects
-
-Unlikely fit:
-
-- small or simple projects with low complexity and/or few unknowns, or that tread well-established ground
-- small or simple maintenance tasks in existing projects
-- refactors of large or complex but highly-coupled components in existing projects
-- projects or solutions with a high level of implementation (lots of computation) and a low level of structure (little in the way of business rules or interactivity)
-
-If you're not sure, simply start your agent session from within this project and ask.
-
-### What Centina most definitely isn't for
-
-Centina can't, or at least shouldn't:
-
-- help you decide which technologies to use in your project
-- help you implement a complex algorithm
-- help you write software you don't understand or can't specify
-- tell you what good software architecture actually looks like, or how to develop it
-
-Centina cannot replace your brain or your experience. That's what
-standard agent planning sessions are for.
 
 ## The practical failure: over-competence
 
@@ -288,6 +252,63 @@ engagement:
 > separation is the mechanism that keeps over-competence from getting a
 > foothold.
 
+## Who should use it
+
+Anyone can use Centina, but it's not intended for everyone. The value you can
+expect to get out of Centina is directly proportional to the amount of software 
+design and engineering expertise you bring.
+
+> [!WARNING]
+> Inexperienced software developers may find using Centina to be a frustrating
+> experience. It will ask you to think carefully about details that may seem abstract,
+> tedious, and pedantic. It will push back on choices that don't seem consistent with
+> earlier decisions. It will refuse to do your thinking for you.
+
+## When to use it (and when not to)
+
+Centina isn't a good fit for every problem, but is ideal for many. Here's a quick rundown.
+
+Best fit:
+
+- new projects of moderate-to-high complexity
+- new features of moderate-to-high complexity in existing projects
+- new features of moderate-to-high complexity in under-development projects
+
+Likely fit:
+
+- full rewrites of major components in existing projects
+- ground-up rewrites of existing projects
+- refactors of large or complex, highly-decoupled components in existing projects
+
+Unlikely fit:
+
+- small or simple projects with low complexity and/or few unknowns, or that tread well-established ground
+- small or simple maintenance tasks in existing projects
+- refactors of large or complex but highly-coupled components in existing projects
+- projects or solutions with a high level of implementation (lots of computation) and a low level of structure (little in the way of business rules or interactivity)
+
+> [!TIP]
+> If you're not sure if your problem is a good fit for Centina, simply start your agent 
+> session from within this project and ask. The project is loaded with plenty of context
+> for your agent to help you make an assessment.
+
+
+### What Centina most definitely isn't for
+
+Centina can't, or at least shouldn't:
+
+- help you decide which technologies to use in your project
+- help you implement a complex algorithm
+- help you write software you don't understand or can't specify
+- tell you what good software architecture actually looks like, or how to develop it
+
+> [!CAUTION]
+> Centina cannot replace your brain or your experience. (That's what 
+> standard agent planning sessions are for 😉) 
+> 
+> Centina is extra leverage for the experience and competence 
+> you *already possess* as a software engineer, with all that implies.
+
 ## Getting started
 
 Centina runs inside your existing coding-agent session. There is nothing to
@@ -332,11 +353,13 @@ now-finished component immediately beforehand, so the ledger never claims more
 than what's actually settled. Repeat `centina-iterate` per component until the
 seams you intend to implement now all have plans (see
 [Which specs earn a plan](docs/plan-organization.md): Not every component
-needs one immediately; a mocked boundary is a legitimate stopping point).
+needs one immediately; a mocked boundary is a legitimate, practical, and even
+advisable stopping point, allowing you to shepherd complex projects through
+meannigful, isolated phases).
 
 The end state is a self-contained package: one or more `PLAN.md` files (pegged
 to boundary-sets, not necessarily one per file — see
-`docs/plan-organization.md`) plus a reconciled `ARCHITECTURE.md` recording the
+[docs/plan-organization.md](docs/plan-organization.md) plus a reconciled `ARCHITECTURE.md` recording the
 DAG, the frozen contracts, and what's still deferred. That package is designed
 to travel. Hand it to any coding agent, in this repo or an entirely different
 codebase, and it has everything it needs to implement against, with no
@@ -373,7 +396,7 @@ Two operating principles that form the foundation:
 - **Boundaries model affordances, not transports** — a boundary is a set of
   *doors* (what you can do at a seam), and direction is inferred from each
   door's return type (`void` = write, non-`void` = read), never from its name.
-  See `docs/boundaries.md`.
+  See [docs/boundaries.md](docs/boundaries.md).
 - **Provenance is bookkeeping, not prohibition.** Every value's origin should
   be *visible* — names must resolve, and every `as` cast is a recorded
   assumption — but the spec-writer is free to assemble records and sketch
@@ -386,7 +409,9 @@ primitives too. They fall on the two sides of the responsibility split: some
 are **domain content** (they describe the real system the spec is about), and
 some are **authoring markers** (metadata addressed to the checker and the
 coding agent, never part of what the spec models). Each is ordinary
-TypeScript; the whole vocabulary lives in `centina.ts`.
+TypeScript.
+
+To view the whole vocabulary in code, see: [centina.ts](centina.ts).
 
 ### Domain content — describing the system
 
@@ -405,8 +430,8 @@ type Formula = Unshaped<"Formula">
 
 **`Agent<Model>` — the model a spec converses with.** The one boundary Centina
 ships pre-built. `prompt`/`review` return `unknown`, so the author *records the
-shape assumption* with an `as` at each call — bookkeeping, not prohibition. The
-`Model` parameter carries the agent's identity with no cast: an
+shape assumption* with an `as` at each call. This is bookkeeping, accounting, 
+not prohibition. The `Model` parameter carries the agent's identity with no cast: an
 `Agent<ModelId>` hands the same `ModelId` back from `.modelId`.
 
 ```ts
@@ -462,7 +487,7 @@ declare function randomUUID(): string
 black-box data seam, spelled as a JSDoc tag on a `declare class`. Direction is
 inferred from each door's return type — `void` = write, non-`void` = read —
 never from its name (`@datasource` = read-only, `@datasink` = write-only,
-`@boundary` = both). See `docs/boundaries.md`.
+`@boundary` = both). See [docs/boundaries.md](docs/boundaries.md).
 
 ```ts
 /** @datasource The store of placed orders. */
@@ -488,18 +513,19 @@ Two project skills drive Centina as a collaborative, gated process. Both are
 structure while making every unresolved decision *visible* as a routed hole
 rather than an invisible guess.
 
-- **`centina-session-zero`** — the front of the funnel for a whole *system*.
+- **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/.claude/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
   It drives a gated conversation that turns a prose idea into a **component
   DAG**: the high-level components, the typed contracts on the seams between
   them, and the terminal nodes where the system meets existing technology. Only
   then does it emit a **skeleton spec set** (typed seams + routed holes, no
-  internal processing) and an `ARCHITECTURE.md` recording the DAG, the contract
-  ledger, and the hole ledger. Each phase is gated: nothing advances until the
+  internal processing) and an [ARCHITECTURE.md](specs/wordboard/ARCHITECTURE.md) 
+  recording the DAG, the contract ledger, and the hole ledger. 
+  Each phase is gated: nothing advances until the
   human ratifies it, and anything left unratified becomes a marked hole. The
   guiding image is *diffusion inverted* — the agent raises the **resolution of
   the questions** it asks each pass; the human paints in the pixels.
 
-- **`centina-iterate`** — refines a *single* spec toward clean. It runs the
+- **[centina-iterate](https://github.com/adamtwede/centina/blob/main/.claude/skills/centina-iterate/SKILL.md)** — refines a *single* spec toward clean. It runs the
   checker, walks the human through each diagnostic, separates mechanical fixes
   from genuine design ambiguities the pseudocode left implicit, settles them
   *with* the human, and re-checks until the spec is clean and the human is
