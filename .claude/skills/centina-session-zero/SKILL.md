@@ -52,6 +52,26 @@ the transcript:
   fill, explicitly flagged as a soft marker that does not count as evidence on its
   own and is never used to *justify* a fill.
 
+**Content assumptions vs framing assumptions — only the first is the quarry.**
+Not every unstated thing the agent introduces is confabulation, and treating them
+alike drives the agent to interrogate everything, which is both tedious and slightly
+insulting to the experienced-but-not-necessarily-expert spec-writers Centina targets.
+Separate two kinds:
+
+- **Content assumption (log it — this is the quarry).** An unstated *concrete*:
+  a data noun, a door shape, a payload, a named technology, an algorithm — the
+  "untraceable concrete" above. It corrupts the decided/guessed ledger, because it
+  ships as fill wearing elicitation's clothes.
+- **Framing assumption (note, don't count).** A reasonable-but-narrowing *frame*
+  around a question that carries no unstated concrete — e.g. "walk me through a
+  single turn" presuming a fixed sequence (F7). It hovers near the line, the
+  audience is the *designed backstop* for it (they caught F7), and it's acceptable
+  friction, not a defect. It graduates to a *content* event only when the frame
+  smuggles in an unstated concrete (a specific sequence, a shape); a bare narrowing
+  frame the human can wave off does not. Note a framing assumption that narrows a
+  *live design axis* (there a lean can quietly foreclose an option the human hasn't
+  ruled out), but do not count it against the confabulation rate.
+
 **Carry the complexity context on every event** so the hypothesis is testable:
 the component's breadth (how many responsibilities/seams it touches), the depth in
 the mining tree if inside a genesis re-slice, and how under-determined the seed
@@ -373,6 +393,17 @@ territory for fill/iterate, not session zero — declare the door and move on.
   contract's status (decided / provisional / open), and the hole ledger — not
   the conversational prose. Prose can be re-derived; the contract set and the
   decided/guessed distinction cannot be allowed to drift across a compaction.
+- **Fit check.** When facing a high-stakes, hard-to-reverse fork with complex
+  tradeoffs, request a **fit check** (invoke with "fit check" or "fit check on X")
+  to get a structured costs/benefits analysis: each option's merits and costs,
+  alignment against stated priorities, and alignment against established patterns
+  (uniform reducer, event-sourcing, boundaries-as-affordances, etc.). The agent
+  supplies the tradeoff matrix; the verdict stays yours (Rule 0 intact).
+- **Long-session output management.** When SESSION-ZERO-STATE.md grows beyond
+  ~1500 lines, split it automatically into an index file + detail files per the
+  strategy in CLAUDE.md. This keeps context tokens low and the session resumable
+  across compactions. Agents apply the split when detected; no permission needed,
+  but note it in the conversation so the human knows.
 
 ## Handoff: ARCHITECTURE.md + the skeleton set
 
@@ -645,6 +676,83 @@ Ratified so far:
    cursor marked, so the human can see where they are and what remains — at least
    whenever they resume or ask, and proactively when the recursion gets deep
    enough that prose stops carrying "where are we."
+
+8. **Backstop and primary-descent are one recursion; the mode is emergent, and
+   the agent may adopt it — the human declares only the _depth intent_.** Settles
+   how decision 5's re-slice behaves when the subject is a whole large system, not
+   a stray realization hole. Ratified provisionally in the Turnball scope-limit run
+   (2026-07-23).
+
+   **One recursion, one terminator.** There is no scalar complexity threshold
+   separating "re-slice as realization-hole backstop" from "re-slice as primary
+   descent engine." Both are the _same_ engine (freeze the parent door as the child
+   DAG's outer seam; recurse; terminate on the human-commitment gate) with the
+   _same_ terminator — the per-node floor test session-zero already owns ("empty
+   contract ledger → one function, not a system"), run at every cursor position:
+   - interrogation finds interior seams → the node is a sub-system → **crack it**
+     (decision 5 exit (b));
+   - interrogation finds no interior seam (one algorithm / held fill-logic / a
+     terminal) → **stop**; hold or route the interior (decision 5 exit (a)).
+
+   "Backstop" is merely the case where that test returns "one function" at almost
+   every node (you rarely recurse); "primary engine" is the case where it returns
+   "a system" at many nodes (you recurse routinely). Scope only sets how _often_ the
+   test returns "system." **Mode, not skill** — the shared engine plus a posture
+   flag (phase-2's completeness bar becomes "exhaustive _for this altitude_;
+   interiors are expected holes, not gaps") and decision 7's mining tree graduating
+   from occasional backstop-record to the _primary_ artifact. Defer any separate
+   resume-from-cursor skill until the shared engine visibly strains.
+
+   **The one input that must be declared, not detected: depth intent.** An agent
+   with no depth intent runs the floor test at the top layer, gets a coarse-but-
+   closable set, and _stops at layer 1_ — it cannot derive that the human wanted
+   continued descent. Depth intent is the sole human-supplied bit; the agent derives
+   the rest.
+
+   **Detection — adopt the posture without being told, but ask before committing
+   the program.** Split by cost asymmetry:
+   - **Adopt silently (no ask): the _local_ coarse-is-fine posture.** When the floor
+     test returns "system" on a node, hold its interior as an expected hole rather
+     than forcing it flat. No permission needed — this _is_ the bias-toward-holes
+     the skill already mandates; force-flattening is the failure, not holding.
+   - **Ask first: the _global_ descent program.** When detection signals fire
+     _absent a declaration_ — (2) **phase-2 flat-closure fails** (the set won't stop
+     growing because every candidate node is itself lumpy — the pre-registered
+     non-termination tell, which at high altitude means "this system has layers,"
+     not "the human is vague"); or (3) **≥2 top nodes each independently pass the
+     node-as-system floor test** — surface it and priority-elicit: _"this looks like
+     a layered system that wants recursive descent — many short passes down a mining
+     tree, a tree-with-cursor as the artifact, resumable across sittings — rather
+     than a single flat DAG. Is that the engagement you want?"_ Ask because primary
+     descent changes the definition of done, the cadence, and the primary artifact:
+     a high-stakes, hard-to-reverse process fork (per the priority-elicitation
+     cross-cutting rule). Once declared or ratified (as Turnball did outright), do
+     **not** re-ask; proceed, running the floor test per node as the ordinary
+     terminator.
+
+9. **Re-rooting instead of an ascent phase: the recursion stays
+   mono-directional.** Ratified provisionally in the Turnball run (2026-07-23).
+   Decision 8's tree descends only; a concern that turns out to sit _above_ the
+   starting layer is handled not by an upward traversal but by a local tree edit:
+   - Establish the starting layer as an **arbitrary, possibly headless** top (a
+     multi-source set is fine).
+   - **Keep the bottom open** — descent proceeds normally.
+   - When a newly-named node sits **above _every_ node in the current top layer**,
+     insert it as the new head and **demote** the former top nodes one level,
+     adding head→child edges. _All other relationships are preserved_ — demotion
+     only adds edges, never rewires siblings. Linked-list head-insertion; repeated
+     re-roots compose.
+   - A node above **some but not all** current-top nodes is _not_ a re-root — it's
+     an ordinary same-layer peer with downstream edges. The "every" precondition is
+     load-bearing and leaves no gap.
+
+   The guard is cheap (test each newly-named coarse node against the current top
+   layer) and needs no upward search, so "ascent" becomes bookkeeping, not a phase.
+   Consequence for decision 7's tree: tolerate a headless/multi-source top, support
+   a re-root op, and log re-roots as tree events for resumability. Bonus: a whole
+   system's true root is usually a single app-shell/main-loop node, so starting one
+   layer below it and re-rooting as that node surfaces converges the tree to
+   single-rooted — which is what decision 7 wants anyway.
 
 Open / to prove with test cases:
 
