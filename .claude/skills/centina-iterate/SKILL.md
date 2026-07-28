@@ -170,16 +170,35 @@ into the normal check/fix loop below.
      question or use AskUserQuestion if there's a clean multi-way fork. Wait
      for the human's answer before touching the file.
 
-4. **Fix one thing, then re-check before fixing the next.** Types cascade —
+4. **On a genuine ambiguity with a high-stakes fork, request a fit check.**
+   If resolving a diagnostic requires choosing between architectural options
+   with complex tradeoffs, invoke a **fit check** (say "fit check on X") to get
+   a structured costs/benefits analysis: each option's merits and costs,
+   alignment against stated priorities, and alignment against established
+   patterns (uniform reducer, event-sourcing, boundaries-as-affordances, etc.).
+   The agent supplies the tradeoff matrix; the verdict stays yours (Rule 0
+   intact).
+
+5. **Fix one thing, then re-check before fixing the next.** Types cascade —
    resolving one diagnostic can change, resolve, or newly expose others. Only
    batch multiple diagnostics together if they are obviously independent
    (e.g. two unrelated undefined-identifier typos in different functions).
 
-5. **Repeat** from step 1 until the check is clean or the human says to stop.
+6. **Repeat** from step 1 until the check is clean or the human says to stop.
 
 6. Warnings (if the checker distinguishes them from errors) are reviewed the
    same way, but don't block calling the loop "done" — confirm with the human
    whether they want to address open warnings now or leave them.
+
+## Long-session output management
+
+If this session produces a ledger or state file (e.g., a session notes file or
+refinement log) that grows beyond ~1500 lines, split it automatically into an
+index file + detail files per the strategy in CLAUDE.md. This keeps context
+tokens low while preserving resumability. Agents apply the split when detected;
+no permission needed, but note it in the conversation so the human knows. For
+iterate, name detail files `ITERATE-<component>-*.md` and keep the index as
+`ITERATE-STATE.md`.
 
 ## Reconciling ARCHITECTURE.md before the plan
 
