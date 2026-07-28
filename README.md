@@ -33,6 +33,8 @@ becoming necessary, and how Centina answers it.
 - [Centina](#centina)
   - [Contents](#contents)
   - [Why this exists: the error floor](#why-this-exists-the-error-floor)
+  - [When to use it (and when not to)](#when-to-use-it-and-when-not-to)
+    - [What Centina most definitely isn't for](#what-centina-most-definitely-isnt-for)
   - [The practical failure: over-competence](#the-practical-failure-over-competence)
   - [Centina's answer](#centinas-answer)
     - [The responsibility split: meaning is the human's, implementation is the agent's](#the-responsibility-split-meaning-is-the-humans-implementation-is-the-agents)
@@ -102,6 +104,57 @@ The wager of Centina is that the new human–agent coding paradigm needs some
 form of the same discipline: **frequent, structured re-grounding of intent
 against a checkable artifact, before error has room to compound** — not one
 heroic prompt that leaps from idea to implementation.
+
+## When to use it (and when not to)
+
+Centina isn't a good fit for every problem. For relatively simple projects,
+variations on well-trod ground, or with few unknowns, using Centina is probably 
+overkill. For issues in existing codebases, size matters. Large refactors
+may benefit from the sort of affordance analysis Centina offers, but will require
+finding the seam between the proposed refactor and the rest. The
+Centina agent skills will attempt to help in finding that seam, but some refactors
+are too entangled with the existing code to cleanly separate, and in such cases
+you'll wind up reverse-architecting the entire project, which may be more work
+than simply attacking the refactor with a more standard approach. Full rewrites
+of major components in an existing project, or ground-up rewrites of an entire
+project are more promising candidates for Centina. The ideal use cases are green field
+projects of moderate-to-high complexity, complex new features in existing projects
+that can be cleanly marked off from existing code through well-defined interfaces,
+and as-yet unplanned or unspecced features in projects under active development 
+with moderate-to-high levels of ambiguity or lots of unknowns.
+
+Best fit:
+
+- new projects of moderate-to-high complexity
+- new features of moderate-to-high complexity in existing projects
+- new features of moderate-to-high complexity in under-development projects
+
+Likely fit:
+
+- full rewrites of major components in existing projects
+- ground-up rewrites of existing projects
+- refactors of large or complex, highly-decoupled components in existing projects
+
+Unlikely fit:
+
+- small or simple projects with low complexity and/or few unknowns, or that tread well-established ground
+- small or simple maintenance tasks in existing projects
+- refactors of large or complex but highly-coupled components in existing projects
+- projects or solutions with a high level of implementation (lots of computation) and a low level of structure (little in the way of business rules or interactivity)
+
+If you're not sure, simply start your agent session from within this project and ask.
+
+### What Centina most definitely isn't for
+
+Centina can't, or at least shouldn't:
+
+- help you decide which technologies to use in your project
+- help you implement a complex algorithm
+- help you write software you don't understand or can't specify
+- tell you what good software architecture actually looks like, or how to develop it
+
+Centina cannot replace your brain or your experience. That's what
+standard agent planning sessions are for.
 
 ## The practical failure: over-competence
 
