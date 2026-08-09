@@ -51,6 +51,7 @@ becoming necessary, and how Centina answers it.
   - [A walkthrough: one seam, prose to spec-complete](#a-walkthrough-one-seam-prose-to-spec-complete)
   - [The goals (the invariant everything else serves)](#the-goals-the-invariant-everything-else-serves)
   - [What this offers over planning-mode conversation](#what-this-offers-over-planning-mode-conversation)
+  - [Developing Centina itself](#developing-centina-itself)
   - [State of the project](#state-of-the-project)
   - [Commands](#commands)
   - [Repository layout](#repository-layout)
@@ -311,39 +312,46 @@ Centina can't, or at least shouldn't:
 
 ## Getting started
 
-Centina runs inside your existing coding-agent session. There is nothing to
-install and no server to run. To stand up your first spec:
+Centina ships as a self-contained Claude Code plugin. There is nothing to
+install globally and no server to run — Claude Code installs the checker's
+own dependencies for you the first time it needs them. To stand up your
+first spec:
 
-1. **Clone the Centina repo.**
+1. **Clone the Centina repo** (anywhere — it doesn't need to sit inside or
+   near the project you're specing).
 
    ```console
    git clone https://github.com/adamtwede/centina.git
    ```
 
-2. **From the Centina root, start your agent session.**
+2. **From the project you want to spec, start Claude Code pointed at the
+   local Centina checkout.**
 
    ```console
-   cd centina
-   claude   # or whichever coding agent you use
+   cd your-project        # or wherever you want to work
+   claude --plugin-dir /path/to/centina
    ```
 
-3. **Invoke the `centina-session-zero` skill.** It will prompt you to begin
-   describing what you want to build and guide you through each gated phase from
-   there: eliciting the shape, routing every undecided question into a visible
-   hole, and emitting a skeleton spec set plus an `ARCHITECTURE.md` at the end.
+   `--plugin-dir` is the documented path for a local/development plugin
+   install — see [Plugin distribution and install mechanics](docs/plugin-distribution.md)
+   for the self-hosted-marketplace option once you want this shared across
+   machines without repeating the flag.
 
-   `.claude/skills/*/SKILL.md` is Claude Code's Agent Skills format — Claude
-   Code auto-discovers it, or you can invoke it directly (`/centina-session-zero`).
-   Other coding agents generally won't auto-discover it, but the skill is just
-   plain markdown: point any capable agent at the file and ask it to follow it.
+3. **Invoke the `centina-session-zero` skill.** It's auto-discovered from
+   the plugin (`/centina-session-zero`, or it may surface on its own from a
+   description of what you want to build). First invocation in a new tree
+   runs the setup procedure — [docs/plugin-setup-procedure.md](docs/plugin-setup-procedure.md)
+   — which asks where the host project root and Centina's own files
+   (`artifactsRoot`, defaulting to `./centina/`) should live, then walks you
+   through each gated phase: eliciting the shape, routing every undecided
+   question into a visible hole, and emitting a skeleton spec set plus an
+   `ARCHITECTURE.md` at the end.
 
-   ```console
-   # Claude Code
-   /centina-session-zero
-
-   # any other coding agent
-   Read and follow .claude/skills/centina-session-zero/SKILL.md
-   ```
+   Other coding agents generally won't auto-discover a Claude Code plugin,
+   but the skills are just plain markdown: point any capable agent at
+   `skills/centina-session-zero/SKILL.md` in the Centina checkout and ask it
+   to follow it (it won't have `${CLAUDE_PLUGIN_ROOT}` set, so resolve that
+   to the checkout's absolute path yourself first).
 
 **What you end up with.** Session zero hands off a skeleton spec set plus
 `ARCHITECTURE.md`; running `centina-iterate` on each component then walks it to
@@ -513,7 +521,7 @@ Two project skills drive Centina as a collaborative, gated process. Both are
 structure while making every unresolved decision *visible* as a routed hole
 rather than an invisible guess.
 
-- **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/.claude/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
+- **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
   It drives a gated conversation that turns a prose idea into a **component
   DAG**: the high-level components, the typed contracts on the seams between
   them, and the terminal nodes where the system meets existing technology. Only
@@ -525,7 +533,7 @@ rather than an invisible guess.
   guiding image is *diffusion inverted* — the agent raises the **resolution of
   the questions** it asks each pass; the human paints in the pixels.
 
-- **[centina-iterate](https://github.com/adamtwede/centina/blob/main/.claude/skills/centina-iterate/SKILL.md)** — refines a *single* spec toward clean. It runs the
+- **[centina-iterate](https://github.com/adamtwede/centina/blob/main/skills/centina-iterate/SKILL.md)** — refines a *single* spec toward clean. It runs the
   checker, walks the human through each diagnostic, separates mechanical fixes
   from genuine design ambiguities the pseudocode left implicit, settles them
   *with* the human, and re-checks until the spec is clean and the human is
@@ -713,6 +721,47 @@ reliably produce with it.
 
 ---
 
+## Developing Centina itself
+
+Working on Centina's own vocabulary, checker, or skills is the one case
+where you *do* run the plugin against the repo it lives in. From the
+Centina checkout's own root:
+
+```console
+claude --plugin-dir .
+```
+
+This is also the path for verifying a packaging change actually works
+end-to-end, as opposed to the harness-level checks `npm run check` and
+`npm run typecheck` already cover. A first session in a freshly cloned or
+freshly reset checkout is a real test of the whole plugin lifecycle at
+once — the `SessionStart` hook, skill auto-discovery, and the
+[setup procedure](docs/plugin-setup-procedure.md)'s first-run path all fire
+for the first time. Worth checking for, in order:
+
+1. **The `SessionStart` hook ran.** No visible output on success (that's by
+   design — see [docs/plugin-checker-install.md](docs/plugin-checker-install.md));
+   a failure should surface a clear message, never a silent no-op. You can
+   confirm it directly: `${CLAUDE_PLUGIN_DATA}/checker/node_modules` should
+   exist after the session starts.
+2. **The skills are discoverable.** `/centina-session-zero` and
+   `/centina-iterate` should both appear.
+3. **Invoking one triggers first-run setup.** Since this repo already has
+   its own `specs/`, `centina.ts`, and `tsconfig.json` at its root, the
+   setup step's host-root and artifacts-root prompts are exercised for
+   real — watch for whether it correctly treats the repo root as a
+   sensible default rather than getting confused by the pre-existing
+   layout.
+4. **The checker actually runs.** `bin/centina-check` (invoked by the
+   skill, or directly: `${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project
+   <resolved tsconfig path> <a spec file>`) should produce the same
+   findings `npm run check` does natively against the same file.
+
+Anything that doesn't match — a silent hook failure, a skill that doesn't
+surface, a setup prompt that behaves unexpectedly against this repo's own
+layout — is exactly the kind of gap `npm run check`/`npm run typecheck`
+can't catch, since neither exercises the plugin machinery at all.
+
 ## State of the project
 
 What exists:
@@ -757,6 +806,9 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
   three roles, direction-from-returns, drawing guidelines.
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log that drove the pivot.
-- `.claude/skills/` — `centina-session-zero` and `centina-iterate`, the
-  current toolchain.
+- `skills/` — `centina-session-zero` and `centina-iterate`, the current
+  toolchain, packaged for plugin auto-discovery.
+- `.claude-plugin/`, `hooks/`, `bin/`, `scripts/`, `tsconfig.template.json`
+  — the plugin manifest, `SessionStart` install hook, and the
+  `centina-check` wrapper; see [docs/plugin-file-layout.md](docs/plugin-file-layout.md).
 - `specs/` — per-feature specs, each in its own dash-named folder.
