@@ -337,6 +337,16 @@ first spec:
    for the self-hosted-marketplace option once you want this shared across
    machines without repeating the flag.
 
+   **The checkout has to be reachable at whatever path you pass here, every
+   time.** You can move or rename it later — just update the `--plugin-dir`
+   argument to match — and any Centina project you've already set up will
+   keep working with no changes needed on its end: the one thing a project
+   depends on for live in-editor checking (the compiled checker Claude Code
+   keeps in its own persistent plugin-data directory) is keyed by the
+   plugin's name, not by the checkout's location. What you can't do is
+   delete the checkout, or lose track of where it lives — `--plugin-dir`
+   needs a real path to load the plugin at all.
+
 3. **Invoke the `centina-session-zero` skill.** It's auto-discovered from
    the plugin (`/centina-session-zero`, or it may surface on its own from a
    description of what you want to build). First invocation in a new tree

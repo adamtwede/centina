@@ -68,8 +68,14 @@ At `artifactsRoot`, if not already present, create:
 At `artifactsRoot`, write `tsconfig.json`: copy
 `${CLAUDE_PLUGIN_ROOT}/tsconfig.template.json`, substituting
 `compilerOptions.plugins[0].name` with the literal absolute path to
-`${CLAUDE_PLUGIN_ROOT}/checker/tsPlugin.cjs`, resolved at write time (the
-env var itself won't resolve later, when tsserver reads the file).
+`${CLAUDE_PLUGIN_DATA}/checker/tsPlugin.cjs` — **not** the `${CLAUDE_PLUGIN_ROOT}`
+copy — resolved at write time (the env var itself won't resolve later, when
+tsserver reads the file). The `DATA` copy is the one the `SessionStart` hook
+already keeps self-contained with its own `node_modules` (see
+`docs/plugin-checker-install.md`), and `DATA` is keyed by the plugin's name,
+not by where its checkout happens to sit — pointing here instead of at
+`ROOT` means an existing project's `tsconfig.json` keeps working even if the
+checkout is later moved or renamed.
 
 ## Idempotency
 

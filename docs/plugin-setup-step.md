@@ -216,11 +216,33 @@ spec files present yet), same as it does in this repo.
 
 Step 4 copies this template, substituting the `plugins[0].name` placeholder
 for the literal absolute path to `checker/tsPlugin.cjs` resolved from
-`${CLAUDE_PLUGIN_ROOT}` at generation time — `${CLAUDE_PLUGIN_ROOT}` is a
-Claude-Code-tool-call-time environment variable, and tsserver reading the
-generated file later has no way to resolve that variable itself, so the
-substitution must happen at write time, not left as a variable in the
-output.
+`${CLAUDE_PLUGIN_DATA}`, **not** `${CLAUDE_PLUGIN_ROOT}`, at generation time.
+Both are Claude-Code-tool-call-time environment variables that won't resolve
+later when tsserver reads the generated file, so the substitution has to
+happen at write time either way — the choice between them is about what the
+baked-in literal path points at once it's frozen into the file:
+
+- `${CLAUDE_PLUGIN_ROOT}` is the plugin's own checkout/bundle location — for
+  a `--plugin-dir` install, that's wherever the human happens to have cloned
+  the repo. Move or rename that checkout and every existing project's
+  `tsconfig.json` now points at a dead path — tsserver's plugin load fails
+  silently (no error, just no squiggles; the exact failure mode this whole
+  document opened by worrying about), and stays broken until the project's
+  next `centina-iterate`/`centina-session-zero` invocation regenerates the
+  stub against the *current* `${CLAUDE_PLUGIN_ROOT}`.
+- `${CLAUDE_PLUGIN_DATA}` is Claude Code's own persistent per-plugin data
+  directory, and — confirmed empirically against a real `--plugin-dir .`
+  install — it's keyed by the plugin's name (`.claude/plugins/data/<name>`,
+  e.g. `centina-inline`), not by the checkout's filesystem path. The
+  `SessionStart` hook (`docs/plugin-checker-install.md`) already copies
+  `checker/tsPlugin.cjs` there alongside a colocated `node_modules`,
+  self-contained and independent of `ROOT` by construction (its own
+  `require("tsx/cjs")` resolves via ordinary upward directory search from
+  its own location). Pointing the stub at this copy instead means an
+  existing project's `tsconfig.json` keeps working across a checkout
+  move/rename with no regeneration needed — the checkout still has to exist
+  *somewhere* for `--plugin-dir` to load the plugin at all, but exactly
+  where stops mattering to files already written.
 
 Writing this file at `artifactsRoot` is also what fixes tsserver's discovery
 problem (failure mode 2, above): tsserver's upward walk from an open spec
@@ -300,10 +322,12 @@ must reimplement from what it can take unchanged.
   (flags, an interactive prompt, a config file the human edits by hand
   first) needs to satisfy the same "no silent default, verify before
   accept" requirement, not necessarily the same UI.
-- **`${CLAUDE_PLUGIN_ROOT}` substitution.** Any harness needs some way to
-  resolve "where is my own bundled `checker/tsPlugin.cjs`" to a literal
-  absolute path at generation time — the mechanism is harness-specific, the
-  requirement (bake a literal path into the stub, never a variable) is not.
+- **Persistent-data-path substitution.** Any harness needs some way to
+  resolve "where is the self-contained, `node_modules`-complete copy of my
+  `checker/tsPlugin.cjs`" to a literal absolute path at generation time —
+  the mechanism is harness-specific, the requirement (bake a literal path
+  into the stub, never a variable, and point at the harness's *persistent
+  data* copy rather than its possibly-relocatable *bundle* copy) is not.
 
 **Adapter checklist for a new harness:** to add support, supply (a) a
 persistent storage location, (b) a trigger point, (c) an interactive (or
@@ -315,17 +339,21 @@ mode), it should refuse to run setup rather than silently relaxing them.
 
 ## Open items
 
-- Exact walk boundary/registry interaction needs implementation-time
-  verification against real Claude Code plugin data-directory semantics
-  (`${CLAUDE_PLUGIN_DATA}` scoping — confirm it's readable/writable the way
-  this design assumes).
-- Whether `${CLAUDE_PLUGIN_ROOT}` **and** `${CLAUDE_PLUGIN_DATA}`
-  substitution need to happen via the skill itself (reading the env var at
-  tool-call time, during a skill's own Bash/Read calls) or some other
-  mechanism — not yet confirmed against actual plugin runtime behavior.
-  Both variables are documented for hook scripts; whether a skill's own
-  tool calls see the same environment is the same open question for both,
-  not just `ROOT`.
+- ~~Exact walk boundary/registry interaction needs implementation-time
+  verification...~~ — **confirmed** against a real `claude --plugin-dir .`
+  session (2026-08): the skill's own tool calls read and wrote
+  `${CLAUDE_PLUGIN_DATA}/known-projects.json` correctly (Step 0/2), and
+  `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` substitution both resolved
+  correctly at Step 4 write time — not just from the `SessionStart` hook
+  script, from the skill's own Bash/Read calls too, resolving the "does a
+  skill's own tool call see the same environment as a hook script" question
+  for both variables. One correction the same test surfaced: `${CLAUDE_PLUGIN_DATA}`
+  is keyed by the plugin's *name* (`.claude/plugins/data/<name>`, e.g.
+  `centina-inline` for a `--plugin-dir` install), not by the checkout's
+  filesystem path — which is why Step 4 now points the stub's plugin path
+  at the `DATA` copy of `tsPlugin.cjs` rather than the `ROOT` one (see
+  above): `ROOT` moving/renaming no longer breaks an already-generated
+  project.
 - `known-projects.json` has the same concurrent-write shape flagged (and
   deliberately deferred) for `npm install` races in
   `docs/plugin-checker-install.md`: two sessions in different trees
