@@ -14,20 +14,39 @@ entries (name, source, metadata). Anyone can host one. Anthropic runs two
 submission after review), but self-hosting your own is the documented
 standard path for independent distribution, not a fallback.
 
-Three ways a user actually gets a plugin, in increasing order of
-distribution reach:
+Four ways a user actually gets a plugin. The first two are single-machine,
+single-user mechanisms that differ only in whether the load has to be
+requested every session; the last two are what actually extends reach to
+other people or other machines:
 
 1. **`claude --plugin-dir ./path`** — local directory, no marketplace
-   involved at all. Documented as the development/testing path.
-2. **`/plugin marketplace add <own-repo>` then `/plugin install
+   involved at all, but scoped to that one invocation: `claude --help`
+   states it plainly ("for this session only"). Documented as the
+   development/testing path. Fastest to start from — no filesystem changes
+   outside the checkout itself — but repeats the flag every session.
+2. **A symlink (or `claude plugin init <name>`-scaffolded plugin) at
+   `~/.claude/skills/<name>/`** — auto-loads every session with no flag, as
+   `<name>@skills-dir`. Confirmed empirically (2026-08,
+   `~/.claude/skills/centina -> <checkout>`): the `SessionStart` hook fires
+   exactly as it does under `--plugin-dir`, correctly resolving
+   `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` and populating a
+   name-keyed data directory (`centina-skills-dir`, distinct from
+   `centina-inline`'s under `--plugin-dir`) with the checker fully
+   installed — no skill invocation needed to trigger it. This is the
+   better default for a single user's own daily-driver machine: same
+   zero-ceremony, directory-based install as (1), minus the per-session
+   flag. Still doesn't help anyone else — the symlink target has to exist
+   on that same machine.
+3. **`/plugin marketplace add <own-repo>` then `/plugin install
    centina@<marketplace-name>`** — a self-hosted marketplace. Anyone who
-   knows the repo URL can add it; no review, no gatekeeper.
-3. **Submission to `claude-plugins-community`** — requires passing
+   knows the repo URL can add it; no review, no gatekeeper. The first
+   option that actually reaches another person or machine.
+4. **Submission to `claude-plugins-community`** — requires passing
    `claude plugin validate` plus Anthropic's review and "automated safety
    screening," for listing in a marketplace Anthropic curates and users
    discover without already knowing about Centina.
 
-## Recommendation for Centina: start at (1), move to (2), defer (3)
+## Recommendation for Centina: (2) for personal use now, (3) to share, defer (4)
 
 Given the project's current state — pre-1.0, single author, checker rules
 and even the vocabulary still actively changing — committing to a review
@@ -35,8 +54,11 @@ process and public listing now is more machinery than the project needs,
 the same reasoning already applied to deferring the raw-TS-vs-precompiled
 decision in `plugin-file-layout.md`. Concretely:
 
-- **Now, during development:** `--plugin-dir` against a local checkout.
-  Fastest iteration loop, zero distribution ceremony.
+- **Now, for your own use:** the `~/.claude/skills/<name>/` symlink —
+  same zero-ceremony directory install as `--plugin-dir`, without
+  re-typing the flag every session. `--plugin-dir` itself stays useful for
+  a one-off session against a plugin you don't want auto-loading by
+  default (e.g. testing an alternate branch/checkout).
 - **Once ready to use across machines / share with anyone specific:** a
   self-hosted marketplace — just this repo (or a dedicated one) with a
   `.claude-plugin/marketplace.json` added, no submission process, full

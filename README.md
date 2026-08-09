@@ -324,28 +324,35 @@ first spec:
    git clone https://github.com/adamtwede/centina.git
    ```
 
-2. **From the project you want to spec, start Claude Code pointed at the
-   local Centina checkout.**
+2. **Make Claude Code load the plugin.** Two ways, both directory-based —
+   no marketplace, no submission process (see
+   [Plugin distribution and install mechanics](docs/plugin-distribution.md)
+   for when you'd want one of those instead):
 
-   ```console
-   cd your-project        # or wherever you want to work
-   claude --plugin-dir /path/to/centina
-   ```
+   - **Recommended, for your own machine: symlink it into
+     `~/.claude/skills/`.** Auto-loads every session, no flag needed.
 
-   `--plugin-dir` is the documented path for a local/development plugin
-   install — see [Plugin distribution and install mechanics](docs/plugin-distribution.md)
-   for the self-hosted-marketplace option once you want this shared across
-   machines without repeating the flag.
+     ```console
+     ln -s /path/to/centina ~/.claude/skills/centina
+     ```
 
-   **The checkout has to be reachable at whatever path you pass here, every
-   time.** You can move or rename it later — just update the `--plugin-dir`
-   argument to match — and any Centina project you've already set up will
-   keep working with no changes needed on its end: the one thing a project
-   depends on for live in-editor checking (the compiled checker Claude Code
-   keeps in its own persistent plugin-data directory) is keyed by the
-   plugin's name, not by the checkout's location. What you can't do is
-   delete the checkout, or lose track of where it lives — `--plugin-dir`
-   needs a real path to load the plugin at all.
+   - **One-off, or testing an alternate checkout:** pass `--plugin-dir`
+     for just that session.
+
+     ```console
+     cd your-project        # or wherever you want to work
+     claude --plugin-dir /path/to/centina
+     ```
+
+   **The checkout has to be reachable at that path every session**, whichever
+   way you loaded it. You can move or rename it later — just update the
+   symlink or the `--plugin-dir` argument to match — and any Centina project
+   you've already set up will keep working with no changes needed on its
+   end: the one thing a project depends on for live in-editor checking (the
+   compiled checker Claude Code keeps in its own persistent plugin-data
+   directory) is keyed by the plugin's name, not by the checkout's location.
+   What you can't do is delete the checkout, or lose track of where it
+   lives — both loading methods need a real path to find the plugin at all.
 
 3. **Invoke the `centina-session-zero` skill.** It's auto-discovered from
    the plugin (`/centina-session-zero`, or it may surface on its own from a
@@ -740,6 +747,11 @@ Centina checkout's own root:
 ```console
 claude --plugin-dir .
 ```
+
+Prefer `--plugin-dir .` over the `~/.claude/skills/` symlink for this: the
+symlink makes every session on the machine load whatever's currently
+checked out, including in-progress or broken changes — fine for a stable
+daily-driver install, not for iterating on Centina itself.
 
 This is also the path for verifying a packaging change actually works
 end-to-end, as opposed to the harness-level checks `npm run check` and
