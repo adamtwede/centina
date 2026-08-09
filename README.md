@@ -339,6 +339,14 @@ first spec:
    updates and re-run `install.sh` later — it's a frozen snapshot, not a
    tracked link.
 
+   `bin/centina-check` (the checker's CLI) ends up at
+   `~/.claude/skills/centina/bin/centina-check`, but installing doesn't put
+   it on your `PATH`. That's fine for normal use — Claude Code skills
+   invoke it directly via `${CLAUDE_PLUGIN_ROOT}`, nothing to configure
+   there — but if you ever want to run it yourself from a terminal, either
+   add that `bin/` directory to your `PATH` or call it by full path
+   (`install.sh` prints the exact path to use at the end of the install).
+
    Prefer a one-off session against a specific checkout instead (no
    install, no lasting change)? `claude --plugin-dir /path/to/centina`
    loads it for that session only. See
