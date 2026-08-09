@@ -43,6 +43,7 @@ becoming necessary, and how Centina answers it.
   - [When to use it (and when not to)](#when-to-use-it-and-when-not-to)
     - [What Centina most definitely isn't for](#what-centina-most-definitely-isnt-for)
   - [Getting started](#getting-started)
+  - [Using Centina without Claude Code](#using-centina-without-claude-code)
   - [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
   - [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
     - [Domain content — describing the system](#domain-content--describing-the-system)
@@ -371,12 +372,10 @@ first spec:
    question into a visible hole, and emitting a skeleton spec set plus an
    `ARCHITECTURE.md` at the end.
 
-   Other coding agents generally won't auto-discover a Claude Code plugin,
-   but the skills are just plain markdown: point any capable agent at
-   `skills/centina-session-zero/SKILL.md` in the install directory (or a
-   checkout, if you kept one) and ask it to follow it (it won't have
-   `${CLAUDE_PLUGIN_ROOT}` set, so resolve that to the absolute path
-   yourself first).
+   Not using Claude Code? See
+   [Using Centina without Claude Code](#using-centina-without-claude-code)
+   below — the skills are plain markdown any capable agent can follow, but
+   the setup steps this section automates need to happen by hand instead.
 
 **What you end up with.** Session zero hands off a skeleton spec set plus
 `ARCHITECTURE.md`; running `centina-iterate` on each component then walks it to
@@ -401,6 +400,71 @@ in-session context required.
 For what actually happens in that session (and in `centina-iterate`, the
 follow-on that refines a single spec toward complete) see
 [How you actually use it: gap-hunting sessions](#how-you-actually-use-it-gap-hunting-sessions).
+
+## Using Centina without Claude Code
+
+Everything above assumes Claude Code, which is what makes setup turnkey —
+the plugin loader, the `SessionStart` hook that installs the checker's own
+dependencies, and `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` resolving
+as environment variables are all Claude Code mechanisms. None of that is
+required to use Centina, though: the checker is a plain TypeScript CLI, and
+the skills are plain markdown any capable agent can follow. This section is
+what those mechanisms are standing in for, done by hand — verified against
+a real run with no Claude Code environment variables set at all.
+[docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness
+portability" section is the fuller design-level treatment, if you're
+building something more automated than what's below.
+
+1. **Get the plugin content on disk** — same `install.sh` as
+   [Getting started](#getting-started) step 1. It has no Claude Code
+   dependency itself, it's a plain copy script.
+
+   ```console
+   git clone https://github.com/adamtwede/centina.git
+   cd centina && ./install.sh ~/wherever/you/want/it
+   ```
+
+2. **Install the checker's own dependencies once, by hand.** There's no
+   `SessionStart` hook to do this for you outside Claude Code:
+
+   ```console
+   cd ~/wherever/you/want/it/checker
+   npm install
+   ```
+
+3. **Set up your own project by hand** — this is what
+   [docs/plugin-setup-procedure.md](docs/plugin-setup-procedure.md)'s Steps
+   3–4 do automatically inside a Claude Code session:
+   - Copy `centina.ts` and `docs/boundaries.md`, `docs/fit-validation.md`,
+     `docs/plan-organization.md` from the install directory into your
+     project (wherever you want `specs/` to live).
+   - Write a `tsconfig.json` there based on
+     [tsconfig.template.json](tsconfig.template.json). Omit
+     `compilerOptions.plugins` entirely if you only need the CLI check
+     below — that field is read by an editor's TypeScript language service
+     (tsserver), never by the CLI. If you *do* want live in-editor
+     diagnostics and your editor uses tsserver (VS Code, and most others),
+     set it to the absolute path of `<install directory>/checker/tsPlugin.cjs`
+     instead — that works the same regardless of what loaded the plugin,
+     Claude Code or not.
+
+4. **Run the checker directly** — not `bin/centina-check`, which expects
+   `CLAUDE_PLUGIN_DATA` to be set and refuses to run without it.
+   `checker/cli.ts` itself has no Claude Code dependency:
+
+   ```console
+   cd ~/wherever/you/want/it/checker
+   npx tsx cli.ts --project /path/to/your/project/tsconfig.json /path/to/a/spec.centina.ts
+   ```
+
+5. **For the workflow itself** — the gated elicitation process, Rule 0, the
+   rest of what `centina-session-zero`/`centina-iterate` actually do — hand
+   your agent `skills/centina-session-zero/SKILL.md` or
+   `skills/centina-iterate/SKILL.md` from the install directory and ask it
+   to follow them. Every `${CLAUDE_PLUGIN_ROOT}` reference inside is a
+   stand-in for the install directory's absolute path — resolve those
+   yourself before handing the file over, since no such variable exists
+   outside a Claude Code session.
 
 ## The core mechanism: the typed hole with routing
 
