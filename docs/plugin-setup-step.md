@@ -161,10 +161,13 @@ At `artifactsRoot`, if not already present:
   not a doc.
 - Copies (not symlinks) of the bundled reference docs from
   `${CLAUDE_PLUGIN_ROOT}/docs/`: `boundaries.md`, `fit-validation.md`,
-  `plan-organization.md`. These are the docs identified as load-bearing
-  guidance the skills actively cite, as opposed to this project's own
-  dev-history docs (`ROADMAP.md`, `session-zero-test-cases.md`), which stay
-  behind and never ship. `plugin-setup-procedure.md` (the terse, imperative
+  `plan-organization.md` — written to `<artifactsRoot>/docs/`, not loose at
+  `artifactsRoot` itself, so a spec author's own project files don't end up
+  interleaved with Centina's reference docs in one flat listing. These are
+  the docs identified as load-bearing guidance the skills actively cite, as
+  opposed to this project's own dev-history docs (`ROADMAP.md`,
+  `session-zero-test-cases.md`), which stay behind and never ship.
+  `plugin-setup-procedure.md` (the terse, imperative
   form of this whole document, extracted for skills to actually follow —
   see `docs/plugin-file-layout.md`) is *not* copied here: it's procedural
   guidance for the skill itself, not spec-writing reference material for

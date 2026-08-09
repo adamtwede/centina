@@ -59,8 +59,9 @@ At `artifactsRoot`, if not already present, create:
 - `centina.ts` — copy (not symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`.
   Every spec imports this by relative path; without it, specs don't
   resolve.
-- Copies (not symlinks) of `${CLAUDE_PLUGIN_ROOT}/docs/boundaries.md`,
-  `fit-validation.md`, `plan-organization.md`.
+- `docs/` — copies (not symlinks) of `${CLAUDE_PLUGIN_ROOT}/docs/boundaries.md`,
+  `fit-validation.md`, `plan-organization.md`, at `<artifactsRoot>/docs/`,
+  not loose at `<artifactsRoot>` itself.
 
 ## Step 4 — write the stub tsconfig
 
