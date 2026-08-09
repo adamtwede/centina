@@ -317,42 +317,41 @@ install globally and no server to run — Claude Code installs the checker's
 own dependencies for you the first time it needs them. To stand up your
 first spec:
 
-1. **Clone the Centina repo** (anywhere — it doesn't need to sit inside or
-   near the project you're specing).
+1. **Clone the Centina repo, anywhere, and install it.** The clone is a
+   one-time source for the install — not something you keep around or
+   reference afterward.
 
    ```console
    git clone https://github.com/adamtwede/centina.git
+   cd centina && ./install.sh
    ```
 
-2. **Make Claude Code load the plugin.** Two ways, both directory-based —
-   no marketplace, no submission process (see
+   This copies the plugin (vocabulary, checker, skills, docs — see
+   [docs/plugin-file-layout.md](docs/plugin-file-layout.md) for exactly
+   what) into `~/.claude/skills/centina/`, which Claude Code auto-loads
+   every session with no flag needed. **You can delete the clone after
+   this step.** Nothing in the installed copy references the clone's
+   location — Claude Code loads the plugin from the install location
+   itself, and the one thing a project depends on afterward for live
+   in-editor checking (the compiled checker) lives in Claude Code's own
+   persistent per-plugin data directory, keyed by the plugin's name, not
+   by any checkout's path. Keep the clone around only if you plan to pull
+   updates and re-run `install.sh` later — it's a frozen snapshot, not a
+   tracked link.
+
+   Prefer a one-off session against a specific checkout instead (no
+   install, no lasting change)? `claude --plugin-dir /path/to/centina`
+   loads it for that session only. See
    [Plugin distribution and install mechanics](docs/plugin-distribution.md)
-   for when you'd want one of those instead):
+   for this and the marketplace options, once you want to share Centina
+   with someone else or across machines.
 
-   - **Recommended, for your own machine: symlink it into
-     `~/.claude/skills/`.** Auto-loads every session, no flag needed.
+2. **Start Claude Code from the project you want to spec.**
 
-     ```console
-     ln -s /path/to/centina ~/.claude/skills/centina
-     ```
-
-   - **One-off, or testing an alternate checkout:** pass `--plugin-dir`
-     for just that session.
-
-     ```console
-     cd your-project        # or wherever you want to work
-     claude --plugin-dir /path/to/centina
-     ```
-
-   **The checkout has to be reachable at that path every session**, whichever
-   way you loaded it. You can move or rename it later — just update the
-   symlink or the `--plugin-dir` argument to match — and any Centina project
-   you've already set up will keep working with no changes needed on its
-   end: the one thing a project depends on for live in-editor checking (the
-   compiled checker Claude Code keeps in its own persistent plugin-data
-   directory) is keyed by the plugin's name, not by the checkout's location.
-   What you can't do is delete the checkout, or lose track of where it
-   lives — both loading methods need a real path to find the plugin at all.
+   ```console
+   cd your-project
+   claude
+   ```
 
 3. **Invoke the `centina-session-zero` skill.** It's auto-discovered from
    the plugin (`/centina-session-zero`, or it may surface on its own from a
@@ -366,9 +365,10 @@ first spec:
 
    Other coding agents generally won't auto-discover a Claude Code plugin,
    but the skills are just plain markdown: point any capable agent at
-   `skills/centina-session-zero/SKILL.md` in the Centina checkout and ask it
-   to follow it (it won't have `${CLAUDE_PLUGIN_ROOT}` set, so resolve that
-   to the checkout's absolute path yourself first).
+   `skills/centina-session-zero/SKILL.md` in the install directory (or a
+   checkout, if you kept one) and ask it to follow it (it won't have
+   `${CLAUDE_PLUGIN_ROOT}` set, so resolve that to the absolute path
+   yourself first).
 
 **What you end up with.** Session zero hands off a skeleton spec set plus
 `ARCHITECTURE.md`; running `centina-iterate` on each component then walks it to
@@ -748,10 +748,12 @@ Centina checkout's own root:
 claude --plugin-dir .
 ```
 
-Prefer `--plugin-dir .` over the `~/.claude/skills/` symlink for this: the
-symlink makes every session on the machine load whatever's currently
-checked out, including in-progress or broken changes — fine for a stable
-daily-driver install, not for iterating on Centina itself.
+Prefer `--plugin-dir .` over your `~/.claude/skills/centina/` install for
+this: that install is a frozen `install.sh` snapshot, so it won't reflect
+edits you're making in the checkout at all, and re-running `install.sh` to
+pick them up would also make every *other* session on the machine load
+in-progress or possibly-broken changes — fine for a stable daily-driver
+install, not for iterating on Centina itself.
 
 This is also the path for verifying a packaging change actually works
 end-to-end, as opposed to the harness-level checks `npm run check` and

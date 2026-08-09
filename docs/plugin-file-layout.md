@@ -47,6 +47,15 @@ centina-plugin/
     └── output-management.md
 ```
 
+This tree is exactly what `install.sh` (at the checkout's own root,
+alongside but not part of this tree) copies into a durable install
+location — see "Installing without keeping the checkout" below. The
+checkout also carries dev-repo-only content this tree omits deliberately:
+`specs/` (Centina's own dogfood specs), `README.md`, `CLAUDE.md`,
+`ROADMAP.md`, root `package.json`/`package-lock.json` (the npm workspace
+wrapper around `checker/`'s own `package.json`), `editors/vscode/`, and
+`install.sh` itself.
+
 `.claude-plugin/` holds only `plugin.json` — every other component
 (`skills/`, `hooks/`, `bin/`) lives at plugin root, per the documented
 convention. Skills are auto-discovered from `skills/` with no manifest
@@ -160,6 +169,35 @@ the same compiler options in two places that can drift apart. This is a
 small correction to fold back into `plugin-setup-step.md` before
 implementation, not a new design question — flagging it here since this
 is the doc that surfaces the plugin's own file layout.
+
+## Installing without keeping the checkout
+
+**Implemented.** `install.sh` at the checkout root copies exactly the
+directory tree above into a destination (default
+`~/.claude/skills/centina`) as a real, standalone directory — not a
+symlink. Once it's run, the checkout is disposable: nothing in the copied
+tree references the checkout's path (verified by grepping the installed
+copy for the checkout's absolute path — no hits), and everything resolves
+either through `${CLAUDE_PLUGIN_ROOT}` (now the install location itself,
+whichever directory Claude Code loaded the plugin from) or
+`${CLAUDE_PLUGIN_DATA}` (already independent of where `ROOT` lives, per
+`docs/plugin-setup-step.md`'s Step 4 — that's what makes this work at all:
+if the stub tsconfig still pointed at `ROOT`, an installed-then-deleted
+checkout would break every existing project's live checking the same way
+a moved-not-deleted checkout would have before that fix).
+
+This is a frozen-snapshot install, not a tracked one: pulling an update in
+a separate checkout, or re-cloning a newer version, does nothing to an
+already-installed copy until `install.sh` runs again. That's a deliberate
+match to how `claude plugin update` already behaves for a marketplace
+install (an explicit action, not automatic), not a gap to close.
+
+`install.sh` also strips `checker/node_modules` and
+`checker/package-lock.json` from the copy if present from local dev use —
+those are install-time artifacts the `SessionStart` hook regenerates
+inside `${CLAUDE_PLUGIN_DATA}` on first use ( `docs/plugin-checker-install.md`),
+so shipping a stale copy in the bundle itself would be redundant at best,
+wrong at worst.
 
 ## Open items
 

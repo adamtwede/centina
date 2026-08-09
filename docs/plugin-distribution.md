@@ -24,19 +24,41 @@ other people or other machines:
    states it plainly ("for this session only"). Documented as the
    development/testing path. Fastest to start from — no filesystem changes
    outside the checkout itself — but repeats the flag every session.
-2. **A symlink (or `claude plugin init <name>`-scaffolded plugin) at
-   `~/.claude/skills/<name>/`** — auto-loads every session with no flag, as
-   `<name>@skills-dir`. Confirmed empirically (2026-08,
+2. **`~/.claude/skills/<name>/`** — auto-loads every session with no flag,
+   as `<name>@skills-dir`. Confirmed empirically (2026-08,
    `~/.claude/skills/centina -> <checkout>`): the `SessionStart` hook fires
    exactly as it does under `--plugin-dir`, correctly resolving
    `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` and populating a
    name-keyed data directory (`centina-skills-dir`, distinct from
    `centina-inline`'s under `--plugin-dir`) with the checker fully
-   installed — no skill invocation needed to trigger it. This is the
-   better default for a single user's own daily-driver machine: same
-   zero-ceremony, directory-based install as (1), minus the per-session
-   flag. Still doesn't help anyone else — the symlink target has to exist
-   on that same machine.
+   installed — no skill invocation needed to trigger it. Two ways to
+   populate this location, with a real difference in what they depend on
+   afterward:
+   - **Symlink to the checkout.** Fastest to set up, but keeps the
+     checkout a live dependency: move, rename, or delete it and the plugin
+     stops loading at the next session (the same silent-until-next-session
+     failure shape `docs/plugin-setup-step.md` already worried about for a
+     generated project's `tsconfig.json`, except here it's the plugin's
+     own load that breaks, not one project's checking).
+   - **A real copy, via the checkout's `install.sh`.** Copies exactly the
+     plugin-bundle subset (the tree in `docs/plugin-file-layout.md`) into
+     the destination as a standalone directory — no symlink, no reference
+     back to the checkout. Verified the copy contains no hardcoded path to
+     the original checkout anywhere (`grep`'d the installed tree for the
+     checkout's absolute path: no hits) — everything in it resolves
+     through `${CLAUDE_PLUGIN_ROOT}` (now the install location itself) or
+     `${CLAUDE_PLUGIN_DATA}` (already checkout-location-independent per
+     `docs/plugin-setup-step.md`'s Step 4). Once run, **the checkout is
+     genuinely disposable.** Trade-off to know: this is a frozen snapshot,
+     not a live link — pulling an update in the checkout does nothing
+     until `install.sh` is re-run, matching how `claude plugin update`
+     already works for marketplace installs (an explicit action, not
+     automatic git-tracking).
+
+   Either way this is the better default for a single user's own
+   daily-driver machine: same zero-ceremony, directory-based install as
+   (1), minus the per-session flag. Still doesn't help anyone else — the
+   destination has to exist on that same machine.
 3. **`/plugin marketplace add <own-repo>` then `/plugin install
    centina@<marketplace-name>`** — a self-hosted marketplace. Anyone who
    knows the repo URL can add it; no review, no gatekeeper. The first
@@ -54,9 +76,12 @@ process and public listing now is more machinery than the project needs,
 the same reasoning already applied to deferring the raw-TS-vs-precompiled
 decision in `plugin-file-layout.md`. Concretely:
 
-- **Now, for your own use:** the `~/.claude/skills/<name>/` symlink —
+- **Now, for your own use:** `install.sh` into `~/.claude/skills/<name>/` —
   same zero-ceremony directory install as `--plugin-dir`, without
-  re-typing the flag every session. `--plugin-dir` itself stays useful for
+  re-typing the flag every session, and without keeping the checkout
+  around afterward. The symlink variant is fine for a quick look, but the
+  real-copy install is what actually delivers "clone once, use forever" —
+  `--plugin-dir` itself stays useful for
   a one-off session against a plugin you don't want auto-loading by
   default (e.g. testing an alternate branch/checkout).
 - **Once ready to use across machines / share with anyone specific:** a
