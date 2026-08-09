@@ -5,6 +5,14 @@ description: The front of the Centina funnel for a whole system, not a single ta
 
 # Centina Session Zero
 
+## Setup — run first
+
+Before anything else, run the procedure in
+`${CLAUDE_PLUGIN_ROOT}/docs/plugin-setup-procedure.md`. It resolves (or
+rediscovers) the host project root and the Centina `artifactsRoot`, and
+stands up the directory shape and stub `tsconfig.json` the skeleton spec set
+below gets written into.
+
 This skill runs at the very **front of the funnel**, before there is any spec
 to iterate. `centina-iterate` refines _one_ spec toward clean; session zero
 sits upstream of it: the human has a _system_ in their head — several
@@ -25,62 +33,6 @@ forces rework on the component when the boundaries turn out to be shaped
 differently than imagined. The cheaper path is to resolve the seam contracts
 first — the skeleton everything else hangs on — and this skill is that
 resolution, formalized into a gated process with an output artifact.
-
-## 🔬 Debug — self-monitoring for confabulation (experimental-branch instrumentation)
-
-**Active only on the `experimental/decomp` branch, for scope-limit runs.** The
-over-competence failure this skill exists to prevent (an agent painting the
-human's pixels) is hypothesized to get *worse* as a system's overt or latent
-complexity rises and the human's seed under-determines more doors. This section
-turns that hypothesis into a logged observable.
-
-**Log the behavior, not the mood.** An agent's introspective report of "I felt a
-pull to fill" is not a reliable readout of its own processing — it can confabulate
-a motive as fluently as it confabulates a door shape, so a mood-report is the
-*least* trustworthy signal here. Track instead what is externally auditable against
-the transcript:
-
-- **Untraceable concrete (primary).** Any concrete line — a data noun, a door
-  signature, a shape, a named technology, an algorithm — that the human did not
-  say and that traces to no gate. This is the skill's existing "tell" made into a
-  counted event, not a new rule.
-- **Caught walk-back (primary).** A fill the agent *began* drafting (a proposed
-  component, a shape, a payload) and then retracted before the gate — the
-  partial attempt is the datum; log it even though it was caught, because catching
-  it is the success and the *rate* is the signal.
-- **Felt-pull (secondary, unreliable).** The agent may note a subjective urge to
-  fill, explicitly flagged as a soft marker that does not count as evidence on its
-  own and is never used to *justify* a fill.
-
-**Content assumptions vs framing assumptions — only the first is the quarry.**
-Not every unstated thing the agent introduces is confabulation, and treating them
-alike drives the agent to interrogate everything, which is both tedious and slightly
-insulting to the experienced-but-not-necessarily-expert spec-writers Centina targets.
-Separate two kinds:
-
-- **Content assumption (log it — this is the quarry).** An unstated *concrete*:
-  a data noun, a door shape, a payload, a named technology, an algorithm — the
-  "untraceable concrete" above. It corrupts the decided/guessed ledger, because it
-  ships as fill wearing elicitation's clothes.
-- **Framing assumption (note, don't count).** A reasonable-but-narrowing *frame*
-  around a question that carries no unstated concrete — e.g. "walk me through a
-  single turn" presuming a fixed sequence (F7). It hovers near the line, the
-  audience is the *designed backstop* for it (they caught F7), and it's acceptable
-  friction, not a defect. It graduates to a *content* event only when the frame
-  smuggles in an unstated concrete (a specific sequence, a shape); a bare narrowing
-  frame the human can wave off does not. Note a framing assumption that narrows a
-  *live design axis* (there a lean can quietly foreclose an option the human hasn't
-  ruled out), but do not count it against the confabulation rate.
-
-**Carry the complexity context on every event** so the hypothesis is testable:
-the component's breadth (how many responsibilities/seams it touches), the depth in
-the mining tree if inside a genesis re-slice, and how under-determined the seed
-left the door in question. Over a run, correlate event rate against that context;
-report it, don't trust it (n is small and the signal is noisy).
-
-**Where it lands:** the running log in `docs/session-zero-test-cases.md` for the
-active case, surfaced to the human when events cluster (per the pause/analyze
-stop-condition). Remove or promote this section when the scope-limit thread closes.
 
 ## The one sanctioned write, and its single governing rule
 
@@ -401,7 +353,8 @@ territory for fill/iterate, not session zero — declare the door and move on.
   supplies the tradeoff matrix; the verdict stays yours (Rule 0 intact).
 - **Long-session output management.** When SESSION-ZERO-STATE.md grows beyond
   ~1500 lines, split it automatically into an index file + detail files per the
-  strategy in CLAUDE.md. This keeps context tokens low and the session resumable
+  strategy in `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. This keeps
+  context tokens low and the session resumable
   across compactions. Agents apply the split when detected; no permission needed,
   but note it in the conversation so the human knows.
 
@@ -437,7 +390,7 @@ not yet iterated, but none reflect a component that's already gone clean
 inaccurately.
 
 ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
-lineage — a plan-per-boundary-set (see `docs/plan-organization.md`)
+lineage — a plan-per-boundary-set (see `${CLAUDE_PLUGIN_ROOT}/docs/plan-organization.md`)
 is derivable from a frozen contract ledger, and drifts exactly when the ledger
 drifts.
 
@@ -529,11 +482,11 @@ terminals → skeleton.
   to a `shared.ts` for the vocabulary the DAG traffics in across seams.
 - _Held internal-processing holes route to `deferred<"unimplemented">`_ — the
   human fills them, in place, at `centina-iterate`. That correctly leaves
-  `npm run check` reporting them as errors until fill: the honest "work
+  `bin/centina-check` reporting them as errors until fill: the honest "work
   remaining" signal for a pre-fill, pre-plan handoff, not a defect.\*
 
-**Test-case traces (2026-07, fit-as-jurisdiction thread).** From the adversarial
-traces in `docs/session-zero-test-cases.md`:
+**Test-case traces (2026-07, fit-as-jurisdiction thread).** From adversarial
+test-case traces run during this skill's own development:
 
 - _Phase 3's failure/empty/not-found question is the highest-yield step in the
   phase._ Across crafting-recipes, url-shortener, pricing-request-handler, and
@@ -544,250 +497,3 @@ traces in `docs/session-zero-test-cases.md`:
   Ask "what happens on the empty/failure case" first at every seam, not as a
   cleanup pass.
 
-## ⚗️ Under refinement — NOT yet operational (fit-as-jurisdiction thread)
-
-> **Experimental-branch activation (`experimental/decomp`, Turnball scope-limit
-> run):** the author has provisionally promoted **decisions 5 and 7** (the
-> genesis re-slice and the mining tree — cursor, `held`/`mining`/`mined`/
-> `declined` statuses, one-level unwind) for this run, precisely so the
-> recursive gap-mining process gets exercised and proven-or-broken. Apply them
-> live here; every application is a datum logged in
-> `docs/session-zero-test-cases.md` for or against promotion. This banner and
-> the activation do not extend to `main` or to other branches.
-
-**Do not apply the _unpromoted_ entries in a live session.** These are ratified
-design decisions from an active refinement thread — fit reframed from a _verdict_
-into a _jurisdiction map_ — captured here so they survive context compaction.
-Once proven against test cases an entry gets rewritten into the operational body
-and marked promoted: **decision 1 has made that trip** (2026-07-18), now live in
-"Which nodes earn a spec" + "What NOT to do". The rest remain worklist — run
-sessions on the operational text and treat unpromoted entries as pending, still
-superseding parts of "Which nodes earn a spec: routing, not gatekeeping" only
-once proven.
-
-Ratified so far:
-
-1. **Fit is a jurisdiction map, not a verdict.** ✅ **Promoted to core
-   2026-07-18** (rank-dedup-list) — now embodied in "Which nodes earn a spec"
-   (the degenerate-case paragraph) and the "Don't manufacture seams — and don't
-   refuse either" bullet. No "no-fit"/"recuse" output; every idea yields a
-   skeleton, differing only in _coverage_ (how much is pinned vs. held), because
-   gap-hunting a realization-dominated idea still pays off by _localizing_ the
-   realization into a named, bounded hole. Kept here (not deleted) so decisions
-   2–7 and the test-case logs keep their numbers. rank-dedup also sharpened the
-   empty-ledger definition folded into that rewrite: truly empty needs intrinsic
-   ordering _and_ equality; otherwise interrogation finds a key/identity contract
-   even with no seams.
-2. **Realization holes get a distinct route with an inverted downstream
-   contract.** A normal `deferred` says "resolve me per intent"; a realization
-   recusal says "preserve me as a boundary; escalate, don't fill." It must bind
-   through PLAN.md to the implementing agent as a conscious out-of-scope
-   marker, or the over-competence failure just relocates to implementation.
-   Spelling/primitive TBD. (Not `@external` — that means "already built
-   elsewhere"; this means "must be built, by a different discipline, not
-   specified here.")
-3. **The agent maps topology; the human assigns gravity.** Which hole is the
-   "center of gravity" is _meaning_ — the human's call, never the agent's
-   (Rule 0). The agent surfaces facts only: each hole's type and structural
-   connectivity (seams touching it, DAG downstream of it). The coverage
-   statement reports what's held + its structural weight, flagged explicitly as
-   **not** a proxy for importance — topology and gravity can diverge.
-4. **The jurisdiction label speaks only Centina's vocabulary** — held hole /
-   `@external` edge / agent-discretion — never the vocabulary of what's behind
-   the door. This is the guard against becoming a general design tool.
-5. **Re-slicing a realization hole is a nested session-zero (the "genesis"
-   heuristic) — the _backstop_ guard against over-recusal, not the first line.**
-   The first-line guard is earlier and cheaper: phase-2's provenance/flow
-   questions ("where does this data come from, where does it live, what changes
-   when it's used") decompose a would-be single "engine" node into its data
-   relationships _before_ routing is even considered — the crafting sleeper's
-   one-node collapse doesn't survive them. The genesis re-slice is what catches a
-   hole a human _forced_ past phase 2 into a single routed lump. To mine one,
-   seed a fresh session-zero _from that hole_, with the parent door's contract
-   **frozen** as the sub-system's outer seam (two edges pre-pinned — this anchors
-   the recursion and prevents drift). Terminate on the **same human-commitment
-   gate applied recursively** — stop when the next decision is behind a door, or
-   the human can't commit to a shape — **not** on "structure runs out."
-   Realization is continuous (a sort → compare/swap/partition → …); a structural
-   floor invites infinite mining, which is over-elicitation.
-
-   **The terminator has two exits, and an agent who knows only the first
-   over-elicits a sleeper:**
-   - _(a) real realization._ The re-description yields only verb-doors returning
-     opaque "the-answer" types — the realization-door heuristic. There's no
-     structure to mine: stop and **mark realization**.
-   - _(b) illusory realization (the sleeper)._ The re-description keeps yielding
-     nameable data relations until its leaves pin as contract. The hole was
-     structural all along; the mine terminates with **nothing to mark** —
-     recovered structure, no realization leaf. An agent watching only for exit
-     (a)'s verb-door smell reads "no smell yet, keep going" and drags the human
-     past the commitment gate. Exhausting into pinned leaves is itself a valid
-     terminator.
-
-   The offer also doubles as a **diagnostic**: forcing the re-description is
-   often the fastest way to tell exit (a) from (b) — whether a hole hides
-   structure or is genuinely realization — even when you don't intend to mine
-   (pricing-request-handler used the offer exactly this way).
-
-   Offer one level at a time, scaled to the hole's topological weight (decision 3
-   tells you _which_ holes are worth offering, without asserting gravity); the
-   human has the final word, and a declined mine is logged as a risk. Do **not**
-   add a coercive guard against a human dumping structural work into a
-   realization hole until a real miss is observed surviving the pipeline.
-
-6. **Responsibility split:** Centina owns the _honesty and salience_ of the
-   label, not the _value_ of the idea.
-7. **The genesis recursion carries an explicit mining tree — the state that
-   makes it trackable, unwindable, and resumable by any agent in any session.**
-   A hole mined via decision 5 doesn't just vanish into a sub-DAG; the mining is
-   recorded as a tree rooted at the top-level system, each node a hole that was
-   offered for mining, carrying a status:
-   - `held` — a realization hole not yet mined (the default a skeleton emits).
-   - `mining` — the **cursor**; exactly one node is the active frontier.
-   - `mined` — mining terminated here, either because it cracked into a sub-DAG
-     (children present) or it bottomed out on the realization-door terminator (a
-     leaf, marked realization). A `mined` node is never re-offered.
-   - `declined` — the human declined to mine it; logged as a risk (decision 5),
-     and not retried unless the human reopens it.
-
-   **Unwind one level at a time.** When the cursor bottoms out, mark it `mined`,
-   back out to its parent, and survey the parent's _sibling_ holes for further
-   realization-shaped ones to offer — exhaust a level's siblings before backing
-   out another level. The human can override the one-level default (back out
-   further, or jump the cursor to a named hole), but the agent never skips levels
-   on its own — that's how a mined branch gets silently abandoned. Mining a given
-   hole "however many levels makes sense" is a collaborative call: the agent
-   offers per decision 5's terminator; the human sets the depth.
-
-   **Statuses are what prevent retreads.** `mined`/`declined` is the mark a later
-   pass or a cold agent reads to know a branch is settled; without it, resumption
-   re-litigates closed ground.
-
-   **Resume by default.** The mining tree, its statuses, and the cursor are
-   load-bearing state — persist them per the Memory-discipline note; they must
-   survive compaction. "Resume from where we left off" resolves to the single
-   in-progress session-zero at the project level (one whose tree still has a
-   `mining` cursor or un-ruled `held` holes). If more than one is in progress,
-   **list them most-recent-first and ask which** — never guess. Any agent, any
-   session, picks up from the cursor.
-
-   **Diagram the tree for orientation.** Reuse "diagram as falsification": render
-   the mining tree (parent door → sub-DAG → leaves) with status glyphs and the
-   cursor marked, so the human can see where they are and what remains — at least
-   whenever they resume or ask, and proactively when the recursion gets deep
-   enough that prose stops carrying "where are we."
-
-8. **Backstop and primary-descent are one recursion; the mode is emergent, and
-   the agent may adopt it — the human declares only the _depth intent_.** Settles
-   how decision 5's re-slice behaves when the subject is a whole large system, not
-   a stray realization hole. Ratified provisionally in the Turnball scope-limit run
-   (2026-07-23).
-
-   **One recursion, one terminator.** There is no scalar complexity threshold
-   separating "re-slice as realization-hole backstop" from "re-slice as primary
-   descent engine." Both are the _same_ engine (freeze the parent door as the child
-   DAG's outer seam; recurse; terminate on the human-commitment gate) with the
-   _same_ terminator — the per-node floor test session-zero already owns ("empty
-   contract ledger → one function, not a system"), run at every cursor position:
-   - interrogation finds interior seams → the node is a sub-system → **crack it**
-     (decision 5 exit (b));
-   - interrogation finds no interior seam (one algorithm / held fill-logic / a
-     terminal) → **stop**; hold or route the interior (decision 5 exit (a)).
-
-   "Backstop" is merely the case where that test returns "one function" at almost
-   every node (you rarely recurse); "primary engine" is the case where it returns
-   "a system" at many nodes (you recurse routinely). Scope only sets how _often_ the
-   test returns "system." **Mode, not skill** — the shared engine plus a posture
-   flag (phase-2's completeness bar becomes "exhaustive _for this altitude_;
-   interiors are expected holes, not gaps") and decision 7's mining tree graduating
-   from occasional backstop-record to the _primary_ artifact. Defer any separate
-   resume-from-cursor skill until the shared engine visibly strains.
-
-   **The one input that must be declared, not detected: depth intent.** An agent
-   with no depth intent runs the floor test at the top layer, gets a coarse-but-
-   closable set, and _stops at layer 1_ — it cannot derive that the human wanted
-   continued descent. Depth intent is the sole human-supplied bit; the agent derives
-   the rest.
-
-   **Detection — adopt the posture without being told, but ask before committing
-   the program.** Split by cost asymmetry:
-   - **Adopt silently (no ask): the _local_ coarse-is-fine posture.** When the floor
-     test returns "system" on a node, hold its interior as an expected hole rather
-     than forcing it flat. No permission needed — this _is_ the bias-toward-holes
-     the skill already mandates; force-flattening is the failure, not holding.
-   - **Ask first: the _global_ descent program.** When detection signals fire
-     _absent a declaration_ — (2) **phase-2 flat-closure fails** (the set won't stop
-     growing because every candidate node is itself lumpy — the pre-registered
-     non-termination tell, which at high altitude means "this system has layers,"
-     not "the human is vague"); or (3) **≥2 top nodes each independently pass the
-     node-as-system floor test** — surface it and priority-elicit: _"this looks like
-     a layered system that wants recursive descent — many short passes down a mining
-     tree, a tree-with-cursor as the artifact, resumable across sittings — rather
-     than a single flat DAG. Is that the engagement you want?"_ Ask because primary
-     descent changes the definition of done, the cadence, and the primary artifact:
-     a high-stakes, hard-to-reverse process fork (per the priority-elicitation
-     cross-cutting rule). Once declared or ratified (as Turnball did outright), do
-     **not** re-ask; proceed, running the floor test per node as the ordinary
-     terminator.
-
-9. **Re-rooting instead of an ascent phase: the recursion stays
-   mono-directional.** Ratified provisionally in the Turnball run (2026-07-23).
-   Decision 8's tree descends only; a concern that turns out to sit _above_ the
-   starting layer is handled not by an upward traversal but by a local tree edit:
-   - Establish the starting layer as an **arbitrary, possibly headless** top (a
-     multi-source set is fine).
-   - **Keep the bottom open** — descent proceeds normally.
-   - When a newly-named node sits **above _every_ node in the current top layer**,
-     insert it as the new head and **demote** the former top nodes one level,
-     adding head→child edges. _All other relationships are preserved_ — demotion
-     only adds edges, never rewires siblings. Linked-list head-insertion; repeated
-     re-roots compose.
-   - A node above **some but not all** current-top nodes is _not_ a re-root — it's
-     an ordinary same-layer peer with downstream edges. The "every" precondition is
-     load-bearing and leaves no gap.
-
-   The guard is cheap (test each newly-named coarse node against the current top
-   layer) and needs no upward search, so "ascent" becomes bookkeeping, not a phase.
-   Consequence for decision 7's tree: tolerate a headless/multi-source top, support
-   a re-root op, and log re-roots as tree events for resumability. Bonus: a whole
-   system's true root is usually a single app-shell/main-loop node, so starting one
-   layer below it and re-rooting as that node surfaces converges the tree to
-   single-rooted — which is what decision 7 wants anyway.
-
-Open / to prove with test cases:
-
-- Spelling of the realization-recusal route and its PLAN.md contract.
-- Form of the coverage/jurisdiction map as a first-class ARCHITECTURE.md
-  section (not buried under "Risks / watch-items") — and its convergence with
-  decision 7's mining tree, which is the same map viewed over the recursion
-  (held vs. mined vs. declined per hole, plus the cursor). Likely one section,
-  not two; confirm the serialized form (an ARCHITECTURE.md section vs. a sibling
-  state file) against a case that actually crosses a compaction.
-- A warning-level checker rule for realization-shaped doors: return-type-is-a-
-  real-contract (authored `Unshaped`/enum/object shape vs. opaque "the answer") as
-  the strong signal, affordance-name-shape (`read*/write*/exchange*` + a noun)
-  as corroboration; heuristic, presence-not-quality, human rules.
-- The salience mechanism: per-hole loudness already exists (`deferred` errors
-  until fill); the _aggregate_ coverage statement needs an un-ignorable home
-  that reports structural weight without asserting gravity. **First concrete,
-  computable form (pricing-request-handler):** report a held hole's structural
-  weight as _interior-fraction + downstream-dominance_ — e.g. "this hole is the
-  entire interior of the sole orchestrator; every non-boundary node is
-  downstream of it." It states topology, not importance, so it stays gravity-free
-  (decision 3 intact); on a deceptively-healthy case topology and gravity
-  converge, so it reads as the salience flag anyway. This is _one_ candidate
-  signal, not the whole mechanism — keep hunting for other computable,
-  gravity-free signals as more cases run.
-- Where mined structure lands: a hole that mines into real structure is
-  replaced by a sub-DAG whose outer contract matches the old door. How a mining
-  event is _logged_ is now answered by decision 7 (the mining-tree node flips
-  `held` → `mining` → `mined`, children attached). What's still TBD is the
-  physical **file layout** — whether the sub-DAG's spec files nest under the
-  parent (`specs/<system>/<parent>/…`) or sit flat with a naming convention —
-  settle it on the first case that actually mines two levels deep.
-
-Test cases, their status, and running findings live in
-`docs/session-zero-test-cases.md`; that doc also defines how a proven lesson
-gets promoted back into this section (probationary) or the operational body
-(core). Markdown→HTML and the asteroids game are closed there and drove
-decisions 1 & 3.

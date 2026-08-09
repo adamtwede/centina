@@ -122,6 +122,14 @@ Step 1 host root and the currently-loaded plugin version, to:
 }
 ```
 
+`pluginVersion` is read directly from the `version` field of
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` at generation time — the
+one value a running skill can actually observe about its own bundle.
+`plugin-distribution.md`'s version-resolution cascade (marketplace entry →
+git SHA → archive SHA256) describes how *that* field itself gets set at
+install/update time, which is entirely outside the skill's visibility; this
+config only needs to record what the currently-loaded bundle claims.
+
 Also append `artifactsRoot` to the global registry
 (`${CLAUDE_PLUGIN_DATA}/known-projects.json`) so Step 0 finds it on every
 future session, from any CWD beneath it, without walking anything.
@@ -144,12 +152,23 @@ sessions once a config exists anywhere the registry or this walk can reach.
 At `artifactsRoot`, if not already present:
 
 - `specs/`
+- A copy (not a symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`, the
+  vocabulary module, at `<artifactsRoot>/centina.ts`. Every spec imports
+  this by relative path (`import { Agent, deferred } from "../../centina"`
+  in the founding fixture) — without this copy, every spec's import fails
+  the moment `artifactsRoot` isn't this repo. This is the same copy
+  treatment as the reference docs below, just easy to miss since it's code,
+  not a doc.
 - Copies (not symlinks) of the bundled reference docs from
   `${CLAUDE_PLUGIN_ROOT}/docs/`: `boundaries.md`, `fit-validation.md`,
   `plan-organization.md`. These are the docs identified as load-bearing
   guidance the skills actively cite, as opposed to this project's own
   dev-history docs (`ROADMAP.md`, `session-zero-test-cases.md`), which stay
-  behind and never ship.
+  behind and never ship. `plugin-setup-procedure.md` (the terse, imperative
+  form of this whole document, extracted for skills to actually follow —
+  see `docs/plugin-file-layout.md`) is *not* copied here: it's procedural
+  guidance for the skill itself, not spec-writing reference material for
+  the human, so it stays read directly from `${CLAUDE_PLUGIN_ROOT}/docs/`.
 
 ## Step 4 — write the stub `tsconfig.json`
 
@@ -182,9 +201,15 @@ The template:
     "noUnusedParameters": false,
     "plugins": [{ "name": "<placeholder, substituted at generation time>" }]
   },
-  "include": ["*.centina.ts", "specs/**/*.centina.ts"]
+  "include": ["centina.ts", "*.centina.ts", "specs/**/*.centina.ts"]
 }
 ```
+
+`centina.ts` is listed explicitly, matching this repo's own root `tsconfig.json`
+today — TS would still load and check it as part of the program via the
+import graph even if omitted, but listing it keeps `tsc` able to check it as
+a root file on its own (e.g. a bare `npm run typecheck`-equivalent with no
+spec files present yet), same as it does in this repo.
 
 Step 4 copies this template, substituting the `plugins[0].name` placeholder
 for the literal absolute path to `checker/tsPlugin.cjs` resolved from
@@ -201,13 +226,17 @@ file now finds this stub before it can find any host project's own
 
 ## Step 5 — point the harness at the resolved config
 
-`checker/harness.ts` currently hardcodes its tsconfig path relative to its
-own module location (`path.resolve(__dirname, "..", "tsconfig.json")`) —
-correct for the single-project layout this repo has today, wrong once
-`artifactsRoot` is configurable. It needs to instead read `artifactsRoot`
-from `.centina/config.json` (found via Step 0's registry or a fresh Step
-1–4 run) and load `<artifactsRoot>/tsconfig.json`. This is the one required
-code change, not just a generation step.
+**Implemented.** `checker/harness.ts`'s `loadProject()` now takes an
+optional `tsConfigFilePath`, falling back to its old hardcoded
+`path.resolve(__dirname, "..", "tsconfig.json")` when omitted — so this
+repo's own `npm run check` is unchanged. `checker/cli.ts` gained a
+`--project <path>` flag that threads through to it. The skill doesn't ask
+`harness.ts` to re-walk the registry itself: having already resolved
+`artifactsRoot` in Steps 0–2 for its own use, it just invokes
+`bin/centina-check --project <artifactsRoot>/tsconfig.json <files...>`
+directly. Verified against the real fixture via `bin/centina-check`
+pointed at a scratch `${CLAUDE_PLUGIN_DATA}`, producing output identical to
+`npm run check`.
 
 ## Idempotency
 
@@ -287,9 +316,20 @@ mode), it should refuse to run setup rather than silently relaxing them.
   verification against real Claude Code plugin data-directory semantics
   (`${CLAUDE_PLUGIN_DATA}` scoping — confirm it's readable/writable the way
   this design assumes).
-- Whether `${CLAUDE_PLUGIN_ROOT}` substitution needs to happen via the skill
-  itself (reading the env var at tool-call time) or some other mechanism —
-  not yet confirmed against actual plugin runtime behavior.
+- Whether `${CLAUDE_PLUGIN_ROOT}` **and** `${CLAUDE_PLUGIN_DATA}`
+  substitution need to happen via the skill itself (reading the env var at
+  tool-call time, during a skill's own Bash/Read calls) or some other
+  mechanism — not yet confirmed against actual plugin runtime behavior.
+  Both variables are documented for hook scripts; whether a skill's own
+  tool calls see the same environment is the same open question for both,
+  not just `ROOT`.
+- `known-projects.json` has the same concurrent-write shape flagged (and
+  deliberately deferred) for `npm install` races in
+  `docs/plugin-checker-install.md`: two sessions in different trees
+  reaching Step 2 at the same moment could both append to the registry
+  file at once. Same call as that doc — not designing a lock around a
+  low-probability, non-corrupting race pre-emptively; revisit if it turns
+  out to matter in practice.
 - This document doesn't yet cover plugin versioning/update mechanics beyond
   the `pluginVersion` comparison — see the earlier plugin-manifest research
   (SessionStart hook diffing bundled `package.json` for `node_modules`

@@ -52,10 +52,13 @@ Auto-update is on by default for official marketplaces, off by default for
 third-party ones (including a self-hosted one) — so a self-hosted
 marketplace means users must explicitly pull updates unless they opt in.
 Version resolution cascades `plugin.json` version → marketplace-entry
-version → git commit SHA → archive SHA256, which is what `pluginVersion`
-in `.centina/config.json` (per `plugin-setup-step.md`) should actually read
-from — confirms that field is meaningful and where it comes from, rather
-than a value this project would need to invent its own scheme for.
+version → git commit SHA → archive SHA256 — this is how the bundle's
+*own* `.claude-plugin/plugin.json` version field gets set at install/update
+time, not something a running skill resolves itself. `pluginVersion` in
+`.centina/config.json` (per `plugin-setup-step.md`) is simpler: it's read
+directly from that `plugin.json`'s `version` field at config-generation
+time, which is just the tail end of this cascade as far as the skill can
+observe it.
 
 ## One thing this surfaces that affects `plugin-checker-install.md`
 

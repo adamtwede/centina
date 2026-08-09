@@ -10,8 +10,14 @@ runs via `SessionStart` rather than a skill.
 ## Problem
 
 The plugin bundle (`${CLAUDE_PLUGIN_ROOT}`) ships `checker/` and
-`centina.ts` as source, plus a `package.json` declaring their runtime
-dependencies. Those dependencies need to actually be installed somewhere
+`centina.ts` as source, plus `checker/package.json` declaring their
+runtime dependencies (`ts-morph`, `tsx`; `typescript` is a peer of both
+`checker/` and the repo's own root-level `tsc` usage). In this repo,
+`checker/` is also an npm workspace member — that's purely a dev-repo
+convenience so `npm install` at the root hoists `checker/`'s deps for
+local work; it has no bearing on the plugin bundle itself, which ships
+`checker/package.json` standalone and installs it independently at
+`${CLAUDE_PLUGIN_DATA}` per this doc. Those dependencies need to actually be installed somewhere
 before `bin/centina-check` can run — and that can't happen at bundle-build
 time the way an ordinary npm package's `node_modules` would, because
 `${CLAUDE_PLUGIN_ROOT}` is the plugin's distributed content, not
@@ -111,9 +117,6 @@ if not perfectly, safe).
   different mechanism (e.g., deferring the error to the first skill
   invocation that actually needs the checker, rather than trying to
   message from the hook itself).
-- Whether to ship `checker/` as raw TypeScript run via `tsx` (today's
-  setup, requires `tsx` as an installed dependency too) or precompiled to
-  plain JS in the bundle, removing `tsx` from the runtime dependency list
-  entirely. Precompiling removes a moving part but adds a build step to
-  the plugin's own release process — not decided here, listed in the
-  broader packaging design as a still-open piece (see ROADMAP.md).
+- ~~Whether to ship `checker/` as raw TypeScript run via `tsx`... or
+  precompiled to plain JS~~ — **resolved** in `docs/plugin-file-layout.md`:
+  raw TS via `tsx`, revisit once the ruleset stabilizes.

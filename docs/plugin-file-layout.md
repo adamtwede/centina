@@ -42,7 +42,9 @@ centina-plugin/
 └── docs/
     ├── boundaries.md
     ├── fit-validation.md
-    └── plan-organization.md
+    ├── plan-organization.md
+    ├── plugin-setup-procedure.md
+    └── output-management.md
 ```
 
 `.claude-plugin/` holds only `plugin.json` — every other component
@@ -101,17 +103,26 @@ event.
 
 ## `skills/*/SKILL.md`
 
-Content carries over from the current `.claude/skills/` files with one
-required change, identified earlier in this design process: every bare
-relative-path reference (`docs/plan-organization.md`, `docs/fit-
-validation.md`, this repo's own `CLAUDE.md` for the output-splitting rule)
-must become `${CLAUDE_PLUGIN_ROOT}/docs/...`. `ROADMAP.md` and `docs/
-session-zero-test-cases.md` references are dropped, not repathed — per the
-earlier "must travel vs. stays behind" classification, they're this
-project's own dev history, not spec-writing guidance. The output-splitting
-rule needs to be extracted out of this repo's `CLAUDE.md` into its own
-bundled file (e.g. `docs/output-management.md`) rather than repathed,
-since there's no `CLAUDE.md` in the bundle to point at.
+Content carries over from the current `.claude/skills/` files with two
+required changes, identified earlier in this design process:
+
+1. Every bare relative-path reference (`docs/plan-organization.md`,
+   `docs/fit-validation.md`, this repo's own `CLAUDE.md` for the
+   output-splitting rule) must become `${CLAUDE_PLUGIN_ROOT}/docs/...`.
+   `ROADMAP.md` and `docs/session-zero-test-cases.md` references are
+   dropped, not repathed — per the earlier "must travel vs. stays behind"
+   classification, they're this project's own dev history, not
+   spec-writing guidance. The output-splitting rule is extracted out of
+   this repo's `CLAUDE.md` into its own bundled file
+   (`docs/output-management.md`) rather than repathed, since there's no
+   `CLAUDE.md` in the bundle to point at.
+2. Each skill's first action must become a pointer to
+   `${CLAUDE_PLUGIN_ROOT}/docs/plugin-setup-procedure.md` — the terse,
+   imperative extraction of `docs/plugin-setup-step.md`'s Steps 0–5,
+   written to actually be followed rather than to record design rationale.
+   Both skills reference the same file rather than duplicating the
+   procedure inline, the same single-source approach the project already
+   uses for the tsconfig template and the vocabulary-alias resolver.
 
 ## `bin/centina-check`
 
