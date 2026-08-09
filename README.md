@@ -42,7 +42,7 @@ becoming necessary, and how Centina answers it.
   - [Who should use it](#who-should-use-it)
   - [When to use it (and when not to)](#when-to-use-it-and-when-not-to)
     - [What Centina most definitely isn't for](#what-centina-most-definitely-isnt-for)
-  - [Getting started](#getting-started)
+  - [Getting started (Claude Code)](#getting-started-claude-code)
   - [Using Centina without Claude Code](#using-centina-without-claude-code)
   - [The core mechanism: the typed hole with routing](#the-core-mechanism-the-typed-hole-with-routing)
   - [The vocabulary, primitive by primitive](#the-vocabulary-primitive-by-primitive)
@@ -311,7 +311,7 @@ Centina can't, or at least shouldn't:
 > Centina is extra leverage for the experience and competence 
 > you *already possess* as a software engineer, with all that implies.
 
-## Getting started
+## Getting started (Claude Code)
 
 Centina ships as a self-contained Claude Code plugin. There is nothing to
 install globally and no server to run — Claude Code installs the checker's
@@ -415,9 +415,16 @@ a real run with no Claude Code environment variables set at all.
 portability" section is the fuller design-level treatment, if you're
 building something more automated than what's below.
 
+> [!TIP] Setup
+> You can either follow these instructions manually, or you can direct your
+> coding agent to them and let it figure it out. No guarantees it'll work,
+> but it's straightforward enough that most should be able to handle it. 
+> Just start a session in this folder and tell your agent to set up Centina 
+> for use in other projects.
+
 1. **Get the plugin content on disk** — same `install.sh` as
-   [Getting started](#getting-started) step 1. It has no Claude Code
-   dependency itself, it's a plain copy script.
+   [Getting started (Claude Code)](#getting-started-claude-code) step 1. It
+   has no Claude Code dependency itself, it's a plain copy script.
 
    ```console
    git clone https://github.com/adamtwede/centina.git
@@ -852,11 +859,28 @@ for the first time. Worth checking for, in order:
    skill, or directly: `${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project
    <resolved tsconfig path> <a spec file>`) should produce the same
    findings `npm run check` does natively against the same file.
+5. **The generated `tsconfig.json`'s plugin path points at `DATA`, not
+   `ROOT`.** Open `<artifactsRoot>/tsconfig.json` and check
+   `compilerOptions.plugins[0].name` — it should resolve inside
+   `${CLAUDE_PLUGIN_DATA}` (e.g. `.../plugins/data/centina-inline/checker/tsPlugin.cjs`),
+   never inside the checkout. This is what makes an already-set-up project
+   survive the checkout being moved or deleted (see the DATA-vs-ROOT
+   discussion in `docs/plugin-setup-step.md`'s Step 4) — a regression here
+   would silently reintroduce that fragility without any test above
+   catching it, since 1–4 all still pass either way.
+
+`install.sh` is separate from the session-lifecycle checks above — it's a
+plain shell script, not something a Claude Code session exercises on its
+own. After changing it, run it against a scratch destination
+(`./install.sh /tmp/centina-install-test`) and diff the result against
+`docs/plugin-file-layout.md`'s directory tree by hand; there's no
+automated check for it.
 
 Anything that doesn't match — a silent hook failure, a skill that doesn't
 surface, a setup prompt that behaves unexpectedly against this repo's own
-layout — is exactly the kind of gap `npm run check`/`npm run typecheck`
-can't catch, since neither exercises the plugin machinery at all.
+layout, a stale `ROOT` path back in the generated tsconfig — is exactly
+the kind of gap `npm run check`/`npm run typecheck` can't catch, since
+neither exercises the plugin machinery at all.
 
 ## State of the project
 
