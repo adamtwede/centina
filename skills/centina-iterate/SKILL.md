@@ -14,6 +14,20 @@ regenerates the stub `tsconfig.json` the checks below run against. If this
 skill is invoked against a tree with no existing config, this is the step
 that stands one up.
 
+**If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
+existing config was found and setup just created one, or a config exists
+but nothing's been written into `specs/` yet — say so plainly and suggest
+`centina-session-zero` instead, before going any further. This skill
+refines a spec that already exists; with nothing to iterate on, running
+the check below either reports nothing or (worse) leaves the human staring
+at an empty, freshly created project with no sense of what to do next.
+`centina-session-zero` is the front of the funnel — it turns a prose idea
+into the component DAG and skeleton spec set this loop is meant to work
+against. This is a suggestion, not a hard redirect: a human iterating on a
+single spec they're about to hand-write, deliberately outside a full
+session-zero system, is a legitimate use of this skill on its own — if
+that's the intent, ask what the target file should be named and proceed.
+
 This is the primary way a human refines a Centina spec: resolve diagnostics,
 surface ambiguities the pseudocode left implicit, settle them with the human,
 repeat until the document is clean and the human is satisfied. The goal of
