@@ -147,6 +147,63 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   Living pointers updated in `CLAUDE.md`, `docs/boundaries.md`, and
   `centina-iterate`; existing `FIT.md` artifacts left in place as history.
 
+## Planned
+
+- **Packaging as a Claude Code plugin** (`docs/plugin-setup-step.md`) —
+  distributes the vocabulary, checker, and skills as one globally-installed
+  plugin, usable from an arbitrary folder with no required references in
+  whatever host project it sits inside or alongside. Covers: a global
+  registry for fast project rediscovery across sessions; human-confirmed,
+  read-verified host-project-root resolution (CWD, walk-to-`$HOME`
+  collecting every `.git` found, or an explicit path); a configurable,
+  regenerated-per-run artifacts root and stub `tsconfig.json` (inlined, not
+  `extends`, to sidestep an unconfirmed tsserver plugin-path inheritance
+  question); and the required `checker/harness.ts` change to load a
+  resolved config path instead of its current hardcoded location. Explicitly
+  documents a portability boundary so a future non-Claude-Code agent harness
+  can supply its own trigger/storage/prompting mechanism while reusing the
+  config schema, stub generation, and directory shape unchanged. Design only
+  — not yet implemented.
+- **Vendored checker install/update** (`docs/plugin-checker-install.md`) —
+  the `SessionStart` hook that keeps the plugin's own `ts-morph`/
+  `typescript` dependencies installed, separate from and global to the
+  per-project setup above. Copies checker source into
+  `${CLAUDE_PLUGIN_DATA}` unconditionally every session (cheap); gates the
+  expensive `npm install` behind a `package.json` hash comparison so it
+  only runs on first use or after a dependency change; never silently
+  swallows an install failure. Sidesteps an unconfirmed assumption about
+  whether `${CLAUDE_PLUGIN_ROOT}` is writable by copying source into the
+  plugin's persistent data directory rather than relying on it. Design
+  only — not yet implemented.
+- **Plugin file layout and manifest** (`docs/plugin-file-layout.md`) — the
+  bundle's directory tree, `plugin.json`, and `hooks/hooks.json` (wiring
+  the `SessionStart` install hook to the lifecycle event); confirms skills
+  are auto-discovered from a `skills/` folder, no manifest declaration
+  needed. Resolves the raw-TypeScript-vs-precompiled question in favor of
+  shipping raw TS run via `tsx` for now — a build step is more machinery
+  than a pre-1.0, still-actively-changing ruleset needs; revisit once the
+  ruleset stabilizes. Surfaces one correction owed back to
+  `docs/plugin-setup-step.md`: the stub tsconfig's content should be read
+  from one real `tsconfig.template.json` in the bundle, not duplicated as
+  hardcoded JSON in that doc's prose. Flags two schema details
+  (`bin/` file conventions, `SessionStart` matcher semantics) as
+  undocumented and needing empirical verification. Design only — not yet
+  implemented.
+- **Plugin distribution and install mechanics**
+  (`docs/plugin-distribution.md`) — how a user actually gets the plugin
+  installed: `--plugin-dir` for local development now, a self-hosted
+  `.claude-plugin/marketplace.json` once ready to share, deferring
+  submission to Anthropic's official/community marketplace until broad
+  public discoverability actually matters (more review/ceremony than a
+  pre-1.0, actively-changing project needs yet). Confirms `pluginVersion`
+  in `.centina/config.json` should read from the marketplace's own version
+  resolution rather than an invented scheme. Flags one real risk to
+  `docs/plugin-checker-install.md`: running `npm install` from a
+  `SessionStart` hook at plugin load time isn't covered by the published
+  review/safety-screening docs — fine for direct or self-hosted install,
+  but needs re-verification before any future marketplace submission.
+  Design only — not yet implemented.
+
 ## Open / under discussion
 
 - **Head-to-head validation** (from `docs/fit-validation.md`): prose vs.
