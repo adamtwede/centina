@@ -5,15 +5,38 @@ description: Drives the interactive Centina spec-refinement loop. Runs tsc again
 
 # Centina Iterate
 
+## Setup — run first
+
+Before anything else, run the procedure in
+`${CLAUDE_PLUGIN_ROOT}/docs/plugin-setup-procedure.md`. It resolves (or
+rediscovers) the host project root and the Centina `artifactsRoot`, and
+regenerates the stub `tsconfig.json` the checks below run against. If this
+skill is invoked against a tree with no existing config, this is the step
+that stands one up.
+
+**If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
+existing config was found and setup just created one, or a config exists
+but nothing's been written into `specs/` yet — say so plainly and suggest
+`centina-session-zero` instead, before going any further. This skill
+refines a spec that already exists; with nothing to iterate on, running
+the check below either reports nothing or (worse) leaves the human staring
+at an empty, freshly created project with no sense of what to do next.
+`centina-session-zero` is the front of the funnel — it turns a prose idea
+into the component DAG and skeleton spec set this loop is meant to work
+against. This is a suggestion, not a hard redirect: a human iterating on a
+single spec they're about to hand-write, deliberately outside a full
+session-zero system, is a legitimate use of this skill on its own — if
+that's the intent, ask what the target file should be named and proceed.
+
 This is the primary way a human refines a Centina spec: resolve diagnostics,
 surface ambiguities the pseudocode left implicit, settle them with the human,
 repeat until the document is clean and the human is satisfied. The goal of
 each loop iteration is not just a passing check — it's a more precisely
 specified `.centina.ts` document that's closer to a real implementation plan.
 
-**Current state of the checker:** Centina's own spec-plane checker doesn't
-exist yet (see `ROADMAP.md`). Until it does, `tsc` run under the project's
-deliberately permissive `tsconfig.json` is the interim arbiter — it catches
+**Current state of the checker:** Centina's own spec-plane checker is the
+`checker/` harness bundled with this plugin. `tsc` run under the generated,
+deliberately permissive `tsconfig.json` remains part of the signal — it catches
 name resolution, arity, and shape mismatches, which is real structural-plane
 signal even though it knows nothing about `deferred`, `@agent:`, or boundary
 direction. Read `tsc`'s diagnostics with that lens: some are exactly the kind
@@ -136,14 +159,14 @@ into the normal check/fix loop below.
 1. **Run the check** against the target file:
 
    ```
-   npx tsc --noEmit
+   ${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project <artifactsRoot>/tsconfig.json <file>
    ```
 
-   (`npm run typecheck` runs this over the vocabulary module plus every
-   `*.centina.ts` spec in the project.) If no file is specified and there's
-   only one `.centina.ts` file in the project, focus on that one's
-   diagnostics; if there are several, ask which one, or scope to all of them
-   if the human wants a full sweep.
+   (`artifactsRoot` is whatever the setup step above resolved.) Omitting
+   `<file>` runs every `*.centina.ts` spec under `artifactsRoot`. If no file
+   is specified and there's only one `.centina.ts` file in the project,
+   focus on that one's diagnostics; if there are several, ask which one, or
+   scope to all of them if the human wants a full sweep.
 
 2. **If there are zero diagnostics**, say so plainly and ask whether the
    human wants to keep refining (e.g. resolve a `deferred` hole's routing,
@@ -194,7 +217,8 @@ into the normal check/fix loop below.
 
 If this session produces a ledger or state file (e.g., a session notes file or
 refinement log) that grows beyond ~1500 lines, split it automatically into an
-index file + detail files per the strategy in CLAUDE.md. This keeps context
+index file + detail files per the strategy in
+`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. This keeps context
 tokens low while preserving resumability. Agents apply the split when detected;
 no permission needed, but note it in the conversation so the human knows. For
 iterate, name detail files `ITERATE-<component>-*.md` and keep the index as
@@ -204,7 +228,7 @@ iterate, name detail files `ITERATE-<component>-*.md` and keep the index as
 
 If the spec came out of a `centina-session-zero` run, `specs/<system>/ARCHITECTURE.md`
 exists alongside it and carries a **contract ledger** and a **hole ledger** for
-the whole system (`docs/plan-organization.md`: "a plan-per-boundary-set is
+the whole system (`${CLAUDE_PLUGIN_ROOT}/docs/plan-organization.md`: "a plan-per-boundary-set is
 derivable from a frozen contract ledger, and drifts exactly when the ledger
 drifts"). Fixes made during this loop routinely make that ledger stale —
 resolving a `deferred` hole's routing, pinning a provisional contract, fleshing
@@ -353,7 +377,7 @@ exists.
 ### A cast at the `declare` site records the assumption once
 
 Centina's provenance model is bookkeeping, not prohibition (see
-`docs/fit-validation.md`): casts are expected and
+`${CLAUDE_PLUGIN_ROOT}/docs/fit-validation.md`): casts are expected and
 fine, but they should be recorded once, at the `declare` site where a value
 first enters the spec (an `@external` function's return type, an `Agent`
 call's result), rather than scattered as ad hoc `as` casts at every use site.

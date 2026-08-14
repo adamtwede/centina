@@ -93,6 +93,112 @@ Mode-Select invoking Career means **Career needs a top door**, symmetric to `pla
 
 **Related:** All three acquisition transactions (draft/free-agency/trade) share one shape (propose → validate → apply), and the constraint slot is where the **financial system** lives. Three candidates recorded in round 11: (1) simplistic funds, (2) realistic contracts/caps, (3) caliber cap (author leans here). Choice is open.
 
+### Round 11c continued — Player contracts; schedule-advance interior; League-as-factory proposal
+
+**Decided:**
+- `Player` contract — minimally `{ team: Team (rights holder); duration: … }`. Required for free agency to function at all; author judged doing without it would also hamper trading/drafting/cap enforcement in ways hard to retrofit later. **Corrects a round-11 SIMENGINE claim:** the caliber-cap financial candidate was described as "stores nothing" — no longer accurate as stated, since all three financial candidates (funds / realistic contracts / caliber cap) now sit atop this required contract ledger regardless of which governs cap *enforcement*. Caliber-cap can still be how spending against the cap is computed; it just isn't storage-free anymore.
+- Standings tiebreaker criteria — routes to a **policy**, same pattern as Match's offer-activation/dedup policies (round 1–10). Shape-only; no material rule needed yet.
+- League structure: divisions of 3–6 teams (soft bounds, ±1–2 slop for expansion/reorganization) — a starting point, not hard numbers.
+- Season boundary: calendar advancement disables once no matches remain after the cursor. Season-to-season transition explicitly **deferred** — out of scope for single-season advancement.
+- Playoffs: deferred in detail (qualification rule, bracket mechanics). Structurally a **second schedule phase** — its own generation + elimination rules layered on the same cursor-advance mechanism — so the deferral doesn't require redesigning the regular-season mechanism later.
+
+**Design-intent note (non-binding, parallel to Career's "affinity" note from round 11):** contract length may factor into team caliber — a duration cost mirroring real-world cap treatment of long-term deals, meant to discourage locking up high-caliber players cost-free. Explicitly optional; to weigh in whichever cap formula gets designed, not resolved now.
+
+**Structural/realization split, schedule-advance interior (from the author's operation sketch):**
+- Structural (pins): `League = { divisions: Division[] }`, `Division = { teams: Team[] }`; `SeasonCalendar` (day → matchup mapping) with a `cursor: currentDay`; `Matchup` (members held); `Standings` as a **derived view** (fold over completed results, not stored state — consistent with the project's existing derived-read pattern); playoff qualification as a selection rule over teams (structural even though undeveloped).
+- Realization (routed, held/`deferred` candidate): the **matchup-generation algorithm** — satisfying "everyone plays everyone at least once, rivals maybe twice, evenly spread" is a scheduling/constraint-satisfaction algorithm. The constraints themselves are structural parameters; producing a valid calendar from them is compute. One real realization pocket in an otherwise structural interior.
+
+**~~Proposal (superseded): League-as-factory.~~** League hands off a `Schedule` value; Career owns/drives it thereafter. **Retired by the author in the same round** — a private Career-held copy of the schedule creates a dual-source-of-truth problem (either Career has to keep League updated on every result, or League has to track its own stale reference to what it handed off). Kept here for the record only; superseded by the live-service design below.
+
+**Decided — League-as-live-service (supersedes the factory proposal).**
+- League **retains** the live calendar/`Schedule` as its own state — never handed off as an owned value. Same discipline already established for Match/Archive (one authoritative holder; everyone else interacts by request/response, never a private copy).
+- Confirmed collapse survives this revision: Career still runs all match simulation itself, through its existing Match relationship, using a CPU-side answerer for non-player sides (round 11's pluggable-answerer idea). No League↔Match edge; no shadow-Career node.
+- Author's sketch of the door pair (Career-side pseudocode):
+  ```
+  matchups = League.advanceCalendar(interval): Matchups
+  results  = simMatches(matchups)              // Career, via Match
+  updatedCalendar = League.updateCalendar(results): MatchupCalendar
+  ```
+- League owns the schedule-generation source data (a league-structure description — baked-in default and/or persisted config, read by League). This is *also* why League earns separation from Career even though the calendar-building step alone wouldn't justify a node: it's not League's only responsibility.
+- Trades/free-agency/draft: **confirmed** self-contained-leaning — a player-initiated trade proposal needs a `Career → League` door; a non-player team's accept/reject decision machinery is League-internal and opaque to Career (League may report likelihood/rationale, never the mechanism). Symmetrically, when the human's own decision is needed (e.g. a counter-offer), League hands back to Career — the human's decision is equally opaque to League. Same boundary-as-a-person shape as the Career↔player edge elsewhere.
+- **Decided — `advanceCalendar`'s `interval` semantics:** calendar granularity is whole days, minimum one-day advance. `Matchup` carries a **time-of-day** member — the same-day simulation order when a day holds multiple matchups (new structural detail on the held `Matchup` shape). Halting at the player's own match is **entirely Career's responsibility** — League never needs "the player" as a concept, reinforcing the boundary. **Sequencing invariant:** League should refuse a further `advanceCalendar` call until Career has `updateCalendar`'d every result from the prior interval — synchronous, one outstanding interval at a time, closing a sync-drift edge case. Not expressible in a single door's type signature (it's a cross-call sequencing constraint); needs an explicit note at fill rather than a type.
+- **Decided — Presentation's calendar read:** Career relays `updateCalendar`'s return to Presentation; nothing else talks to Presentation while in career mode (outside an active Match). Sharpens Presentation's edge: its career-mode upstream is Career alone.
+- **Decided — League survives as a node:** reaffirmed by both author and agent — draft player-generation and league-wide roster/rights visibility are naturally League-scoped regardless of the schedule-ownership design.
+- **Corrects round 11: League, not Career, is the authoritative holder of roster/stat data for every team in the league** (surfaced via the Caliber discussion below — League needs every team's stats to value trades, and Career needs every team's full roster to run `simMatches` for non-player matchups, not just its own). `Matchup` (returned by `advanceCalendar`) therefore carries full `Team` data, not just identifiers — no new door, just a shape clarification on an existing one. The chain: League (holds) → Career (reads per-matchup batch via `advanceCalendar`, passes to Match) → Match (still reads `CareerPlayer` read-only by uuid, per the original round 1–10 boundary) → results → Career → `updateCalendar` → League.
+- **Confirmed — offer-node resemblance is a recognized pattern, not literal reuse.** A human-decision-pending trade rhymes with Match's offer-node shape (something paused, awaiting an answer from a pluggable answerer); more broadly, Career's synchronous turn-like calendar-interval loop rhymes with Match's reducer loop. Recorded as system-level design vocabulary worth recognizing when it recurs, not a mechanism to be shared across nodes.
+- **Considered and declined — routing all Match invocation through League instead of Career.** Would make League the sole gatekeeper for every match, player and non-player. No advantage found: Career is already the *only* caller of Match under the current design, so there's no duplication to remove. The cost is real — League would need to learn about "the player" to know when to halt and hand back control (undoing the exact cleanliness that justifies the current boundary), or League would need a mid-loop callback to Career for mode selection, reopening a League↔Match-adjacent edge structurally close to the shadow-Career node already dissolved. Declined; not to be relitigated absent new information.
+- **Still fully open (League's own interior, not this seam):** how a non-player team's trade/free-agency/draft decisions actually get computed (Skill vs. deferred rule-set) — to pin when League's interior is mined directly.
+
+### League interior — trades (author-sketched, form refined by agent)
+
+**Decided shapes:**
+```
+type Team = Unshaped<"Team">
+type CareerPlayer = Unshaped<"CareerPlayer">
+type Cash = Unshaped<"Cash">
+type DraftPosition = Unshaped<"DraftPosition">
+
+type TradeableGoodType = CareerPlayer | Cash | DraftPosition
+
+type TradeableGood<T extends TradeableGoodType> = {
+  payload: T[]
+  owner: Team
+}
+
+type AnyTradeableGood =
+  | TradeableGood<CareerPlayer>
+  | TradeableGood<Cash>
+  | TradeableGood<DraftPosition>
+
+type TradeSwap = {
+  these: AnyTradeableGood[]
+  for: AnyTradeableGood[]
+}
+
+type TradeProposal = {
+  swaps: TradeSwap[]
+}
+
+type CounterProposal = {
+  original: TradeProposal
+  counter: TradeProposal
+}
+
+type TradeFeedback = Unshaped<"TradeFeedback"> // reason code -> configurable human-readable string + remediation-action hint; held
+
+type TradeProposalAnalysis = {
+  original: TradeProposal
+  successChance: number
+  notes: TradeFeedback[]
+}
+
+type TradeProposalResult =
+  | { status: "accepted"; original: TradeProposal; notes: TradeFeedback[] }
+  | { status: "rejected"; original: TradeProposal; notes: TradeFeedback[] }
+  | { status: "countered"; original: TradeProposal; counterProposal: CounterProposal; notes: TradeFeedback[] }
+
+// League trade-relevant doors:
+analyzeTrade(tradeProposal: TradeProposal): TradeProposalAnalysis
+proposeTrade(tradeProposal: TradeProposal): TradeProposalResult
+acceptCounter(counterProposal: CounterProposal): TradeProposalResult  // decided — takes just the CounterProposal
+```
+
+- **`TradeableGood` generic parametrized per-good, not per-swap** — each good is homogeneous (one `TradeableGoodType` per good), while `TradeSwap.these`/`for` (typed over `AnyTradeableGood[]`) can freely mix goods of different kinds in one package. Per-good `owner` field is deliberate: it's the extensibility hook for multi-team trades later without an interface change.
+- **`TradeProposalResult` is a 3-way discriminated union** (`accepted | rejected | countered`), with `notes` present (possibly empty) in every branch rather than a 4th branch. Matches the `MatchResult`-style discriminated-union convention already used for Match.
+- **`notes` is `TradeFeedback[]`, not raw strings — decided.** Each entry is a reason code that maps to a configurable, human-readable message *and* a potential remediation-action hint (e.g. distinguishing "not enough value" — actionable, the player could sweeten the offer — from pure-variance rejection — not actionable, nothing to fix). Taxonomy of codes, the message-config mapping, and the remediation-action shape are all **held**, not designed now — only the structural decision (codes-with-mappings, not free text) is decided.
+- **Trade sessions are NOT stateful.** Full referential-equality tracking dropped; an id-equality approach would work but isn't required as a hard mechanism — a **privileged door** can force a counter through regardless, since the counter's *receiver* (not its original offerer) is the one with standing to decide on it. **`acceptCounter` decided: takes just the `CounterProposal`**, not the full prior `TradeProposalResult`.
+- **`analyzeTrade` and `proposeTrade` are independently rolled, not required to agree exactly.** Confirmed design direction (not yet the decision machinery itself, but needed context): net trade value is computed deterministically (weighted, normalized goods per side), then RNG is layered on top of that static analysis to avoid rigid all-or-nothing acceptance and to leave room for a later goals/priorities-based sway. `successChance` is therefore inherently probabilistic; `analyzeTrade` and `proposeTrade` should agree in the aggregate but are allowed to diverge run-to-run since neither shares a session/seed. **Confirmed: this does open a save-scum surface** (RNG-driven accept/reject), same shape as Match's "anti-save-scum" invariant. Author isn't worried enough to block on it now, but named a **candidate mitigation** for later: persist a rejected trade to disk and, if an identical trade is re-attempted within some window, return the same outcome rather than re-rolling. Not committed — a candidate, to revisit at persistence/fill.
+- **Empty-sided swaps are legal on one side (a gift/salary dump); empty-to-empty is an error condition**, left as a runtime precondition rather than a type constraint — "at least one side non-empty" doesn't cleanly type as a single-field rule.
+
+**Decided — trade-value machinery, floor version:**
+- **Caliber is the common unit trade valuation reduces to.** Caliber itself is a weighted, non-additive rollup of `CareerPlayer` stats (the "god stat" — a measure of win-contributing ability everything else refers back to). Reinforces (doesn't finalize) the caliber-cap lean from round 11: Caliber is now required infrastructure for trade valuation regardless of the cap-model choice, so reusing it for cap enforcement avoids building a second metric.
+  - `CareerPlayer` → Caliber directly (no conversion).
+  - `Cash` → an expected-Player-value-in-Caliber, via salary.
+  - `DraftPosition` → Caliber as a function of pick number (+ projected draft class/order, if modeled).
+- **Everything in this machinery is tunable** — config constants, not hardcoded numbers, because this is all game-balance/trial-and-error territory. Same pattern as Match's `TurnConfig`; worth treating as a standing principle for League's balance-sensitive logic generally, not just trades.
+- **`successChance` is asymptotic, never literally 100% or literally capped-low on the reject side.** Scales inversely with signed divergence between the two sides' Caliber totals (favoring one side lowers the other's chance). High end: approaches but never reaches 100% (candidate cap ~95–99%, tunable) — deliberately, so a player can't reliably engineer a guaranteed-accept trade once they learn the margin threshold, which would undercut the reason RNG exists at all. Low end: **no floor** — a sufficiently bad trade can be a certain rejection; no exploit risk on that side to guard against.
+- **Still open, League's decision machinery interior:** the actual stat→Caliber weighting formula, the Cash↔Caliber and DraftPosition↔Caliber conversion functions, the tolerance/divergence-to-successChance curve's exact shape, the `TradeFeedback` code taxonomy, Skill vs. `deferred` rule-set for all of the above. None of this has started; the above are structural/design-intent decisions the interior itself will be built against.
+
 ---
 
 **Pointer:** Index at `SESSION-ZERO-STATE.md`. Match at `SESSION-ZERO-MATCH.md`. Simulation engine at `SESSION-ZERO-SIMENGINE.md`. Findings at `SESSION-ZERO-FINDINGS.md`. Core decisions at `SESSION-ZERO-CORE-DECISIONS.md`.

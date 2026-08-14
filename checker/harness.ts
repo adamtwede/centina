@@ -3,10 +3,18 @@ import { fileURLToPath } from "node:url"
 import { Project, SourceFile } from "ts-morph"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const tsConfigFilePath = path.resolve(__dirname, "..", "tsconfig.json")
+const defaultTsConfigFilePath = path.resolve(__dirname, "..", "tsconfig.json")
 
-export function loadProject(): Project {
-  return new Project({ tsConfigFilePath })
+/**
+ * `tsConfigFilePath`, when given, is the packaged-plugin path: the skill
+ * resolves `artifactsRoot` (registry lookup or a fresh setup-procedure run,
+ * see docs/plugin-setup-procedure.md) and passes
+ * `<artifactsRoot>/tsconfig.json` through explicitly — harness.ts doesn't
+ * re-walk the registry itself. Omitted, it falls back to this repo's own
+ * root tsconfig.json, unchanged from before packaging existed.
+ */
+export function loadProject(tsConfigFilePath?: string): Project {
+  return new Project({ tsConfigFilePath: tsConfigFilePath ?? defaultTsConfigFilePath })
 }
 
 /** Every `*.centina.ts` spec file in the project — excludes centina.ts itself and checker/** (neither matches the suffix). */

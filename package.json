@@ -10,10 +10,11 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "workspaces": [
+    "checker"
+  ],
   "devDependencies": {
     "@types/node": "^26.0.0",
-    "ts-morph": "^28.0.0",
-    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

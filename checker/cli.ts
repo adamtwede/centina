@@ -55,9 +55,28 @@ function cycleFindings(cycles: string[][]): Finding[] {
   }))
 }
 
+function parseArgs(argv: string[]): { tsConfigFilePath?: string; requestedPaths: string[] } {
+  const requestedPaths: string[] = []
+  let tsConfigFilePath: string | undefined
+
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--project") {
+      tsConfigFilePath = argv[++i]
+      if (!tsConfigFilePath) {
+        console.error("--project requires a path argument")
+        process.exit(1)
+      }
+    } else {
+      requestedPaths.push(argv[i])
+    }
+  }
+
+  return { tsConfigFilePath, requestedPaths }
+}
+
 function main(): void {
-  const project = loadProject()
-  const requestedPaths = process.argv.slice(2)
+  const { tsConfigFilePath, requestedPaths } = parseArgs(process.argv.slice(2))
+  const project = loadProject(tsConfigFilePath)
 
   let targetSourceFiles: SourceFile[]
   let cycles: string[][] = []
