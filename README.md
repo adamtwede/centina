@@ -322,7 +322,7 @@ advisable stopping point, allowing you to shepherd complex projects through mean
 
 The end state is a self-contained package: one or more `PLAN.md` files (pegged to boundary-sets, not necessarily one per file — see [docs/plan-organization.md](docs/plan-organization.md)) plus a reconciled `ARCHITECTURE.md` recording the DAG, the frozen contracts, and what's still deferred. That package is designed to travel. Hand it to any coding agent, in this repo or an entirely different codebase, and it has everything it needs to implement against, with no in-session context required.
 
-For what actually happens in that session (and in `centina-iterate`, the follow-on that refines a single spec toward complete) see [How you actually use it](#how-you-actually-use-it).
+For what actually happens in that session (and in `centina-iterate`, the follow-on that refines a single spec toward complete) see [How to actually use it](#how-to-actually-use-it).
 
 ### Using Centina without Claude Code
 
