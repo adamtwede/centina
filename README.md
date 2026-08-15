@@ -486,12 +486,9 @@ building something more automated than what's below.
 
 ## The core mechanism: the typed hole with routing
 
-Centina's central primitive is the **typed hole**. A spec is finished not when
-it has no gaps, but when every gap is *deliberate, typed, and routed*, i.e.,
-deferred to the human, delegated to an agent, referenced from external code,
-or quarantined behind a boundary. 
+Centina's central primitive is the **"typed hole,"** a known gap in the design with a route for resolution. A spec is finished not when it has no gaps, but when every gap is *deliberate, typed, and routed*, i.e., deferred to the designer writing the spec, delegated to an agent, referenced from external code, or quarantined behind a boundary. 
 
-Aside: It's worth being aware that "finished" is a relative term. Software design is (potentially) infinitely recursive, and Centina's goal is to help guide you to the balance point between reinventing the wheel (and the laws of physics themselves), and where you can safely stop iterating on your design without coming to regret it later.
+Aside: It's worth being aware that "finished" is a relative term. Software design is (potentially) infinitely recursive, and Centina's goal is to help guide you to the balance point between reinventing the wheel (and the laws of physics themselves), and where you can safely stop iterating on your design (at least for now) without coming to regret it later.
 
 The typed holes, enumerated:
 
