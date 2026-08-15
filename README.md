@@ -253,7 +253,7 @@ Centina can't, or at least shouldn't:
 
 ## Getting started
 
-###  Claude Code setup
+### Claude Code setup
 
 Centina ships as a self-contained Claude Code plugin. There is nothing to install globally and no server to run — Claude Code installs the checker's own dependencies for you the first time it needs them. To stand up your first spec:
 
@@ -328,7 +328,7 @@ For what actually happens in that session (and in `centina-iterate`, the follow-
 
 Everything above assumes Claude Code, which is what makes setup turnkey — the plugin loader, the `SessionStart` hook that installs the checker's own dependencies, and `${CLAUDE_PLUGIN_ROOT}`/`${CLAUDE_PLUGIN_DATA}` resolving as environment variables are all Claude Code mechanisms. None of that is required to use Centina, though: the checker is a plain TypeScript CLI, and the skills are plain markdown any capable agent can follow. This section is what those mechanisms are standing in for, done by hand — verified against a real run with no Claude Code environment variables set at all.
 
-For OpenCode-based setups, or for harnesses constrained with sandbox configurations  that prevent arbitrary path read/writes, follow the instructions given in the included  [opencode-install](docs/opencode-install.md) doc (or point your agent to them).
+For OpenCode-based setups, or for harnesses constrained with sandbox configurations that prevent arbitrary path read/writes, follow the instructions given in the included [opencode-install](docs/opencode-install.md) doc (or point your agent to them).
 
 **Otherwise:**
 
@@ -442,7 +442,7 @@ To view the whole vocabulary in code, see: [centina.ts](centina.ts).
 
 #### Domain content — describing the system
 
-**`Unshaped<Name>` — an opaque domain noun.** A named thing the spec talks about without committing to its shape. The brand makes it a pure named, or  *nominal*, type: an `Unshaped<"Formula">` can never be confused with an `Unshaped<"Feedback">`, and no ordinary object accidentally satisfies either. A value of an `Unshaped` type can only enter the spec from a declared source (a door, an `@external`, an `Agent` cast) — and that entry point *is* its provenance record.
+**`Unshaped<Name>` — an opaque domain noun.** A named thing the spec talks about without committing to its shape. The brand makes it a pure named, or *nominal*, type: an `Unshaped<"Formula">` can never be confused with an `Unshaped<"Feedback">`, and no ordinary object accidentally satisfies either. A value of an `Unshaped` type can only enter the spec from a declared source (a door, an `@external`, an `Agent` cast) — and that entry point *is* its provenance record.
 
 ```ts
 type Formula = Unshaped<"Formula">
@@ -450,7 +450,7 @@ type Formula = Unshaped<"Formula">
 // source — here, the agent below, where the `as` records the shape assumption.
 ```
 
-**`Agent<Model>` — the model a spec converses with.** The one boundary Centina ships pre-built. `prompt`/`review` return `unknown`, so the author *records the shape assumption* with an `as` at each call. This is bookkeeping, accounting,  not prohibition. The `Model` parameter carries the agent's identity with no cast: an `Agent<ModelId>` hands the same `ModelId` back from `.modelId`.
+**`Agent<Model>` — the model a spec converses with.** The one boundary Centina ships pre-built. `prompt`/`review` return `unknown`, so the author *records the shape assumption* with an `as` at each call. This is bookkeeping, accounting, not prohibition. The `Model` parameter carries the agent's identity with no cast: an `Agent<ModelId>` hands the same `ModelId` back from `.modelId`.
 
 ```ts
 const supervisor = new Agent(ModelId.CLAUDE_OPUS)
