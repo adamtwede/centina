@@ -28,6 +28,3 @@ harness-config.json
 # Harness / token-optimization state (not project content)
 .claude/.headroom_wrap_marker.json
 
-# Work-only content lives on the dayton-install branch; never on main.
-# (dayton-install's own .gitignore omits this line so it can track the folder there.)
-/internal/

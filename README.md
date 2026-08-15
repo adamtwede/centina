@@ -411,7 +411,14 @@ required to use Centina, though: the checker is a plain TypeScript CLI, and
 the skills are plain markdown any capable agent can follow. This section is
 what those mechanisms are standing in for, done by hand — verified against
 a real run with no Claude Code environment variables set at all.
-[docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness
+
+For OpenCode-based setups, or for harnesses constrained with sandbox configurations 
+that prevent arbitrary path read/writes, follow the instructions given in the included 
+[opencode-install](docs/opencode-install.md) doc (or point your agent to them).
+
+**Otherwise:**
+
+The [docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness
 portability" section is the fuller design-level treatment, if you're
 building something more automated than what's below.
 
