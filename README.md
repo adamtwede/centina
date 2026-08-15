@@ -422,7 +422,7 @@ The [docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness
 portability" section is the fuller design-level treatment, if you're
 building something more automated than what's below.
 
-> [!TIP] Setup
+> [!TIP]
 > You can either follow these instructions manually, or you can direct your
 > coding agent to them and let it figure it out. No guarantees it'll work,
 > but it's straightforward enough that most should be able to handle it. 
