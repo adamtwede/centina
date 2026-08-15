@@ -258,13 +258,17 @@ engagement:
 
 Anyone can use Centina, but it's not intended for everyone. The value you can
 expect to get out of Centina is directly proportional to the amount of software 
-design and engineering expertise you bring.
+design and engineering expertise you bring.  
 
 > [!WARNING]
 > Inexperienced software developers may find using Centina to be a frustrating
 > experience. It will ask you to think carefully about details that may seem abstract,
 > tedious, and pedantic. It will push back on choices that don't seem consistent with
 > earlier decisions. It will refuse to do your thinking for you.
+
+**Note:** The fact that Centina emits spec artifacts in Typescript does **not** imply it can be used only for Typescript or Javascript projects, or even only for web-based applications. The choice of using Typescript as the spec-language is simply due to its incredibly robust type system (practically a separate language in its own right), and its expressiveness (its widespread popularity is also a huge bonus). A capable agent should have no trouble understanding that the **target** language is not the same as the **spec** language, and that the two are related in terms of intent, not execution.
+
+To summarize: Centina specs can be used for any target language, and that choice would be specified at implementation time, not in the spec itself or during planning phases (as mentioned elsewhere, Centina deliberately avoids specifying the technologies used for implementation).
 
 ## When to use it (and when not to)
 
