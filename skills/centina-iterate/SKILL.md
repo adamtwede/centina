@@ -224,6 +224,29 @@ no permission needed, but note it in the conversation so the human knows. For
 iterate, name detail files `ITERATE-<component>-*.md` and keep the index as
 `ITERATE-STATE.md`.
 
+## Reference labels and formula explanations
+
+Both apply throughout this loop, not just in a fresh session-zero handoff:
+
+- **Label references (P/Q/F/O) get explained, not just cited.** Session-relevant
+  items earn short labels for reference — `P<n>` a proposal, `Q<n>` a question,
+  `F<n>` a finding, `O<n>` an option within a fork. The first time a label is
+  introduced, state what it's short for and a one-clause summary of what it
+  refers to — not the bare tag alone ("F7: scope-crossing identifier in
+  `matchTasks`," not "F7"). When re-citing an existing label, check the gap: if
+  more than 10 labels of that same letter have been introduced since it last
+  came up, restate a brief reminder alongside the tag. Err toward restating
+  when unsure. Claude Code has no native sidebar for tracking these; if the
+  session keeps a state file (see "Long-session output management" above), add
+  a compact label index (tag → one-line title) to it.
+- **Explain formula terms on introduction.** When a mathematical or scientific
+  formula appears for the first time in a session, or reappears in a long
+  session where you can't be confident the human still has each term in mind,
+  spell out every symbol in plain language next to the formula. Do the same
+  unconditionally whenever a formula goes into PLAN.md, ARCHITECTURE.md, or any
+  other document — never rely on a formula being self-explanatory or defined
+  earlier in the conversation.
+
 ## Reconciling ARCHITECTURE.md before the plan
 
 If the spec came out of a `centina-session-zero` run, `specs/<system>/ARCHITECTURE.md`

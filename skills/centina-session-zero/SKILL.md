@@ -287,7 +287,12 @@ territory for fill/iterate, not session zero — declare the door and move on.
   seconds where prose hides it for paragraphs. Offer to render the DAG the human
   has described at each phase boundary, before advancing — and offer it
   _proactively_ if they show persistent confusion over a few exchanges about how
-  the pieces relate. In a text/CLI medium prose often carries the gates fine, so
+  the pieces relate. (Note: Make sure to always generate the DAG code in a Markdown
+  document, _not_ in the session window, and once a DAG is generated, don't delete
+  it when revisions are needed or when new ones are generated. Instead, name the DAG
+  files with a simple "version" convention so their evolution over time can be easily
+  tracked by both the agent and the human.)
+  In a text/CLI medium prose often carries the gates fine, so
   treat this as an offered aid keyed to the human's need, not a mandatory render
   at every gate. When you do render, the diagram must show only nodes and edges
   the human stated — never invent a component to make the picture tidier.
@@ -345,6 +350,14 @@ territory for fill/iterate, not session zero — declare the door and move on.
   contract's status (decided / provisional / open), and the hole ledger — not
   the conversational prose. Prose can be re-derived; the contract set and the
   decided/guessed distinction cannot be allowed to drift across a compaction.
+- **Where SESSION-ZERO-STATE.md (and any split detail files) go.** Same
+  `specs/<system>/` location as `ARCHITECTURE.md` — never directly in
+  `specs/`, and never at the repo root. `<system>` is the name of the system
+  or spec this session is about, decided the same way as the skeleton's own
+  `specs/<system>/` path (see "Handoff" below): if the human has already
+  named it, use that; if not, ask before the first write to disk (a flush
+  request included) rather than guessing at a phase gate. This applies from
+  the very first flush, not just once the split-file strategy kicks in.
 - **Fit check.** When facing a high-stakes, hard-to-reverse fork with complex
   tradeoffs, request a **fit check** (invoke with "fit check" or "fit check on X")
   to get a structured costs/benefits analysis: each option's merits and costs,
@@ -357,6 +370,26 @@ territory for fill/iterate, not session zero — declare the door and move on.
   context tokens low and the session resumable
   across compactions. Agents apply the split when detected; no permission needed,
   but note it in the conversation so the human knows.
+- **Label references (P/Q/F/O) get explained, not just cited.** Session-relevant
+  items earn short labels for reference — `P<n>` a proposal, `Q<n>` a question,
+  `F<n>` a finding, `O<n>` an option within a fork. The first time a label is
+  introduced, state what it's short for and a one-clause summary of what it
+  refers to — not the bare tag alone ("P4: cap escalation depth at 3 attempts,"
+  not "P4"). When re-citing an existing label, check the gap: if more than 10
+  labels of that same letter have been introduced since it last came up,
+  restate a brief reminder alongside the tag (e.g., "circling back to P4 — the
+  escalation-depth cap — because..."). Err toward restating when unsure; a short
+  reminder costs far less than the human having to scroll back through a long
+  session to recover context. Claude Code has no native sidebar for tracking
+  these labels; if the session already keeps a state file, add a compact label
+  index (tag → one-line title) to it so a lookup doesn't require scrolling.
+- **Explain formula terms on introduction.** When a mathematical or scientific
+  formula appears for the first time in a session, or reappears in a long
+  session where you can't be confident the human still has each term in mind,
+  spell out every symbol in plain language next to the formula. Do the same
+  unconditionally whenever a formula goes into ARCHITECTURE.md, PLAN.md, or any
+  other document — never rely on a formula being self-explanatory or defined
+  earlier in the conversation.
 
 ## Handoff: ARCHITECTURE.md + the skeleton set
 
@@ -496,4 +529,3 @@ test-case traces run during this skill's own development:
   first-login provision-vs-reject) respectively, none visible in the seed prose.
   Ask "what happens on the empty/failure case" first at every seam, not as a
   cleanup pass.
-
