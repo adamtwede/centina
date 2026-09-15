@@ -153,7 +153,9 @@ ${CLAUDE_PLUGIN_ROOT}/bin/centina-check ledger <artifactsRoot>/specs/<system>
 It validates entries and every label citation in the system directory
 (markdown files and `.ts` comments; `archive/` and `transcripts/` are
 skipped), then regenerates `LEDGER-INDEX.md` and `STANDING.md`. `--check`
-reports stale generated files without writing.
+reports stale generated files without writing. `--contracts <file>` also
+lists the `@proposal` overrides in a `centina-realize` contracts module and
+reports any whose change request is closed.
 
 In Claude Code a hook runs it after every write inside the system directory
 and blocks on errors. The human controls this with `ledgerHook` in

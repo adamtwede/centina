@@ -182,6 +182,49 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[]): Finding[] {
   return findings
 }
 
+const PROPOSAL_TAG = /@proposal\(([^)]*)\)/g
+const CLOSED_CHANGE_REQUEST = new Set(["done", "withdrawn", "superseded"])
+
+/**
+ * Enumerates `@proposal(<label>)` overrides in a centina-realize contracts
+ * module. Each must cite a change-request work item; an override whose change
+ * request is closed should have been removed.
+ */
+export function checkProposals(ledger: Ledger, contractsFile: string, lines: SourceLine[]): Finding[] {
+  const byKey = new Map<string, Entry>()
+  for (const entry of ledger.entries) if (!byKey.has(entry.key)) byKey.set(entry.key, entry)
+
+  const findings: Finding[] = []
+  const report = (severity: Finding["severity"], rule: string, line: number, message: string) =>
+    findings.push({ rule, severity, file: contractsFile, line, message })
+
+  for (const sourceLine of lines) {
+    for (const tag of sourceLine.text.matchAll(PROPOSAL_TAG)) {
+      const ref = parseQualified(tag[1])
+      if (!ref || ref.part || ref.system) {
+        report("error", "ledger-proposal", sourceLine.line, `@proposal(${tag[1]}) must cite a qualified change-request label`)
+        continue
+      }
+      const target = byKey.get(labelKey(ref))
+      if (!target) {
+        report("error", "ledger-undefined-label", sourceLine.line, `${labelKey(ref)} is not defined in the ${ledger.system} ledger`)
+        continue
+      }
+      if (target.ref.letter !== "W" || target.fields.get("Kind")?.value !== "change-request") {
+        report("error", "ledger-proposal", sourceLine.line, `@proposal must cite a W entry with Kind: change-request, not ${target.key}`)
+        continue
+      }
+      const targetStatus = status(target) ?? ""
+      if (CLOSED_CHANGE_REQUEST.has(targetStatus)) {
+        report("error", "ledger-proposal", sourceLine.line, `${target.key} is ${targetStatus}; remove this override`)
+      } else {
+        report("info", "ledger-proposal", sourceLine.line, `open override for ${target.key} (${targetStatus}): ${target.title}`)
+      }
+    }
+  }
+  return findings
+}
+
 type ErrorFn = (rule: string, file: string, line: number, message: string) => void
 
 function checkHeader(

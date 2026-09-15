@@ -9,7 +9,9 @@ All in `<artifactsRoot>/specs/<system>/`:
 1. **The ledger** (`LEDGER.md` and partitions): every decision, question,
    finding, option, work item, goal and rule. See `ledger.md`.
 2. **The run frame:** `SESSION-ZERO-STATE.md` for session-zero,
-   `ITERATE-STATE.md` for iterate. It holds only:
+   `ITERATE-STATE.md` for iterate, `REALIZE-STATE.md` for realize (which also
+   records the implementation root, the contracts module, and the spike and
+   build source trees). It holds only:
    - the system name and `artifactsRoot`;
    - the session IDs of runs so far;
    - where the run is: current phase or gate, or current component;

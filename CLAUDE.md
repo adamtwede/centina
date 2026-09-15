@@ -76,7 +76,8 @@ What exists:
   `tsconfig.template.json`) — Centina's checker and skills are installable
   and runnable in any project via `claude --plugin-dir .`, independent of
   this repo. See "Where new spec-writing happens" below.
-- `skills/centina-session-zero/` and `skills/centina-iterate/` — the bundled
+- `skills/centina-session-zero/`, `skills/centina-iterate/` and
+  `skills/centina-realize/` — the bundled
   skills (plugin-relative, `${CLAUDE_PLUGIN_ROOT}`-relative paths), the
   single copy going forward. The old project-level `.claude/skills/` copy
   was retired.

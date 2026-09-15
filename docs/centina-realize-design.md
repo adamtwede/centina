@@ -1,7 +1,8 @@
 # centina-realize: design
 
-**Status:** agreed in the 2026-09-15 improvement session. **Not
-implemented.** Depends on
+**Status:** agreed and built in the 2026-09-15 improvement session
+(`skills/centina-realize/`, `docs/measurement-methodology.md`,
+`centina-check ledger --contracts`). Not yet used on a project. Depends on
 `docs/ledger-provenance-design.md` (labels, entry headers, generated views,
 lint), which should be built first.
 
@@ -115,7 +116,9 @@ are breaking. So:
    `Omit<...> & {...}` where needed, tagged with a JSDoc label:
    `@proposal(physsim:W7)`. Build code compiles against the override.
 2. **The checker enumerates open overrides**, the same way it enumerates
-   holes.
+   holes: `centina-check ledger <system> --contracts <file>`. It also reports
+   an override whose change request is `done`, `withdrawn` or `superseded`,
+   since that override should have been deleted.
 3. **The human makes every edit to `.centina.ts` files.** The skill does not
    edit specs, including comment-only corrections. Keeping the human in the
    code is deliberate: a human who hands every spec edit to the agent loses
@@ -234,7 +237,9 @@ All labeled `W` with a `Kind:` header (`phase`, `step`, `spike`,
 ### Phase close
 
 Closing a phase counts as writing a derived doc, so the sweep runs first. The
-close record is a ledger entry containing:
+close record is an `F` entry (`Status: measured`, with the definition-of-done
+run as `Evidence`), after which the phase `W` entry is set `done`. The close
+record contains:
 
 1. what the slice proves;
 2. each boundary's status: specced → planned → mocked → implemented (from

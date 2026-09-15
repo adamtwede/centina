@@ -3,10 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
-import { checkLedger } from "./check"
+import { checkLedger, checkProposals } from "./check"
 import { runLedgerCommand } from "./command"
 import { affectedWorkItems, renderIndex, renderStanding } from "./generate"
-import { readLedger, scanSystemFiles } from "./parse"
+import { commentLines, readLedger, scanSystemFiles } from "./parse"
 
 function system(files: Record<string, string>): string {
   const dir = path.join(mkdtempSync(path.join(tmpdir(), "ledger-")), "demo")
@@ -174,6 +174,44 @@ describe("ledger check", () => {
       "NOTES.md": "```\nP1 sz:P99\n```\nSee chrysalis/physsim:P4.\n",
     })
     assert.deepEqual(found, [])
+  })
+})
+
+describe("contracts module proposals", () => {
+  const LEDGER = `### physsim:W1: pass a corridor per path to propagate
+- Kind: change-request
+- Status: active
+
+### physsim:W2: floor depth in EnvironmentSample
+- Kind: change-request
+- Status: done
+
+### physsim:W3: build arrivals
+- Kind: step
+- Status: active
+`
+
+  it("lists open overrides and reports closed, wrong-kind, undefined and malformed ones", () => {
+    const ledger = readLedger(system({ "LEDGER.md": LEDGER }))
+    const source = [
+      "/** @proposal(physsim:W1) */",
+      "/** @proposal(physsim:W2) */",
+      "/** @proposal(physsim:W3) */",
+      "/** @proposal(physsim:W9) */",
+      "/** @proposal(W1) */",
+      "export {}",
+    ].join("\n")
+    const findings = checkProposals(ledger, "contracts.ts", commentLines("contracts.ts", source))
+    assert.deepEqual(
+      findings.map((f) => [f.severity, f.rule, f.line]),
+      [
+        ["info", "ledger-proposal", 1],
+        ["error", "ledger-proposal", 2],
+        ["error", "ledger-proposal", 3],
+        ["error", "ledger-undefined-label", 4],
+        ["error", "ledger-proposal", 5],
+      ],
+    )
   })
 })
 

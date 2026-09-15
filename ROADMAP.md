@@ -212,8 +212,10 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
 - **`centina-realize`** (`docs/centina-realize-design.md`): a skill for
   spikes and contract-backed build work between iterate cycles, with a
   planning gate, work-item tracking, scope changes, goals and standing
-  rules, and a measurement methodology. Agreed 2026-09-15. Not implemented.
-  First live test: Underworld.
+  rules, and a measurement methodology. Agreed and built 2026-09-15:
+  `skills/centina-realize/`, `docs/measurement-methodology.md`, and
+  `centina-check ledger --contracts`. Not yet used on a project; first live
+  test: Underworld.
 - Exhaustiveness on `switch` over spec enums — tsc doesn't require it; decide
   whether the checker should (AISL's match rule said yes).
 - The remaining fit-validation candidate set (monorepo dependency-impact tool,

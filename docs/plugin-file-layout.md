@@ -21,7 +21,9 @@ centina-plugin/
 ├── skills/
 │   ├── centina-session-zero/
 │   │   └── SKILL.md
-│   └── centina-iterate/
+│   ├── centina-iterate/
+│   │   └── SKILL.md
+│   └── centina-realize/
 │       └── SKILL.md
 ├── bin/
 │   └── centina-check
@@ -50,7 +52,8 @@ centina-plugin/
     ├── plan-organization.md
     ├── plugin-setup-procedure.md
     ├── output-management.md
-    └── ledger.md
+    ├── ledger.md
+    └── measurement-methodology.md
 ```
 
 This tree is exactly what `install.sh` (at the checkout's own root,
