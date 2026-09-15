@@ -76,6 +76,37 @@ forward meant copying their text. The underlying problem was **duplication**
 4. Agent-made digests that restate claims are discouraged. If one exists, it
    carries a date stamp and a "derived, not authoritative" header.
 
+### Entry grammar
+
+Ledger files are `LEDGER.md` plus optional partitions `LEDGER-<part>.md` at
+the top of the system directory. `LEDGER-INDEX.md` is generated and is not a
+partition.
+
+```
+### sz:P12: cap escalation depth at 3 attempts
+- Date: 2026-05-14
+- Session: 882b1094
+- Phase: sz:W1
+- Status: superseded
+- Obsoletes: sz:P2
+- Updates: matcher:P5(b), matcher:P6
+- Obsoleted-by: sz:P19
+
+Body text, append-only.
+
+(a) First decidable part.
+(b) Second decidable part.
+```
+
+1. **Heading:** `### <scope>:<letter><number>: <title>`, always fully
+   qualified. Any other `###` heading in a ledger file is an error. `#` and
+   `##` headings are free-form section titles and end the current entry.
+2. **Header:** `- Field: value` lines immediately after the heading. The
+   first line that is not a field ends the header.
+3. **Label lists:** comma-separated qualified labels.
+4. **Parts:** body lines starting with `(a) `, `(b) `, and so on.
+5. Fenced code blocks are not scanned for citations.
+
 ### Labels
 
 Based on legislative drafting (pinpoint citation, amendments as separate
@@ -99,7 +130,9 @@ reverse links recorded on the old document).
    counts or history; that lives in the header, because it can change after
    the entry is written and IDs must not.
 4. **Scope prefix.**
-   - Component name for component work: `matcher:P12`.
+   - The component's spec file basename for component work:
+     `task-matcher.centina.ts` gives `task-matcher:P12`. No alias list, so
+     the lint resolves a bare label in a spec file from its filename.
    - `sz` for `centina-session-zero`: `sz:P12`.
    - A named scope for work not tied to one component, such as an auditor or
      a spike series: `audit:F3`, `spike-propagation:F4`.
@@ -176,7 +209,11 @@ Example:
   pre-registration: a refuted prediction with stated arithmetic shows where
   the reasoning failed.
 - `measured` and `measured-false` require `Evidence`.
-- `superseded` applies whenever `Obsoleted-by` is set.
+- `superseded` is valid for every letter and applies exactly when
+  `Obsoleted-by` is set.
+- `Obsoletes` / `Updates` and their reverse markers are written when the
+  change takes effect (ratified, measured), not when it is first proposed.
+  An open proposal names what it would replace in its body.
 - A `blocked` work item cites the blocking label in `Depends-on`.
 
 ### Dependents
@@ -212,9 +249,12 @@ guarantee them; spotting one is still a judgment.
    - open items, filterable by phase and scope;
    - settled items: `rejected`, `withdrawn`, `measured-false`, `superseded`,
      each with its `Evidence` or superseding label;
-   - affected work items: open `W` entries whose `Depends-on` or `Premises`
-     cite an entry whose status changed since the work item was last
-     updated.
+   - affected work items: open `W` entries (`planned`, `active`, `blocked`)
+     whose `Depends-on` or `Premises` cite an entry that no longer holds
+     (`superseded`, `withdrawn`, `rejected`, `measured-false`, `retired`,
+     `declined`), and `blocked` entries whose `Depends-on` is resolved
+     (`done`, `answered`, `ratified`, `chosen`, `measured`). Computed from
+     current headers; no status history is needed.
 3. **`specs/<system>/STANDING.md`**, also generated: the standing section
    alone. The project's CLAUDE.md (or AGENTS.md) imports it, so goals and
    rules are in context in every session, not only skill runs. Accepted cost:
@@ -234,14 +274,26 @@ view. Nothing is copied, so nothing is left behind to go stale.
 
 ### Lint checks
 
-A mode of `bin/centina-check`.
+A mode of `bin/centina-check`: `centina-check ledger [--check] <system-dir>...`
+(`npm run check -- ledger <dir>` in this repo). Without `--check` it validates
+and writes the generated files.
+
+**Files scanned for citations:** the ledger files, and every other `.md` file
+and every `.ts` file's comments in the system directory. `archive/`,
+`transcripts/` and dot-directories are skipped, as are the generated files.
 
 1. **Checks:**
-   - labels cited but never defined;
+   - labels or parts cited but never defined;
    - duplicate labels;
-   - one-way supersession markers;
-   - superseded labels or parts cited as current;
-   - bare labels in system-level docs;
+   - malformed headings, header values, and fields that do not apply to the
+     entry's letter;
+   - one-way supersession markers, and `superseded` without `Obsoleted-by`
+     (or the reverse);
+   - a label that no longer holds, cited from a non-ledger file, unless the
+     same line also cites its successor. Citing an updated part requires the
+     updating label on the same line. Ledger bodies are history and exempt;
+   - bare labels anywhere except comments in a `<scope>.centina.ts` file,
+     where they resolve to that scope;
    - status values invalid for the label's letter;
    - `measured` / `measured-false` without `Evidence`;
    - `blocked` without a `Depends-on`;

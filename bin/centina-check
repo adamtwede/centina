@@ -28,7 +28,12 @@ if (!existsSync(nodeModulesDir)) {
 const result = spawnSync(
   "npx",
   ["tsx", path.join(checkerDir, "cli.ts"), ...process.argv.slice(2)],
-  { cwd: checkerDir, stdio: "inherit" }
+  {
+    cwd: checkerDir,
+    stdio: "inherit",
+    // Relative paths given to the checker resolve against where it was invoked.
+    env: { ...process.env, CENTINA_CALLER_CWD: process.cwd() },
+  }
 )
 
 process.exit(result.status ?? 1)
