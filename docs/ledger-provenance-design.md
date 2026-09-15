@@ -303,8 +303,15 @@ and every `.ts` file's comments in the system directory. `archive/`,
    written. Two agents on different components can conflict through a
    cross-scope citation, and only a directory-wide scan catches it on the
    next write by either one.
-3. **Claude Code:** the `PostToolUse` hook blocks by default, with an
-   override.
+3. **Claude Code:** `scripts/ledger-hook.mjs` runs on `PostToolUse` for
+   `Write|Edit|MultiEdit`. When the written file is under a directory
+   containing `LEDGER.md`, it runs `centina-check ledger` on that directory.
+   Errors block (exit 2, findings shown to Claude). The override is
+   `"ledgerHook": "block" | "warn" | "off"` in the project's
+   `.centina/config.json`, read on every run so a change applies immediately;
+   `warn` passes the findings to Claude as context without blocking. Only the
+   human changes this setting. If the plugin's checker is not installed yet,
+   the hook does nothing.
 4. **Other harnesses:** the skills name explicit trigger points.
 5. **Not caught:** implicit contradictions and uncited dependents. Those rely
    on the term search and the sweep.
@@ -359,17 +366,25 @@ A shared doc beside `docs/output-management.md`, referenced by all skills.
 
 ## Item B: session transcripts
 
-1. **(a) Session pointer.** Every run records its session ID in the `Session`
-   header of each entry it writes, and in the run frame of its state file.
-   Applies on all harnesses.
-2. **(b) Copy hook, Claude Code only.** A `PreCompact` + `SessionEnd` hook
-   copies the harness transcript into `specs/<system>/transcripts/`, found
-   via the pointer from (a). The directory is gitignored.
+1. **(a) Session pointer.** Every run records its full session ID in the
+   `Session` header of each entry it writes, and in the run frame of its state
+   file. In Claude Code the skill text uses the documented
+   `${CLAUDE_SESSION_ID}` substitution. Applies on all harnesses.
+2. **(b) Copy hook, Claude Code only.** `scripts/transcript-hook.mjs` runs on
+   `PreCompact` and `SessionEnd`:
+   - candidates are `specs/<system>/` directories containing `LEDGER.md`,
+     under the session's `cwd` and under any registered project
+     (`${CLAUDE_PLUGIN_DATA}/known-projects.json`) that contains the `cwd` or
+     sits inside it;
+   - a candidate matches when any of its top-level markdown files (generated
+     files excluded) contains the session ID;
+   - the transcript is copied to `transcripts/<session-id>.jsonl` in each
+     match, overwriting earlier copies from the same session;
+   - the hook writes `transcripts/.gitignore` containing `*`, so the host
+     project's `.gitignore` needs no change;
+   - it never blocks and never fails the session.
 3. **Deferred:** a redaction step, and transcript support for non-Claude
    installs.
-4. **To verify:** how the skill learns its own session ID. A
-   `${CLAUDE_SESSION_ID}` skill substitution may exist (unconfirmed); the
-   fallback is the existing SessionStart hook printing the ID into context.
 
 The agent does not write its own transcript: it would be a paraphrase, it
 cannot copy text lost to compaction, and it roughly doubles output tokens.
