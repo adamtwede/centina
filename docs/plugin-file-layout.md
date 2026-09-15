@@ -49,7 +49,8 @@ centina-plugin/
     ├── fit-validation.md
     ├── plan-organization.md
     ├── plugin-setup-procedure.md
-    └── output-management.md
+    ├── output-management.md
+    └── ledger.md
 ```
 
 This tree is exactly what `install.sh` (at the checkout's own root,

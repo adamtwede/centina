@@ -1,40 +1,50 @@
-# Session-zero and iterate: managing long-running output
+# Managing long-running session output
 
-When a `centina-session-zero` or `centina-iterate` session produces a ledger or
-state file (e.g., `SESSION-ZERO-STATE.md`) that grows beyond ~1500 lines,
-**split it automatically** into an index file + detail files. This keeps context
-tokens manageable across compactions while preserving resumability.
+Applies to `centina-session-zero`, `centina-iterate` and `centina-realize`.
 
-**Strategy (Option A — split by mining node):**
+## What goes where
 
-- **Index file** — `SESSION-ZERO-STATE.md` (kept < 300 lines, always in context):
-  - Run frame (purpose, operating mode, Rule 0 status)
-  - Mining tree (statuses only; "Match: MINED (see SESSION-ZERO-MATCH.md)")
-  - Contract ledger (summary table, links to detail)
-  - Hole ledger (summary table, links to detail)
-  - Findings list (titles and `@file` links)
-  - Pointers to detail files
+All in `<artifactsRoot>/specs/<system>/`:
 
-- **Detail files** — one per mining-tree node, holds full interior content:
-  - `SESSION-ZERO-MATCH.md` — all Match interior (rounds 1–10)
-  - `SESSION-ZERO-CAREER.md` — all Career interior (round 11+)
-  - `SESSION-ZERO-SIMENGINE.md` — all Simulation engine (round 11b+)
-  - `SESSION-ZERO-FINDINGS.md` — all findings with full text (F1–F9+)
-  - `SESSION-ZERO-CORE-DECISIONS.md` — core/non-switchable decisions
+1. **The ledger** (`LEDGER.md` and partitions): every decision, question,
+   finding, option, work item, goal and rule. See `ledger.md`.
+2. **The run frame:** `SESSION-ZERO-STATE.md` for session-zero,
+   `ITERATE-STATE.md` for iterate. It holds only:
+   - the system name and `artifactsRoot`;
+   - the session IDs of runs so far;
+   - where the run is: current phase or gate, or current component;
+   - pointers: DAG files, and open threads by label.
 
-**In-conversation:** Only the index file stays in context every turn (~ 90%
-token savings). Agents read detail files on demand when diving into a specific
-node's rounds. On compaction, index carries cursor position and status; resuming
-agent loads index + the relevant detail file.
+   Keep it under ~100 lines. Never copy entry content or status into it.
+3. **Generated views:** `LEDGER-INDEX.md` and `STANDING.md`.
 
-**Trigger:** Split when the main file reaches ~1500 lines. Once split, maintain
-the strategy for all subsequent rounds (don't merge back).
+Ask the human for the system name before the first write to disk, if they
+have not given one.
 
-**For iterate sessions:** Same strategy applies if the session produces a
-similarly sized ledger (e.g., a complex component with many rounds of
-refinement). Name detail files `ITERATE-<component>-*.md` and keep the index
-as `ITERATE-STATE.md`.
+## Splitting the ledger
 
-This is automatic — no special permission or human involvement needed. Agents
-implementing it should note the split in the session conversation so the human
-knows it happened and can navigate if needed.
+When `LEDGER.md` passes ~1500 lines, split it without asking, and tell the
+human.
+
+1. Move whole entries into `LEDGER-<part>.md` files. Choose parts by how the
+   work is looked up: one per scope (`LEDGER-sz.md`,
+   `LEDGER-task-matcher.md`) or one per phase.
+2. Each entry lives in exactly one file. Move, never copy.
+3. A moved entry keeps its label.
+4. `LEDGER.md` stays, with its title, a list of the partitions, and any
+   entries not moved. The checker and hooks look for it.
+5. Once split, keep adding entries to the matching partition. Do not merge
+   back.
+
+## Reading in a long session
+
+1. Read `LEDGER-INDEX.md` and the run frame, not the ledger.
+2. Look up entries by label as needed (`### <label>:`).
+3. After a compaction, reread the run frame and `LEDGER-INDEX.md` before
+   continuing.
+
+## Older projects
+
+Projects that used the earlier split (`SESSION-ZERO-STATE.md` as an index
+plus `SESSION-ZERO-<node>.md` detail files) keep that layout until migrated
+to a ledger. The checker and hooks ignore systems without a `LEDGER.md`.

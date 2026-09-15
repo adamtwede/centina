@@ -14,6 +14,15 @@ regenerates the stub `tsconfig.json` the checks below run against. If this
 skill is invoked against a tree with no existing config, this is the step
 that stands one up.
 
+**If the spec's system directory (`specs/<system>/`) has a `LEDGER.md`,** read
+`${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and the system's `LEDGER-INDEX.md`
+before the first check: the standing goals and rules, the affected work
+items, and the open items for this component. Entries from this loop use the
+spec file's basename as their scope (`task-matcher.centina.ts` gives
+`task-matcher`), and this session's ID, for the `Session` header, is
+`${CLAUDE_SESSION_ID}`. If there is no ledger, the loop works as before; don't
+create one unless the human asks.
+
 **If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
 existing config was found and setup just created one, or a config exists
 but nothing's been written into `specs/` yet — say so plainly and suggest
@@ -71,10 +80,12 @@ code with precise runtime semantics. Keep these distinctions in mind:
   During iteration, try to work with the human to convert `@agent:` stubs
   into proper Centina constructs (`deferred<F>()`, a typed boundary door)
   where the intent is clear enough to express. If it isn't, flag it as a
-  genuine ambiguity and discuss. A note may carry an author-chosen label —
-  `@agent(C1): ...` — giving it a stable name to reference later in
-  conversation or in a PLAN.md, instead of an ephemeral line number. Labels
-  are free text the human assigns; don't invent or renumber them yourself.
+  genuine ambiguity and discuss. A note may carry a label giving it a stable
+  name to reference later, instead of an ephemeral line number. In a system
+  with a ledger, the label is the ledger entry the note belongs to:
+  `@agent(Q3): ...` in `task-matcher.centina.ts` means `task-matcher:Q3`, and
+  the checker requires that entry to exist. Without a ledger, labels are free
+  text the human assigns (`@agent(C1): ...`). Either way, never renumber one.
 
 - **`deferred<F>()` calls** are marker functions: a typed hole whose *routing*
   (stays in this spec / belongs in a separate spec / left to a runtime
@@ -191,7 +202,9 @@ into the normal check/fix loop below.
      gap). Do not guess. Lay out the tension plainly — what the diagnostic
      found, why it's not just a mechanical fix — and either ask a direct
      question or use AskUserQuestion if there's a clean multi-way fork. Wait
-     for the human's answer before touching the file.
+     for the human's answer before touching the file. If the system has a
+     ledger, record the question as an entry when it's raised and the
+     decision when it's made, following `ledger.md`'s "When a status changes".
 
 4. **On a genuine ambiguity with a high-stakes fork, request a fit check.**
    If resolving a diagnostic requires choosing between architectural options
@@ -215,30 +228,26 @@ into the normal check/fix loop below.
 
 ## Long-session output management
 
-If this session produces a ledger or state file (e.g., a session notes file or
-refinement log) that grows beyond ~1500 lines, split it automatically into an
-index file + detail files per the strategy in
-`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. This keeps context
-tokens low while preserving resumability. Agents apply the split when detected;
-no permission needed, but note it in the conversation so the human knows. For
-iterate, name detail files `ITERATE-<component>-*.md` and keep the index as
-`ITERATE-STATE.md`.
+Follow `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`: decisions go in the
+ledger, `ITERATE-STATE.md` is only a run frame, and a ledger past ~1500 lines
+is split into partitions. No permission needed to split, but note it in the
+conversation so the human knows.
 
 ## Reference labels and formula explanations
 
 Both apply throughout this loop, not just in a fresh session-zero handoff:
 
-- **Label references (P/Q/F/O) get explained, not just cited.** Session-relevant
-  items earn short labels for reference — `P<n>` a proposal, `Q<n>` a question,
-  `F<n>` a finding, `O<n>` an option within a fork. The first time a label is
-  introduced, state what it's short for and a one-clause summary of what it
-  refers to — not the bare tag alone ("F7: scope-crossing identifier in
-  `matchTasks`," not "F7"). When re-citing an existing label, check the gap: if
-  more than 10 labels of that same letter have been introduced since it last
-  came up, restate a brief reminder alongside the tag. Err toward restating
-  when unsure. Claude Code has no native sidebar for tracking these; if the
-  session keeps a state file (see "Long-session output management" above), add
-  a compact label index (tag → one-line title) to it.
+- **Label references get explained, not just cited.** With a ledger, labels
+  are ledger labels (`task-matcher:F7`); without one, short session labels
+  (`P<n>` proposal, `Q<n>` question, `F<n>` finding, `O<n>` option). The first
+  time a label comes up, give a one-clause summary ("task-matcher:F7, the
+  scope-crossing identifier in `matchTasks`," not the bare tag). When
+  re-citing one, restate a brief reminder if more than 10 labels of the same
+  letter have come up since. Err toward restating when unsure. With a ledger,
+  the label index is `LEDGER-INDEX.md`; without one, keep a compact label
+  index in the state file.
+- **Transcripts and concurrency.** Never open a session transcript without
+  asking first, and warn the human about concurrent sessions, per `ledger.md`.
 - **Explain formula terms on introduction.** When a mathematical or scientific
   formula appears for the first time in a session, or reappears in a long
   session where you can't be confident the human still has each term in mind,
@@ -250,10 +259,23 @@ Both apply throughout this loop, not just in a fresh session-zero handoff:
 ## Reconciling ARCHITECTURE.md before the plan
 
 If the spec came out of a `centina-session-zero` run, `specs/<system>/ARCHITECTURE.md`
-exists alongside it and carries a **contract ledger** and a **hole ledger** for
+exists alongside it and records the contracts and holes for
 the whole system (`${CLAUDE_PLUGIN_ROOT}/docs/plan-organization.md`: "a plan-per-boundary-set is
 derivable from a frozen contract ledger, and drifts exactly when the ledger
-drifts"). Fixes made during this loop routinely make that ledger stale —
+drifts").
+
+**If the system has a ledger,** statuses already changed in ledger headers as
+decisions were made, so ARCHITECTURE.md only needs its structure checked.
+**Once the spec goes clean and before writing PLAN.md**, run the ledger sweep
+(`ledger.md`, "Sweeps"), then update ARCHITECTURE.md where this loop changed:
+
+- a door signature;
+- a file location (a boundary extracted into its own file);
+- a terminal's concrete `@external` source;
+- the labels cited, where a decision was superseded.
+
+**If the system has no ledger** (older projects), fixes made during this loop
+routinely make ARCHITECTURE.md's contract and hole ledgers stale —
 resolving a `deferred` hole's routing, pinning a provisional contract, fleshing
 out an `@agent:` stub into real structure, or extracting a boundary into its
 own file (see "Boundary declarations as extraction candidates" above) all
@@ -275,9 +297,9 @@ reconcile it:
 This is a mechanical reconciliation, not new authorship — every entry being
 updated reflects a decision the human already ratified earlier in this same
 loop, so the agent may write the update directly (the same standing as writing
-PLAN.md itself), but call out what changed in the ledger before moving on so
+PLAN.md itself), but call out what changed in ARCHITECTURE.md before moving on so
 the human isn't surprised by a silently-updated file. If other components in
-the system haven't been through `centina-iterate` yet, their ledger entries are
+the system haven't been through `centina-iterate` yet, their ARCHITECTURE.md entries are
 untouched — reconciliation only ever covers the component just finished.
 
 ## Writing the implementation plan
@@ -293,7 +315,8 @@ implementation plan and write it as a PLAN.md file alongside the spec:
   it, e.g. `**Spec source**: hill-climbing-loop.centina.ts`. This makes the plan's
   origin traceable. If the spec came out of a `centina-session-zero` run, name
   its `ARCHITECTURE.md` too — reconciled per the step above, so what the plan
-  cites is accurate at the moment the plan is written.
+  cites is accurate at the moment the plan is written. If the system has a
+  ledger, cite the labels of the decisions each step depends on.
 - **Completeness**: the plan must be self-contained enough that a capable
   coding agent can implement the feature with little or no additional input
   from the human. It should name every file that changes, describe each

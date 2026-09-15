@@ -158,6 +158,14 @@ describe("ledger check", () => {
     assert.deepEqual(found.map((f) => [f.rule, f.line]), [["ledger-stale-citation", 1]])
   })
 
+  it("requires @agent labels in spec files to be ledger labels", () => {
+    const found = check({
+      "LEDGER.md": VALID,
+      "matcher.centina.ts": `// @agent(C1): free text\n// @agent(W2): ledger label\n// @agent(sz:P2): qualified\n// @agent: unlabeled\nexport {}\n`,
+    })
+    assert.deepEqual(found.map((f) => [f.rule, f.line]), [["ledger-agent-label", 1]])
+  })
+
   it("skips archive, transcripts, fenced code and cross-system citations", () => {
     const found = check({
       "LEDGER.md": VALID,

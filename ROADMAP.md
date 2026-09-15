@@ -205,8 +205,10 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   AISL) was mooted by the pivot.
 - **Ledger provenance** (`docs/ledger-provenance-design.md`): supersession
   tracking, scoped labels with structured entry headers, a lint mode for
-  `bin/centina-check`, and session-transcript capture. Agreed 2026-09-15, not
-  implemented. Build before `centina-realize`.
+  `bin/centina-check`, and session-transcript capture. Agreed and built
+  2026-09-15: `centina-check ledger`, the ledger and transcript hooks,
+  `docs/ledger.md`, and the session-zero/iterate updates. Not yet exercised in
+  a live plugin session; Underworld's migration is the first real use.
 - **`centina-realize`** (`docs/centina-realize-design.md`): a skill for
   spikes and contract-backed build work between iterate cycles, with a
   planning gate, work-item tracking, scope changes, goals and standing

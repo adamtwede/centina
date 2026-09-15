@@ -9,6 +9,7 @@ import {
   fieldRefs,
   formatRef,
   labelKey,
+  parseQualified,
   refsInText,
   status,
 } from "./parse"
@@ -26,6 +27,13 @@ export const STATUSES: Record<Letter, string[]> = {
 const KINDS: Partial<Record<Letter, string[]>> = {
   W: ["phase", "step", "spike", "change-request", "other"],
   R: ["structural", "design", "method", "process"],
+}
+
+const AGENT_LABEL = /@agent\(([^)]*)\)/g
+const BARE_LABEL_EXACT = /^[PQFOWGR][1-9]\d*$/
+
+function isLedgerLabel(text: string): boolean {
+  return BARE_LABEL_EXACT.test(text) || parseQualified(text) !== undefined
 }
 
 /** Statuses meaning the entry no longer holds; citing one from a current-state file is an error. */
@@ -132,8 +140,21 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[]): Finding[] {
   for (const { file, lines } of ledger.looseLines) checkLedgerLines(file, lines)
 
   for (const scannedFile of scanned) {
+    const isSpecSource = scannedFile.file.endsWith(".ts")
     for (const sourceLine of scannedFile.lines) {
       if (sourceLine.code) continue
+      if (isSpecSource) {
+        for (const note of sourceLine.text.matchAll(AGENT_LABEL)) {
+          if (!isLedgerLabel(note[1])) {
+            error(
+              "ledger-agent-label",
+              scannedFile.file,
+              sourceLine.line,
+              `@agent(${note[1]}) is not a ledger label; in a system with a ledger, label notes with the entry they belong to`,
+            )
+          }
+        }
+      }
       const refs = refsInText(sourceLine.text).flatMap(({ ref, bare }) => {
         if (!bare) return [ref]
         if (scannedFile.bareScope) return [{ ...ref, scope: scannedFile.bareScope }]

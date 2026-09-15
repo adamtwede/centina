@@ -500,7 +500,7 @@ export declare class OrderStore {
 ```
 
 **`@agent:` / `@agent(label):` — a note to the coding agent.** The spec-authoring channel between you and whichever agent is running a session
-with you, to be resolved at spec-iteration or plan-build time, never part of the spec's domain content. An optional label gives a note a stable name to reference later.
+with you, to be resolved at spec-iteration or plan-build time, never part of the spec's domain content. An optional label gives a note a stable name to reference later. In a system with a ledger ([docs/ledger.md](docs/ledger.md)), the label is the note's ledger entry, e.g. `@agent(Q3)`, and the checker requires that entry to exist.
 
 ```ts
 // @agent(C1): confirm whether a cancelled order needs its own banner before planning.

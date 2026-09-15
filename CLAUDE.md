@@ -26,7 +26,9 @@ showed that TS already had every *structural* feature being reached for, while
 the genuinely novel inventions (`deferred`, `@agent:` direction, boundaries)
 needed a checker, not a grammar. `@agent:` notes may carry an author-chosen
 label — `@agent(C1): ...` — giving the note a stable name to reference later
-instead of an ephemeral line number; labels are free text the human assigns.
+instead of an ephemeral line number; labels are free text the human assigns,
+except in a system with a ledger (`docs/ledger.md`), where the label is the
+note's ledger entry (`@agent(Q3)`) and the checker requires it to exist.
 **The entire AISL v0 toolchain and its docs
 are preserved at git tag `aisl-v0-standalone-language`** — consult the tag,
 not this working tree, for anything AISL-era. Do not rebuild AISL-era
