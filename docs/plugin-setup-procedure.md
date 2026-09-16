@@ -61,14 +61,12 @@ At `artifactsRoot`:
 - `centina.ts` — copy (not symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`,
   overwriting any existing copy. Every spec imports this by relative path;
   without it, specs don't resolve.
-- `docs/` — copies (not symlinks) of `${CLAUDE_PLUGIN_ROOT}/docs/boundaries.md`,
-  `fit-validation.md` and `plan-organization.md`, at `<artifactsRoot>/docs/`,
-  not loose at `<artifactsRoot>` itself. Overwrite these too.
-
-The bundle's remaining docs — `ledger.md`, `output-management.md`,
-`measurement-methodology.md`, `plugin-setup-procedure.md` — are read from
-`${CLAUDE_PLUGIN_ROOT}/docs/` by whichever skill needs them, and are
-deliberately not copied into the project.
+No docs are copied. The bundle's docs — `ledger.md`,
+`output-management.md`, `measurement-methodology.md` and this file — are
+read from `${CLAUDE_PLUGIN_ROOT}/docs/` by whichever skill needs them.
+Centina's design reference (`boundaries.md`, `fit-validation.md`,
+`plan-organization.md`) is not bundled at all; a human who wants it reads it
+in the Centina repository.
 
 ## Step 4 — write the stub tsconfig
 

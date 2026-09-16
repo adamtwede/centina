@@ -47,9 +47,6 @@ centina-plugin/
 ├── centina.ts
 ├── tsconfig.template.json
 └── docs/
-    ├── boundaries.md
-    ├── fit-validation.md
-    ├── plan-organization.md
     ├── plugin-setup-procedure.md
     ├── output-management.md
     ├── ledger.md

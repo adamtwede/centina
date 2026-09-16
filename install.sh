@@ -33,8 +33,7 @@ cp "$SRC/tsconfig.template.json" "$DEST/"
 mkdir -p "$DEST/docs"
 # Keep this list in step with docs/plugin-file-layout.md's directory tree;
 # scripts/bundle.test.mjs asserts the two agree.
-for doc in boundaries.md fit-validation.md plan-organization.md \
-           plugin-setup-procedure.md output-management.md ledger.md \
+for doc in plugin-setup-procedure.md output-management.md ledger.md \
            measurement-methodology.md; do
   cp "$SRC/docs/$doc" "$DEST/docs/"
 done

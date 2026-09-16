@@ -434,9 +434,8 @@ location or terminal source changes (see "Reconciling ARCHITECTURE.md before
 the plan" in its SKILL.md).
 
 ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
-lineage — a plan-per-boundary-set (see `${CLAUDE_PLUGIN_ROOT}/docs/plan-organization.md`)
-is derivable from a frozen contract ledger, and drifts exactly when the ledger
-drifts.
+lineage — a plan-per-boundary-set is derivable from a frozen contract
+ledger, and drifts exactly when the ledger drifts.
 
 ## What NOT to do
 

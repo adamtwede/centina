@@ -15,8 +15,9 @@
 //   /** @boundary */    — both directions over the same resource
 //
 // Direction is inferred from each door's return type (void = write, non-void =
-// read), never from its name. See docs/boundaries.md for the design rationale
-// (affordances, not transports), which carries over from AISL v0 unchanged.
+// read), never from its name. The design rationale (affordances, not
+// transports) is in docs/boundaries.md in the Centina repository; this file
+// is a copy, so that path does not resolve from here.
 //
 // External references (the "lives in existing code / an API / a system"
 // routing of a hole) are plain `declare` statements tagged with

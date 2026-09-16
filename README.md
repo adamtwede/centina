@@ -361,9 +361,9 @@ The [docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness portabilit
 3. **Set up your own project by hand** — this is what
    [docs/plugin-setup-procedure.md](docs/plugin-setup-procedure.md)'s Steps
    3–4 do automatically inside a Claude Code session:
-   - Copy `centina.ts` and `docs/boundaries.md`, `docs/fit-validation.md`,
-     `docs/plan-organization.md` from the install directory into your
-     project (wherever you want `specs/` to live).
+   - Copy `centina.ts` from the install directory into your project
+     (wherever you want `specs/` to live). Nothing else gets copied in;
+     the bundled docs are read from the install directory itself.
    - Write a `tsconfig.json` there based on
      [tsconfig.template.json](tsconfig.template.json). Omit
      `compilerOptions.plugins` entirely if you only need the CLI check

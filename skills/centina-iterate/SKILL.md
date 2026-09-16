@@ -260,9 +260,8 @@ Both apply throughout this loop, not just in a fresh session-zero handoff:
 
 If the spec came out of a `centina-session-zero` run, `specs/<system>/ARCHITECTURE.md`
 exists alongside it and records the contracts and holes for
-the whole system (`${CLAUDE_PLUGIN_ROOT}/docs/plan-organization.md`: "a plan-per-boundary-set is
-derivable from a frozen contract ledger, and drifts exactly when the ledger
-drifts").
+the whole system. A plan-per-boundary-set is derivable from a frozen
+contract ledger, and drifts exactly when the ledger drifts.
 
 **If the system has a ledger,** statuses already changed in ledger headers as
 decisions were made, so ARCHITECTURE.md only needs its structure checked.
@@ -422,9 +421,8 @@ exists.
 
 ### A cast at the `declare` site records the assumption once
 
-Centina's provenance model is bookkeeping, not prohibition (see
-`${CLAUDE_PLUGIN_ROOT}/docs/fit-validation.md`): casts are expected and
-fine, but they should be recorded once, at the `declare` site where a value
+Centina's provenance model is bookkeeping, not prohibition: casts are
+expected and fine, but they should be recorded once, at the `declare` site where a value
 first enters the spec (an `@external` function's return type, an `Agent`
 call's result), rather than scattered as ad hoc `as` casts at every use site.
 One recorded assumption beats the same assumption re-made silently in five
