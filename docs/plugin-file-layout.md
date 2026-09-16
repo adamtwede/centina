@@ -1,6 +1,6 @@
 # Plugin file layout and manifest (design spec)
 
-Status: design, not yet implemented. Companion to
+Status: implemented. Companion to
 `docs/plugin-setup-step.md` and `docs/plugin-checker-install.md` — this doc
 covers the plugin bundle's own directory structure and manifest, which
 those two depend on (`${CLAUDE_PLUGIN_ROOT}` paths, the `skills/` folder,
