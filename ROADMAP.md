@@ -203,6 +203,19 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   Centina on the same anchor task, both handed to a fresh agent, comparing the
   implementation plans (goal-3 evidence). The planned third arm (from-scratch
   AISL) was mooted by the pivot.
+- **Ledger provenance** (`docs/ledger-provenance-design.md`): supersession
+  tracking, scoped labels with structured entry headers, a lint mode for
+  `bin/centina-check`, and session-transcript capture. Agreed and built
+  2026-09-15: `centina-check ledger`, the ledger and transcript hooks,
+  `docs/ledger.md`, and the session-zero/iterate updates. Not yet exercised in
+  a live plugin session; Underworld's migration is the first real use.
+- **`centina-realize`** (`docs/centina-realize-design.md`): a skill for
+  spikes and contract-backed build work between iterate cycles, with a
+  planning gate, work-item tracking, scope changes, goals and standing
+  rules, and a measurement methodology. Agreed and built 2026-09-15:
+  `skills/centina-realize/`, `docs/measurement-methodology.md`, and
+  `centina-check ledger --contracts`. Not yet used on a project; first live
+  test: Underworld.
 - Exhaustiveness on `switch` over spec enums — tsc doesn't require it; decide
   whether the checker should (AISL's match rule said yes).
 - The remaining fit-validation candidate set (monorepo dependency-impact tool,

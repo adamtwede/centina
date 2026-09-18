@@ -361,9 +361,9 @@ The [docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness portabilit
 3. **Set up your own project by hand** — this is what
    [docs/plugin-setup-procedure.md](docs/plugin-setup-procedure.md)'s Steps
    3–4 do automatically inside a Claude Code session:
-   - Copy `centina.ts` and `docs/boundaries.md`, `docs/fit-validation.md`,
-     `docs/plan-organization.md` from the install directory into your
-     project (wherever you want `specs/` to live).
+   - Copy `centina.ts` from the install directory into your project
+     (wherever you want `specs/` to live). Nothing else gets copied in;
+     the bundled docs are read from the install directory itself.
    - Write a `tsconfig.json` there based on
      [tsconfig.template.json](tsconfig.template.json). Omit
      `compilerOptions.plugins` entirely if you only need the CLI check
@@ -500,7 +500,7 @@ export declare class OrderStore {
 ```
 
 **`@agent:` / `@agent(label):` — a note to the coding agent.** The spec-authoring channel between you and whichever agent is running a session
-with you, to be resolved at spec-iteration or plan-build time, never part of the spec's domain content. An optional label gives a note a stable name to reference later.
+with you, to be resolved at spec-iteration or plan-build time, never part of the spec's domain content. An optional label gives a note a stable name to reference later. In a system with a ledger ([docs/ledger.md](docs/ledger.md)), the label is the note's ledger entry, e.g. `@agent(Q3)`, and the checker requires that entry to exist.
 
 ```ts
 // @agent(C1): confirm whether a cancelled order needs its own banner before planning.
@@ -510,7 +510,7 @@ with you, to be resolved at spec-iteration or plan-build time, never part of the
 
 ### Gap-hunting sessions
 
-Two project skills drive Centina as a collaborative, gated process. Both are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess.
+Three project skills drive Centina as a collaborative, gated process. The first two are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess. The third, `centina-realize`, does the coding work a spec needs before it can be written with confidence. All three record their decisions in the system [ledger](docs/ledger.md).
 
 - **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
   It drives a gated conversation that turns a prose idea into a **component
@@ -518,7 +518,7 @@ Two project skills drive Centina as a collaborative, gated process. Both are **g
   them, and the terminal nodes where the system meets existing technology. Only
   then does it emit a **skeleton spec set** (typed seams + routed holes, no
   internal processing) and an [ARCHITECTURE.md](specs/wordboard/ARCHITECTURE.md) 
-  recording the DAG, the contract ledger, and the hole ledger. 
+  recording the DAG and citing the ledger entries behind each contract and hole.
   Each phase is gated: nothing advances until the
   human ratifies it, and anything left unratified becomes a marked hole. The
   guiding image is *diffusion inverted* — the agent raises the **resolution of
@@ -530,6 +530,14 @@ Two project skills drive Centina as a collaborative, gated process. Both are **g
   *with* the human, and re-checks until the spec is clean and the human is
   satisfied — then derives `PLAN.md` from the frozen spec.
 
+- **[centina-realize](https://github.com/adamtwede/centina/blob/main/skills/centina-realize/SKILL.md)** — works behind a spec's doors while
+  the spec is still being refined. It plans a phase with the human before any
+  code is written, runs **spikes** that answer questions the spec can't settle
+  without code (each with a written [measurement plan](docs/measurement-methodology.md)),
+  and **builds** code against the spec's types into a working slice. Contract
+  problems found along the way go back to the human as change requests; the
+  human makes every spec edit.
+
 Crucially, "fit" is treated as a **jurisdiction map, not a verdict**. A realization-dominated responsibility (an algorithm, a physics loop, a rendering step) is never *rejected* from a spec — it is *routed behind a door* (a terminal, a delegated Skill, or a held `deferred<"unimplemented">` hole), and the spec keeps the typed seam around it. Even an idea that turns out to be "one algorithm, not a system" yields a minimal skeleton that is explicit about its remit rather than a bounced request. The value is in *localizing* the realization into a named, bounded hole.
 
 Every node gets read on two planes, and where its center of gravity sits decides how it is routed:
@@ -539,13 +547,14 @@ Every node gets read on two planes, and where its center of gravity sits decides
 | **Structural** | relationships between named data: provenance, flow, contract ("*X* comes from *Y*, in shape *Z*") | a filled-in component |
 | **Realization** | the carrying-out: algorithm, dynamics, aesthetics; no nameable data relationship | routed behind a door: a terminal, a Skill, or a held hole |
 
-The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each **`<component>.centina.ts`** filled in (iterate) → **`PLAN.md`** perboundary-set (the implementation).
+The lineage: **`ARCHITECTURE.md` + skeleton set** (session-zero) → each **`<component>.centina.ts`** filled in, in cycles of iterate and realize that grow a **working slice** → **`PLAN.md`** per boundary-set (the implementation).
 
 ```mermaid
 flowchart LR
   prose(["prose idea"]) -->|centina-session-zero| skel["skeleton set<br/>+ ARCHITECTURE.md"]
   skel -->|human fills| filled["filled spec"]
   filled -->|centina-iterate| clean(["spec-complete"])
+  filled <-->|centina-realize| slice["working slice"]
   clean -. near-deterministic .-> plan["PLAN.md"] --> impl(["implementation"])
 ```
 
@@ -743,6 +752,10 @@ What exists:
   consistency, spec-explanation), surfaced live in-editor via a TypeScript
   language-service plugin, with a TextMate injection grammar tinting the
   Centina markers.
+- **The system ledger** (`checker/ledger/`, `npm run check -- ledger <dir>`)
+  — validates ledger entries and label citations and generates
+  `LEDGER-INDEX.md` and `STANDING.md`; plugin hooks run it after writes and
+  copy session transcripts. See [docs/ledger.md](docs/ledger.md).
 - **Worked specs** —
   `specs/hill-climbing-loop/` (the founding fixture, `npm run typecheck` clean), plus `specs/wordboard/` and
   `specs/grid-inventory/`, two systems stood up through `centina-session-zero`
@@ -761,6 +774,9 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
 - `npm run check` — the full Centina checker: `tsc`'s diagnostics plus the
   spec-plane rules. `npm run check -- <file...>` scopes to given specs and
   their transitive local imports.
+- `npm run check -- ledger [--check] <system-dir>` — validates a system's
+  ledger and regenerates its index.
+- `npm test` — the checker and hook tests.
 
 ## Repository layout
 
@@ -773,9 +789,12 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
   three roles, direction-from-returns, drawing guidelines.
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log that drove the pivot.
-- `skills/` — `centina-session-zero` and `centina-iterate`, the current
-  toolchain, packaged for plugin auto-discovery.
+- `docs/ledger.md`, `docs/measurement-methodology.md`,
+  `docs/output-management.md` — shared working rules the skills load.
+- `skills/` — `centina-session-zero`, `centina-iterate` and
+  `centina-realize`, the current toolchain, packaged for plugin
+  auto-discovery.
 - `.claude-plugin/`, `hooks/`, `bin/`, `scripts/`, `tsconfig.template.json`
-  — the plugin manifest, `SessionStart` install hook, and the
+  — the plugin manifest, the install, ledger and transcript hooks, and the
   `centina-check` wrapper; see [docs/plugin-file-layout.md](docs/plugin-file-layout.md).
 - `specs/` — per-feature specs, each in its own dash-named folder.

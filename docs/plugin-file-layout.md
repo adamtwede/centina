@@ -1,6 +1,6 @@
 # Plugin file layout and manifest (design spec)
 
-Status: design, not yet implemented. Companion to
+Status: implemented. Companion to
 `docs/plugin-setup-step.md` and `docs/plugin-checker-install.md` — this doc
 covers the plugin bundle's own directory structure and manifest, which
 those two depend on (`${CLAUDE_PLUGIN_ROOT}` paths, the `skills/` folder,
@@ -21,30 +21,36 @@ centina-plugin/
 ├── skills/
 │   ├── centina-session-zero/
 │   │   └── SKILL.md
-│   └── centina-iterate/
+│   ├── centina-iterate/
+│   │   └── SKILL.md
+│   └── centina-realize/
 │       └── SKILL.md
 ├── bin/
 │   └── centina-check
 ├── scripts/
-│   └── session-start-install.mjs
+│   ├── session-start-install.mjs
+│   ├── ledger-hook.mjs
+│   └── transcript-hook.mjs
 ├── checker/
 │   ├── package.json
 │   ├── cli.ts
 │   ├── harness.ts
+│   ├── report.ts
 │   ├── types.ts
 │   ├── vocabulary.ts
 │   ├── tsPlugin.cjs
 │   ├── tsPluginImpl.ts
+│   ├── ledger/
+│   │   └── *.ts
 │   └── rules/
 │       └── *.ts
 ├── centina.ts
 ├── tsconfig.template.json
 └── docs/
-    ├── boundaries.md
-    ├── fit-validation.md
-    ├── plan-organization.md
     ├── plugin-setup-procedure.md
-    └── output-management.md
+    ├── output-management.md
+    ├── ledger.md
+    └── measurement-methodology.md
 ```
 
 This tree is exactly what `install.sh` (at the checkout's own root,
@@ -84,31 +90,22 @@ manifest.
 
 ## `hooks/hooks.json`
 
-Registers the checker install/update hook from
-`docs/plugin-checker-install.md`:
+Registers four hooks. The file itself is the reference; in summary:
 
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/session-start-install.mjs"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+| Event | Matcher | Script | Purpose |
+|---|---|---|---|
+| `SessionStart` | `*` | `session-start-install.mjs` | Checker install/update (`docs/plugin-checker-install.md`) |
+| `PostToolUse` | `Write\|Edit\|MultiEdit` | `ledger-hook.mjs` | Runs `centina-check ledger` when a write lands in a system directory with a `LEDGER.md`; blocks on errors unless `.centina/config.json` sets `ledgerHook` to `warn` or `off` |
+| `PreCompact` | `manual\|auto` | `transcript-hook.mjs` | Copies the session transcript into matching `specs/<system>/transcripts/` |
+| `SessionEnd` | none | `transcript-hook.mjs` | Same copy at session end; `timeout: 30` raises the 1.5 s `SessionEnd` budget |
 
-`scripts/session-start-install.mjs` implements the copy-source /
-hash-and-conditionally-`npm install` logic already specced in
-`plugin-checker-install.md` — this file just wires it to the lifecycle
-event.
+The ledger and transcript hooks are specified in
+`docs/ledger-provenance-design.md`. `scripts/session-start-install.mjs`
+implements the copy-source / hash-and-conditionally-`npm install` logic
+specced in `plugin-checker-install.md`.
+
+The new hooks are run with `node` explicitly rather than relying on a
+shebang and an executable bit.
 
 ## `skills/*/SKILL.md`
 

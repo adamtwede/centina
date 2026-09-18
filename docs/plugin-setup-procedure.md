@@ -8,7 +8,9 @@ see `plugin-setup-step.md` in the project's dev history (not bundled here).
 
 Read `${CLAUDE_PLUGIN_DATA}/known-projects.json` (a flat list of
 `artifactsRoot` paths). If CWD is a descendant of any entry (plain
-path-prefix match), bind to that project and stop — skip every step below.
+path-prefix match), bind to that project, skip Steps 1 and 2, and go
+straight to Step 3 — the project already has a root and a config, but its
+generated files still need refreshing against the loaded plugin.
 
 If the file doesn't exist or nothing matches, this is a first run in this
 tree. Continue to Step 1.
@@ -53,15 +55,18 @@ Append `artifactsRoot` to `${CLAUDE_PLUGIN_DATA}/known-projects.json`.
 
 ## Step 3 — create the directory shape
 
-At `artifactsRoot`, if not already present, create:
+At `artifactsRoot`:
 
-- `specs/`
-- `centina.ts` — copy (not symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`.
-  Every spec imports this by relative path; without it, specs don't
-  resolve.
-- `docs/` — copies (not symlinks) of `${CLAUDE_PLUGIN_ROOT}/docs/boundaries.md`,
-  `fit-validation.md`, `plan-organization.md`, at `<artifactsRoot>/docs/`,
-  not loose at `<artifactsRoot>` itself.
+- `specs/` — create if absent.
+- `centina.ts` — copy (not symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`,
+  overwriting any existing copy. Every spec imports this by relative path;
+  without it, specs don't resolve.
+No docs are copied. The bundle's docs — `ledger.md`,
+`output-management.md`, `measurement-methodology.md` and this file — are
+read from `${CLAUDE_PLUGIN_ROOT}/docs/` by whichever skill needs them.
+Centina's design reference (`boundaries.md`, `fit-validation.md`,
+`plan-organization.md`) is not bundled at all; a human who wants it reads it
+in the Centina repository.
 
 ## Step 4 — write the stub tsconfig
 
@@ -79,10 +84,16 @@ checkout is later moved or renamed.
 
 ## Idempotency
 
-Steps 3 and 4 regenerate unconditionally every time this procedure runs —
-cheap writes, no diff-and-skip needed. If `pluginVersion` in the existing
-config doesn't match the currently loaded plugin, say so in one line
-("stub tsconfig regenerated: plugin updated from 0.3.0 → 0.4.0").
+Steps 3 and 4 regenerate unconditionally every time this procedure runs,
+Step 0's fast path included — cheap writes, no diff-and-skip needed. This
+is the only thing that carries an updated `centina.ts`, docs or tsconfig
+template into a project set up under an older plugin version, so never skip
+them for a known project.
+
+If `pluginVersion` in the existing config doesn't match the currently
+loaded plugin, say so in one line ("stub tsconfig regenerated: plugin
+updated from 0.3.0 → 0.4.0"), then write the loaded version into the
+config. Without that write the same line reappears every session.
 
 Steps 1 and 2 never re-run once a config exists anywhere Step 0 or a fresh
 walk can find it.
