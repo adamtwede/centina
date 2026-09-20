@@ -196,6 +196,39 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   `docs/plugin-file-layout.md` still need that empirical check), and
   `docs/plugin-distribution.md`'s marketplace-listing/`claude plugin
   validate` items remain deferred as designed.
+- **Build-plane conformance** (`conformance.ts`, `skills/centina-realize/SKILL.md`,
+  `docs/centina-realize-design.md`) — closes the gap
+  `sensor-door:W45(d)` found in Chrysalis Underworld: a change request that
+  added a required trailing parameter to a spec door produced *no* build
+  signal, not a weak one. `implements` lets a fill drop a trailing
+  parameter, make a required one optional, return a value where the
+  contract says `void`, or widen a parameter type; consumers doing
+  `new FillImpl()` are typed against the fill and never see the contract;
+  and a free-function `deferred` hole has no `implements` relation at all.
+  `conforms<Contract, Fill>()` compares parameter tuples and return types in
+  both directions (exact — tuples of different length or element type aren't
+  mutually assignable), one assertion per pairing in the fill's own file,
+  and names the divergent member in the error. Chosen over a checker rule
+  over the build tree, a factory convention, and a contracts-module
+  manifest because it needs no new toolchain: the contracts module already
+  imports the spec files by relative path and the build tsconfig sets
+  `allowImportingTsExtensions`, so the build's own `tsc` already loads both
+  planes (verified with `--listFiles`) — the assertion is checked by the
+  command that already runs at every step close. It reaches free-function
+  holes without a spec change, since `deferred<Kind, F>()` returns `F` and
+  an exported hole is already a nameable type; that retired a proposal to
+  name hole types in the spec. Verified against the real Underworld specs:
+  all five divergence mechanisms error with the member named, a conforming
+  fill and a fill with extra public members pass, and the `Omit<...> & {...}`
+  `@proposal` override shape works unchanged. `@proposal` overrides now
+  shadow the contract's own name, so assertions and consumers follow an
+  override without edits and a spec edit that differs from the proposal
+  fails the moment the override is deleted. Coverage — a fill with no
+  assertion — stays a step-close process check rather than a rule, since no
+  generator can close it (deriving pairings from `implements` has the same
+  blind spot, and a free-function fill has no clause to derive from);
+  promotion trigger recorded in the skill: the first step that closes with a
+  missing assertion.
 
 ## Open / under discussion
 

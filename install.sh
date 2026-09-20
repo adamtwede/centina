@@ -28,6 +28,7 @@ cp -R "$SRC/bin" "$DEST/"
 cp -R "$SRC/scripts" "$DEST/"
 cp -R "$SRC/checker" "$DEST/"
 cp "$SRC/centina.ts" "$DEST/"
+cp "$SRC/conformance.ts" "$DEST/"
 cp "$SRC/tsconfig.template.json" "$DEST/"
 
 mkdir -p "$DEST/docs"

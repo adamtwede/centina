@@ -100,9 +100,12 @@ promoted into build code by accretion.
 
 1. Build code imports spec types **only through one local contracts module**
    that re-exports them. No direct imports from `.centina.ts` files elsewhere.
-2. Classes implement spec interfaces in full, so a spec change breaks the
-   build instead of drifting.
-3. Unbuilt members throw and name the work item that fills them. A stub that
+2. Classes implement spec interfaces in full. **This is necessary and not
+   sufficient** — see "Conformance" below; it was written here originally as
+   though `implements` alone stopped drift, which real-world use disproves.
+3. Every fill also carries a conformance assertion pairing it with its
+   contract.
+4. Unbuilt members throw and name the work item that fills them. A stub that
    returns zeros lets downstream code mistake "not built" for "nothing there".
 
 ## Contract changes
@@ -130,6 +133,102 @@ are breaking. So:
      break), so the human can confirm the edit landed as intended.
 5. **After the human applies the change,** the agent deletes the override.
    That is code, not spec.
+
+**Overrides shadow the contract's own name** rather than taking a new one.
+An override under a new name would require editing every consumer and every
+conformance assertion twice per change request, once to point at the
+override and once to point back. Shadowing means neither is touched, and it
+buys a check nothing else provides: when the override is deleted, the
+assertions re-point at what the human actually wrote, so a spec edit that
+diverges from the proposal fails at that moment instead of passing quietly.
+
+## Conformance
+
+Added 2026-09-20, from `sensor-door:W45(d)` in Chrysalis Underworld.
+
+### The finding
+
+A change request added a required trailing parameter to two `BodyRegistry`
+doors. Part (c) of the entry predicted 15 too-few-arguments errors across
+five files. The build reported **none of them** — no weaker signal, no
+signal. Three mechanisms, since confirmed against `tsc` directly:
+
+1. **A fill may satisfy an interface with fewer parameters.** Function
+   assignability, no compiler flag changes it. An added trailing parameter
+   is invisible; an added middle parameter collides and is caught, which is
+   the only reason a sibling change request did error.
+2. **Consumers name the fill, not the contract.** Call sites did
+   `new BodyRegistryImpl()`, so the inferred type was the class, and the
+   class still declared the old arity. Nothing in the tree was typed against
+   `BodyRegistry` at all.
+3. **A free-function `deferred` hole has no `implements` relation.** Its
+   fill is not checked against the declaration in any way; the signature
+   travels in a comment, which is how one went stale.
+
+A fourth turned up while building the fix: **a `void` return accepts
+anything**, so a fill returning a value the contract never promised also
+passes `implements`. Making a required parameter optional is a fifth.
+
+### The mechanism chosen
+
+A `conforms<Contract, Fill>()` assertion, one line per pairing, in the
+fill's own file. It compares parameter tuples and return types in both
+directions, which is exact — tuples of different length or element type are
+not mutually assignable.
+
+Three things decided the choice over the alternatives considered (a checker
+rule over the build tree; a factory convention forcing consumers to name the
+contract; folding pairings into the contracts module as a manifest):
+
+1. **It needs no new toolchain.** The claim that "no invocation loads both
+   trees" turned out to be false: the contracts module imports the spec
+   files by relative path, and the build tsconfig sets
+   `allowImportingTsExtensions`, so `tsc --listFiles` over the build tree
+   already lists every spec the contracts module routes. An assertion in the
+   build tree is checked by the typecheck command that already runs at every
+   step close. Every alternative needed a new CLI mode first.
+2. **It covers all three mechanisms.** Directly for 1, 4 and 5. For 3,
+   because `deferred<Kind, F>()` returns `F`, so an exported hole is already
+   a nameable type and needs no spec change — which is why the proposal to
+   name hole types in the spec, touching every existing hole, was dropped.
+   And transitively for 2: mechanism 2 only did damage because mechanism 1
+   let the fill keep its old arity. Hold the fill exact and the fill class
+   gains the parameter, at which point every consumer typed against the
+   class breaks anyway. The 15 errors come back without a factory.
+3. **Exactness is a feature, not a false-positive problem.** A fill widening
+   a parameter is describing a door the spec does not have. Deliberate
+   divergence already has a home — a `@proposal` override, which is tracked
+   and goes stale on its own — so a second escape hatch would only be a hole
+   in the thing being bought.
+
+### What it does not cover
+
+- **A fill's extra public members.** A consumer typed against the class can
+  use a method the spec never declared, so build code depends on something
+  the spec does not describe. The factory convention would fix it. It is not
+  what bit, and impl-local helpers are ordinary during realize.
+- **Coverage.** A fill with no assertion is unchecked and the build passes.
+  This is the one irreducibly agent-dependent bit, and no generator removes
+  it: deriving pairings from `implements` clauses has the same blind spot,
+  and a free-function fill has no clause to derive from. Naming the pairing
+  is the work. Handled as a step-close check, with a named promotion
+  trigger — the first step that closes with a missing assertion — rather
+  than a checker rule built on speculation.
+- **Behavior.** A fill that accepts the parameter and ignores it conforms.
+  `sensor-door:W45(b)`'s real requirement — that the time is when the state
+  was true, and that the door throws below the clock — is a test's job. The
+  enforcement story ends at "the parameter exists and every caller passes
+  something."
+
+### Where it lives
+
+`conformance.ts`, beside `centina.ts` at the plugin root, copied into
+`artifactsRoot` by Step 3 of the setup procedure and into
+`${CLAUDE_PLUGIN_DATA}` by the install hook. Deliberately **not** part of
+`centina.ts`: nothing in it belongs in a `.centina.ts` file, and the spec
+plane and the build plane are worth keeping apart in the vocabulary as well
+as in the rules. Build code importing it directly is not a breach of the
+one-contracts-module rule, since it exports no spec types.
 
 ## Exchange with centina-iterate
 

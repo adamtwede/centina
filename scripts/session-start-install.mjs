@@ -24,6 +24,10 @@ mkdirSync(dataCheckerDir, { recursive: true })
 // Step 1 — copy source unconditionally. Cheap: a handful of small .ts files.
 cpSync(path.join(pluginRoot, "checker"), dataCheckerDir, { recursive: true })
 cpSync(path.join(pluginRoot, "centina.ts"), path.join(pluginData, "centina.ts"))
+cpSync(
+  path.join(pluginRoot, "conformance.ts"),
+  path.join(pluginData, "conformance.ts")
+)
 
 // Step 2 — gate the expensive npm install behind a package.json hash.
 const packageJsonPath = path.join(pluginRoot, "checker", "package.json")

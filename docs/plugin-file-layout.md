@@ -45,6 +45,7 @@ centina-plugin/
 │   └── rules/
 │       └── *.ts
 ├── centina.ts
+├── conformance.ts
 ├── tsconfig.template.json
 └── docs/
     ├── plugin-setup-procedure.md
