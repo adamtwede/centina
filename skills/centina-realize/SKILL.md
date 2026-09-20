@@ -178,10 +178,23 @@ Notes on using it:
 - **Importing `conformance.ts` directly is not a breach of rule 1.** It
   exports no spec types, only the comparison. Spec types still come through
   the contracts module.
-- **A free-function hole is its own contract.** `deferred<Kind, F>()`
-  returns `F`, so an exported hole is already a nameable type. Re-export it
-  from the contracts module as `export type DelayAndSum = typeof
-  delayAndSum` and pair the fill the same way. No spec change is needed.
+- **A free-function hole is its own contract, reached type-only.**
+  `deferred<Kind, F>()` returns `F`, so an exported hole is already a
+  nameable type. But reach it through a **type-only namespace import** — a
+  spec file has no runtime exports, because `deferred` itself is
+  `declare`d, so a value import of the hole resolves to `undefined` and the
+  module throws on load. In the contracts module:
+
+  ```ts
+  import type * as Ops from "<spec file>"
+  export type DelayAndSum = typeof Ops.delayAndSum
+  ```
+
+  `export { delayAndSum } from "<spec file>"` and
+  `export type DelayAndSum = typeof delayAndSum` both look right and both
+  break the build at runtime. Pair the fill the same way as a class fill.
+  No spec change is needed.
+
 - **Write the assertion in the same edit as the fill.** Nothing detects a
   missing one (see "Coverage" below).
 - **Exactness is the point; do not soften it.** An impl that widens a
@@ -223,6 +236,7 @@ different return shape). So:
    without being edited, and deleting it in step 5 re-points them at what
    the human actually wrote. A spec edit that differs from the proposal
    fails at that moment — which nothing else catches.
+
 3. **Guide the human through the spec edit.** Show the change, file by file.
    Do not make it.
 4. After the human edits the spec, run the checker. Confirm it reports what
@@ -238,7 +252,7 @@ change to a door's parameters makes an existing, untouched assertion start
 failing and name the member. Write that in part (c) as the expected signal.
 
 The changes that do touch an assertion are changes to a contract's
-*identity*:
+_identity_:
 
 - **rename, remove, merge** — the contract's name stops resolving, the
   contracts module breaks, and the assertion breaks with it. Loud.

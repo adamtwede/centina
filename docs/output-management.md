@@ -45,6 +45,39 @@ human.
 3. After a compaction, reread the run frame and `LEDGER-INDEX.md` before
    continuing.
 
+### The 1500-line split rule is written against `LEDGER.md`, but partitions grow too
+
+`output-management.md` says to split when `LEDGER.md` passes ~1500 lines. A
+project that has already split once never trips that rule again: `LEDGER.md`
+shrinks to a title and a partition list, and the partitions are what keep
+growing. Nothing measures them. The checker validates entries and citations,
+not file length, so a partition can reach several thousand lines with every
+tool reporting clean.
+
+Check partition sizes at each phase close, not just `LEDGER.md`'s.
+
+**When phase is not a dividing axis, split by letter.** The underworld
+project's phase-2 partition hit 5,097 lines across 102 entries, and 94 of them
+carried the same `Phase:` header, so the two axes `output-management.md`
+suggests (scope, then phase) were both already spent — the file was one scope
+and effectively one phase. Splitting by letter divided it usefully:
+
+| File | Holds | Lines |
+|---|---|---|
+| `LEDGER-<scope>.md` | work items (`W`) | 2,243 |
+| `LEDGER-<scope>-decisions.md` | proposals and options (`P`, `O`) | 1,305 |
+| `LEDGER-<scope>-findings.md` | findings and questions (`F`, `Q`) | 1,564 |
+
+It works because lookup is by label and a label carries its own letter, so
+`<scope>:W11` names its file without an index. Keep the work items in the
+original filename: code comments and other documents cite partitions by name,
+and `W` entries are what they cite most.
+
+Verify a split mechanically before moving on: parse entries out of the backup
+and out of the new files, then compare the label sets and each body's text. A
+split that drops or mangles one entry is invisible to the checker, which only
+sees what is there.
+
 ## Older projects
 
 Projects that used the earlier split (`SESSION-ZERO-STATE.md` as an index
