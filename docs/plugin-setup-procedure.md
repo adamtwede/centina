@@ -61,6 +61,11 @@ At `artifactsRoot`:
 - `centina.ts` — copy (not symlink) of `${CLAUDE_PLUGIN_ROOT}/centina.ts`,
   overwriting any existing copy. Every spec imports this by relative path;
   without it, specs don't resolve.
+- `conformance.ts` — copy of `${CLAUDE_PLUGIN_ROOT}/conformance.ts`, same
+  rules. Build-plane, not spec vocabulary: only a `centina-realize` build
+  tree imports it, and a project that never runs that skill simply leaves it
+  unread.
+
 No docs are copied. The bundle's docs — `ledger.md`,
 `output-management.md`, `measurement-methodology.md` and this file — are
 read from `${CLAUDE_PLUGIN_ROOT}/docs/` by whichever skill needs them.

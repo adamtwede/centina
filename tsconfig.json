@@ -14,5 +14,5 @@
 		"noUnusedParameters": false,
 		"plugins": [{ "name": "./checker/tsPlugin.cjs" }]
 	},
-	"include": ["centina.ts", "*.centina.ts", "specs/**/*.centina.ts"]
+	"include": ["centina.ts", "conformance.ts", "*.centina.ts", "specs/**/*.centina.ts"]
 }

@@ -11,5 +11,5 @@
     "noUnusedParameters": false,
     "plugins": [{ "name": "<placeholder, substituted at generation time>" }]
   },
-  "include": ["centina.ts", "*.centina.ts", "specs/**/*.centina.ts"]
+  "include": ["centina.ts", "conformance.ts", "*.centina.ts", "specs/**/*.centina.ts"]
 }
