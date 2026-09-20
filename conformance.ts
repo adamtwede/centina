@@ -18,26 +18,46 @@
  * And a free-function `deferred` hole has no `implements` relation at all,
  * so nothing checks its fill even in principle.
  *
- * `conforms` closes all four by comparing parameter tuples and return types
+ * `Conforms` closes all four by comparing parameter tuples and return types
  * in BOTH directions, which is exact: tuples of different length, or of
  * different element types, are not mutually assignable.
  *
- * HOW TO USE IT. One assertion per contract/fill pairing, in the fill's own
- * file, next to the fill:
+ * IT IS PURELY TYPE-LEVEL, DELIBERATELY. Nothing here emits, so a build
+ * tree that carries assertions pulls no runtime dependency on this file:
+ * `bun build` on a fill that asserts contains no reference to this module
+ * at all. An earlier version exported `declare function conforms()`, which
+ * type-checked and then threw `SyntaxError: Export named 'conforms' not
+ * found` the moment any test imported a fill — an ambient declaration emits
+ * no binding. Do not reintroduce a callable here.
  *
- *   export const bodyRegistryConforms: true =
- *     conforms<BodyRegistry, BodyRegistryImpl>()
+ * HOW TO USE IT. One assertion per contract/fill pairing, in the fill's own
+ * file, next to the fill, reached by a TYPE-ONLY import:
+ *
+ *   import type { Assert, Conforms } from "<path to this file>"
+ *
+ *   export type BodyRegistryConforms =
+ *     Assert<Conforms<BodyRegistry, BodyRegistryImpl>>
  *
  * It is written once and survives every later change to that contract's
  * members — the comparison walks `keyof C` at check time, so a spec gaining
  * a parameter makes an unedited assertion start failing, naming the member:
  *
- *   error TS2322: Type '"diverges: registerBody"' is not assignable to type 'true'.
+ *   error TS2344: Type '"diverges: registerBody"' does not satisfy the constraint 'true'.
  *
- * The same call checks a free-function hole's fill, where the contract is
- * the hole's own type (`typeof delayAndSum` — `deferred<Kind, F>()` returns
- * `F`, so an exported hole is already a nameable type; no spec change is
- * needed to reach it).
+ * `Assert` IS THE ASSERTION; `Conforms` only computes a verdict. Two ways
+ * to write a line that reads like a check and checks nothing:
+ *
+ *   type X = Conforms<C, I>          // equals the label. No error.
+ *   type X = Assert<true & Conforms<C, I>>
+ *                                    // `true & "diverges: m"` collapses to
+ *                                    // `never`, which satisfies `true`.
+ *                                    // Passes silently against a stale fill.
+ *
+ * The same pairing checks a free-function hole's fill, where the contract
+ * is the hole's own type (`typeof delayAndSum` — `deferred<Kind, F>()`
+ * returns `F`, so an exported hole is already a nameable type; no spec
+ * change is needed to reach it). Reach the hole type-only as well: a spec
+ * file has no runtime exports either.
  *
  * KNOWN LIMITS. It checks shape, never behavior: a fill that accepts a
  * parameter and ignores it conforms. That is a test's job. It also compares
@@ -78,15 +98,19 @@ type Divergent<C, I extends C> = C extends AnyFunction
     }[keyof C]
 
 /**
- * Returns `true` when `I` matches `C` exactly, and otherwise a label naming
- * each divergent member — which fails to assign to the `true` annotation on
- * the assertion, putting the member's name in the compiler error.
+ * `true` when `I` matches `C` exactly, otherwise a label naming each
+ * divergent member. This is a verdict, not an assertion — wrap it in
+ * `Assert` to turn a divergence into a compiler error.
  *
  * `I extends C` keeps an outright non-assignable fill reporting as an
- * ordinary assignability error rather than as a divergence label.
+ * ordinary constraint violation rather than as a divergence label.
  */
-export declare function conforms<C, I extends C>(): [Divergent<C, I>] extends [
-  never,
-]
+export type Conforms<C, I extends C> = [Divergent<C, I>] extends [never]
   ? true
   : Divergent<C, I>
+
+/**
+ * The assertion. A divergence label does not satisfy `true`, so the error
+ * lands on the type alias that names the pairing, and carries the member.
+ */
+export type Assert<T extends true> = T

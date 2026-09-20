@@ -171,8 +171,8 @@ passes `implements`. Making a required parameter optional is a fifth.
 
 ### The mechanism chosen
 
-A `conforms<Contract, Fill>()` assertion, one line per pairing, in the
-fill's own file. It compares parameter tuples and return types in both
+An `Assert<Conforms<Contract, Fill>>` assertion, one line per pairing, in
+the fill's own file. It compares parameter tuples and return types in both
 directions, which is exact — tuples of different length or element type are
 not mutually assignable.
 
@@ -219,6 +219,64 @@ contract; folding pairings into the contracts module as a manifest):
   was true, and that the door throws below the clock — is a test's job. The
   enforcement story ends at "the parameter exists and every caller passes
   something."
+
+### Why it is type-only
+
+Corrected 2026-09-20, the day after it shipped, on evidence from the same
+Underworld session.
+
+The first version exported `declare function conforms()` and documented a
+`const ...: true = conforms<C, I>()` assertion. It type-checked, and the
+build's first test to import a fill died on `SyntaxError: Export named
+'conforms' not found in module '.../conformance.ts'`. An ambient
+declaration emits no binding, so the module had no exports at all.
+
+The habit is correct in `centina.ts`, where `deferred` and the boundary
+declarations are ambient because a spec never runs. It is wrong in a module
+that build code imports, and the same mistake had already appeared one
+level up: a spec's `deferred` hole reached by a value import resolves to
+`undefined` for the same reason, which is why a hole's type must be taken
+through `import type * as Spec` in the contracts module.
+
+Two repairs worked. A real `function conforms()` returning
+`true as unknown as ...` runs and keeps the documented call site. The
+type-only form — `Conforms` computing a verdict, `Assert<T extends true>`
+turning a divergence into an error — was taken instead, on three grounds:
+
+1. **It cannot reach runtime by construction.** The bug being fixed is a
+   compile-time construct that failed at execution. The function repairs
+   that instance; erasure removes the category.
+2. **It creates no runtime dependency from build code into the artifacts
+   tree.** Measured, not argued: `bun build` on a fill carrying an
+   assertion contains no reference to the module. That matters because the
+   artifacts tree is not necessarily resolvable wherever build code
+   eventually runs — Underworld already bundles a web spike — and a module
+   whose whole purpose is to be checked and discarded should not ship.
+3. **It needs no cast.** The function form has to launder `true` through
+   `unknown` to return a type it cannot construct.
+
+The cost is that the assertion is two names rather than one, and that
+`Conforms` alone is a valid type alias that checks nothing. A one-name form
+was tried — `Conforms<C, I, _D extends true = Conformance<C, I>>`, putting
+the failure in a constrained default — and does not work: TypeScript checks
+the default against its constraint at the declaration site, with the
+generics unresolved, so the module itself fails to compile.
+
+### Three no-op spellings
+
+All three type-check and none of them checks anything. They share one
+misreading — that `Conforms` is the assertion, when `Assert` is:
+
+```ts
+type X = Conforms<C, I>                 // equals the label
+type X = Assert<true & Conforms<C, I>>  // `true & "diverges: m"` is `never`,
+                                        // and `never` satisfies `true`
+const x = conforms<C, I>()              // no such export; SyntaxError on load
+```
+
+The second is the dangerous one: it reads as a strengthening and passes
+silently against a genuinely stale fill. Found by the Underworld session
+while repairing the first.
 
 ### Where it lives
 

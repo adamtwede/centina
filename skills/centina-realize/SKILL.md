@@ -155,26 +155,46 @@ assignable, and the call sites keep compiling because they are typed against
 the fill class (`new BodyRegistryImpl()`), never against the contract.
 
 So pair each contract with its fill, in the fill's own file, next to the
-fill:
+fill. The pairing is **type-only, in both imports** — `conformance.ts`
+emits nothing, and neither does a spec file:
 
 ```ts
-import { conforms } from "<conformance.ts, path in the run frame>"
+import type { Assert, Conforms } from "<conformance.ts, path in the run frame>"
 import type { BodyRegistry } from "<contracts module>"
 
 export class BodyRegistryImpl implements BodyRegistry { ... }
 
-export const bodyRegistryConforms: true =
-  conforms<BodyRegistry, BodyRegistryImpl>()
+export type BodyRegistryConforms =
+  Assert<Conforms<BodyRegistry, BodyRegistryImpl>>
 ```
 
 A divergence fails the ordinary typecheck and names the member:
 
 ```
-error TS2322: Type '"diverges: registerBody"' is not assignable to type 'true'.
+error TS2344: Type '"diverges: registerBody"' does not satisfy the constraint 'true'.
 ```
 
 Notes on using it:
 
+- **`Assert` is the assertion; `Conforms` only computes a verdict.** Three
+  ways to write a line that reads like a check and checks nothing:
+
+  ```ts
+  type X = Conforms<C, I>              // equals the label. No error.
+  type X = Assert<true & Conforms<C, I>>
+                                       // `true & "diverges: m"` collapses
+                                       // to `never`, which satisfies
+                                       // `true`. Silent against a stale fill.
+  const x = conforms<C, I>()           // there is no such function; see below.
+  ```
+
+  Write `Assert<Conforms<...>>` and nothing else.
+- **Nothing in `conformance.ts` is callable, deliberately.** An earlier
+  version exported `declare function conforms()`. It type-checked and then
+  threw `SyntaxError: Export named 'conforms' not found` the moment a test
+  imported a fill, because an ambient declaration emits no binding. The
+  type-only form cannot reach runtime at all. If a callable turns up in
+  that module again, that is the bug returning.
 - **Importing `conformance.ts` directly is not a breach of rule 1.** It
   exports no spec types, only the comparison. Spec types still come through
   the contracts module.

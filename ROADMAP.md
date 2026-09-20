@@ -205,10 +205,18 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   contract says `void`, or widen a parameter type; consumers doing
   `new FillImpl()` are typed against the fill and never see the contract;
   and a free-function `deferred` hole has no `implements` relation at all.
-  `conforms<Contract, Fill>()` compares parameter tuples and return types in
-  both directions (exact — tuples of different length or element type aren't
-  mutually assignable), one assertion per pairing in the fill's own file,
-  and names the divergent member in the error. Chosen over a checker rule
+  `Assert<Conforms<Contract, Fill>>` compares parameter tuples and return
+  types in both directions (exact — tuples of different length or element
+  type aren't mutually assignable), one assertion per pairing in the fill's
+  own file, and names the divergent member in the error. Purely type-level:
+  the module emits nothing, so a build tree carrying assertions pulls no
+  runtime dependency on it (`bun build` on an asserting fill contains no
+  reference to the module). The form first shipped was
+  `export declare function conforms()`, which type-checked and then threw
+  `SyntaxError: Export named 'conforms' not found` the moment Underworld's
+  suite imported a fill — an ambient declaration emits no binding, a habit
+  correct for the spec plane and wrong for a module build code imports.
+  Corrected 2026-09-20 in the same session that found it. Chosen over a checker rule
   over the build tree, a factory convention, and a contracts-module
   manifest because it needs no new toolchain: the contracts module already
   imports the spec files by relative path and the build tsconfig sets
