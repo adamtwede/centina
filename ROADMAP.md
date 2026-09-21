@@ -238,7 +238,64 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   promotion trigger recorded in the skill: the first step that closes with a
   missing assertion.
 
+- **Ownership citations in build code** (`checker/ledger/config.ts`,
+  `parse.ts`, `check.ts`, `command.ts`, `generate.ts`; `docs/ledger.md`) —
+  closes `sensor-door:F31` from Chrysalis Underworld: a work-item label
+  inside a runtime string was the one citation form nothing verified, and
+  every one naming an owner had gone stale at some point in the phase, five
+  still stale at its close. The failure is time-ordered and silent — the
+  string never changes and the ledger does, so a label naming who will build
+  a member turns into a note about why it is empty, with no edit and nothing
+  in an invalid state at any moment. Two gaps, not the one the finding named:
+  the ledger checker walked only the system directory, so build code was
+  unscanned entirely, and it read only comments, so string literals were
+  invisible even where it did look. A naive rule would be wrong — nine
+  further citations correctly name `done` or `answered` entries, citing the
+  ruling a working guard enforces rather than an owner. The kind is now
+  decided by position, not wording: a member of an `implements` class whose
+  whole body is a `throw` is unbuilt by construction, so its label is an
+  owner and must be exactly one, whole rather than a part, and a `W` that is
+  `planned`, `active`, `blocked` or `deferred`; a `throw` inside a member
+  with a real body is a guard whatever it reads like. Position also
+  enumerates the population, which the seven conformance assertions added in
+  that phase could not: they fire when someone edits the string, which is not
+  the failure mode, and exist only for sites somebody already noticed. A
+  prose marker ("owned by <label>") was rejected because a misspelled one
+  drops its site from the checked set silently, failing in the same direction
+  as the bug. Build trees come from
+  `systems["<dir relative to artifactsRoot>"].buildRoots` in
+  `<artifactsRoot>/.centina/config.json`, relative to `hostRoot`, read on
+  every run so the existing hook fires the check at a ledger write — which is
+  exactly when a status moves; a system with a `REALIZE-STATE.md` and no
+  entry is an error, so the check cannot silently cover nothing. One config
+  file with a `systems` map was chosen over per-system config files, which
+  would have shadowed the project's `ledgerHook` (the hook returns at the
+  first config it finds and defaults a missing key to `block`); systems are
+  keyed by directory rather than name, since a system lives wherever a
+  `LEDGER.md` sits and spec trees nest. Build-code comments joined the
+  existing citation scan at the same time, which also extends the
+  `@agent(label)` rule there. The two cases `sensor-door:F31(e)` left
+  unresolved — guards on partly-built doors citing an answered `Q` and a done
+  phase's out-of-scope part — are settled by a process rule, not a checker
+  rule: `R` is the only letter whose terminal status (`retired`) means the
+  guard is now wrong, so an answered `Q` that leaves a guard produces an `R`
+  for the guard to cite, `provisional` with a `Review` while it may not last,
+  and a `W` beside it only when the work is scheduled. New `R` `Kind: limit`
+  for a rule holding only because something is not built, listed under its
+  own `STANDING.md` heading so the rule list stays decisions meant to last;
+  named `limit` over `constraint` because phase `W` entries already carry a
+  `Constraints` field citing any `R`, and because every `R` is a constraint —
+  what distinguishes these is their expected end, `retired` once someone
+  builds the thing.
+
 ## Open / under discussion
+
+- Whether the ledger hook should fire on writes under `buildRoots`. It finds
+  a system by walking up from the written file for a `LEDGER.md`, which finds
+  nothing from build code, so a newly written owner label waits for the next
+  write inside the system directory. The stale-after-close case that motivated
+  the rule is caught either way, since that one is triggered by a ledger edit.
+  Left alone until it bites.
 
 - **Head-to-head validation** (from `docs/fit-validation.md`): prose vs.
   Centina on the same anchor task, both handed to a fresh agent, comparing the

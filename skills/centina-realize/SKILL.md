@@ -21,9 +21,14 @@ description: Works behind a Centina spec's boundaries while the spec is still be
 6. Read or create the run frame, `specs/<system>/REALIZE-STATE.md`
    (`output-management.md`). It records the implementation root (where code
    lives), the contracts module path, the path build code uses to import
-   `<artifactsRoot>/conformance.ts`, the source trees for spikes and build
-   code, the current phase and step, and session IDs. Ask the human for
-   anything not yet recorded.
+   `<artifactsRoot>/conformance.ts`, the spike source tree, the current phase
+   and step, and session IDs. Ask the human for anything not yet recorded.
+7. Record the build tree in `<artifactsRoot>/.centina/config.json`, under
+   `systems["<system directory, relative to artifactsRoot>"].buildRoots` and
+   relative to `hostRoot` (`ledger.md`, "Settings"). The checker reads build
+   code from there, and reports any system that has a `REALIZE-STATE.md` and
+   no entry. The run frame cites this file rather than repeating the paths,
+   so the build tree's location has one record.
 
 ## What this skill is for
 
@@ -127,12 +132,26 @@ Status is `planned` until the human confirms the plan, then the phase becomes
    assertion.** See "Conformance" below. This is not optional and not a
    later cleanup: a fill without one is unchecked against its contract, and
    the build will not say so.
-4. Unbuilt members throw an error naming the work item that fills them. Never
-   return zeros or empty values from a stub; downstream code would mistake
-   "not built" for "nothing there".
+4. **Unbuilt members throw an error naming the work item that fills them,**
+   and the checker holds that name to an open `W` (`ledger.md`, "Citations
+   from build code"). One label, written inline in the member: a shared
+   message constant puts it out of the checker's reach, and members sharing
+   one owner string usually need different owners anyway. Never return zeros
+   or empty values from a stub; downstream code would mistake "not built" for
+   "nothing there".
 5. Writing code against the declared types is itself a check on the spec.
    When a type cannot carry what the code needs, that is a contract problem:
    raise a change request, do not work around it.
+6. **A guard in working code cites an `R`, never a `Q` or a phase.** A guard
+   that refuses an input or a capability enforces a ruling, and `R` is the
+   only letter whose terminal status (`retired`) says the ruling stopped
+   holding — a guard citing an answered `Q` or a done phase can never read as
+   stale. So an answered `Q` that leaves a guard behind needs an `R` for the
+   guard to cite. A standing rule is the human's call: raise it, do not write
+   one (rules of engagement 2). Use `Kind: limit` when the guard is there
+   because something is not built yet, and `provisional` with a `Review`
+   while the rule may not last. Add a `W` beside the `R` only when the work
+   is actually scheduled.
 
 ## Conformance
 
@@ -350,13 +369,17 @@ such. Recording one as fact is not.
 
 ## Phase close
 
-1. Run the sweep (`ledger.md`, "Sweeps"), the `--contracts` check, and the
-   conformance-coverage check.
+1. Run the sweep (`ledger.md`, "Sweeps"), `centina-check ledger` (which
+   checks the build tree's ownership citations), the `--contracts` check, and
+   the conformance-coverage check.
 2. Run the definition-of-done test.
 3. Record the close as an `F` entry, `Status: measured`, with the
    definition-of-done run as `Evidence`. Its body states:
    - what the slice proves;
-   - each boundary's status: specced, planned, mocked, or implemented;
+   - each boundary's status: specced, planned, mocked, or implemented. This
+     is read off the unbuilt members and their owners, so it is only as good
+     as step 1: a close record is what gets trusted later, when nobody
+     remembers;
    - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them).
 4. Set the phase `W` entry `done`.
 

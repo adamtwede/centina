@@ -6,7 +6,7 @@ import { describe, it } from "node:test"
 import { checkLedger, checkProposals } from "./check"
 import { runLedgerCommand } from "./command"
 import { affectedWorkItems, renderIndex, renderStanding } from "./generate"
-import { commentLines, readLedger, scanSystemFiles } from "./parse"
+import { commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
 
 function system(files: Record<string, string>): string {
   const dir = path.join(mkdtempSync(path.join(tmpdir(), "ledger-")), "demo")
@@ -166,6 +166,11 @@ describe("ledger check", () => {
     assert.deepEqual(found.map((f) => [f.rule, f.line]), [["ledger-agent-label", 1]])
   })
 
+  it("leaves @agent labels alone outside a spec file", () => {
+    const found = check({ "LEDGER.md": VALID, "contracts.ts": `// @agent(C1): free text\nexport {}\n` })
+    assert.deepEqual(found, [])
+  })
+
   it("skips archive, transcripts, fenced code and cross-system citations", () => {
     const found = check({
       "LEDGER.md": VALID,
@@ -256,5 +261,251 @@ describe("ledger command", () => {
     } finally {
       console.log = log
     }
+  })
+})
+
+const BUILD_LEDGER = `# Ledger: demo
+
+### matcher:W1: phase 1, the matcher slice
+- Kind: phase
+- Status: active
+
+### matcher:W2: build the scorer
+- Kind: step
+- Phase: matcher:W1
+- Status: planned
+
+### matcher:W3: land the registry
+- Kind: step
+- Phase: matcher:W1
+- Status: done
+
+### matcher:Q1: how are ties broken
+- Status: answered
+
+### matcher:P1: score on recency
+- Status: superseded
+- Obsoleted-by: matcher:P2
+
+### matcher:P2: score on recency and depth
+- Status: ratified
+- Obsoletes: matcher:P1
+`
+
+function buildTree(files: Record<string, string>): string {
+  const root = path.join(mkdtempSync(path.join(tmpdir(), "build-")), "src")
+  for (const [name, content] of Object.entries(files)) {
+    const full = path.join(root, name)
+    mkdirSync(path.dirname(full), { recursive: true })
+    writeFileSync(full, content)
+  }
+  return root
+}
+
+function checkBuild(ledgerText: string, files: Record<string, string>) {
+  const dir = system({ "LEDGER.md": ledgerText })
+  return checkLedger(readLedger(dir), scanSystemFiles(dir), scanBuildRoot(buildTree(files)))
+}
+
+describe("build-code citations", () => {
+  it("checks the owner of a throw-only member in an implements class", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "registry.ts": [
+        "const UNBUILT = 'not built'",
+        "export class RegistryImpl implements Registry {",
+        "  register(): void {",
+        "    throw new Error('not built; owned by matcher:W2')",
+        "  }",
+        "  land(): void {",
+        "    throw new Error('not built; owned by matcher:W3')",
+        "  }",
+        "  tie(): void {",
+        "    throw new Error(`not built; owned by ${'matcher:Q1'}`)",
+        "  }",
+        "  shared(): void {",
+        "    throw new Error(UNBUILT)",
+        "  }",
+        "  two(): void {",
+        "    throw new Error('owned by matcher:W2 and matcher:W1')",
+        "  }",
+        "  part(): void {",
+        "    throw new Error('out of scope for matcher:W1(a)')",
+        "  }",
+        "  missing(): void {",
+        "    throw new Error('owned by matcher:W40')",
+        "  }",
+        "}",
+        "export class NotAFill {",
+        "  loose(): void {",
+        "    throw new Error('no owner needed here')",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
+    assert.deepEqual(
+      found.map((f) => [f.rule, f.line]),
+      [
+        ["ledger-unbuilt-owner", 6],
+        ["ledger-unbuilt-owner", 9],
+        ["ledger-unbuilt-owner", 12],
+        ["ledger-unbuilt-owner", 15],
+        ["ledger-unbuilt-owner", 18],
+        ["ledger-undefined-label", 21],
+      ],
+    )
+    assert.match(found[0].message, /matcher:W3, which is done/)
+    assert.match(found[1].message, /matcher:Q1, which is not a work item/)
+    assert.match(found[2].message, /names no work item/)
+    assert.match(found[3].message, /an unbuilt member has one owner/)
+    assert.match(found[4].message, /not a part of one/)
+  })
+
+  it("covers a member whose body is an arrow property", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "arrow.ts": [
+        "export class ArrowImpl implements Registry {",
+        "  register = (): void => {",
+        "    throw new Error('owned by matcher:W3')",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
+    assert.deepEqual(found.map((f) => f.rule), ["ledger-unbuilt-owner"])
+  })
+
+  it("reports a bare owner label once, not twice", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "bare.ts": [
+        "export class BareImpl implements Registry {",
+        "  go(): void {",
+        "    throw new Error('owned by W2')",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
+    assert.deepEqual(found.map((f) => f.rule), ["ledger-bare-label"])
+  })
+
+  it("reads build-code comments but no other string", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "guards.ts": [
+        "// Rejects out-of-order beams per matcher:P1.",
+        "export class ScorerImpl implements Scorer {",
+        "  score(input: number): number {",
+        "    if (input < 0) throw new Error('rejected per matcher:P1')",
+        "    return input",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
+    assert.deepEqual(found.map((f) => [f.rule, f.line]), [["ledger-stale-citation", 1]])
+  })
+
+  it("accepts a guard citing a provisional limit and an owner citing an open step", () => {
+    const found = checkBuild(
+      `${BUILD_LEDGER}\n### matcher:R1: bodies do not rotate\n- Kind: limit\n- Status: provisional\n- Review: when rotation is built\n`,
+      {
+        "field.ts": [
+          "// Refuses a rotated body per matcher:R1.",
+          "export class FieldImpl implements Field {",
+          "  sample(angle: number): number {",
+          "    if (angle !== 0) throw new Error('rotation unsupported (matcher:R1)')",
+          "    return angle",
+          "  }",
+          "  future(): void {",
+          "    throw new Error('not built; owned by matcher:W2')",
+          "  }",
+          "}",
+        ].join("\n"),
+      },
+    )
+    assert.deepEqual(found, [])
+  })
+})
+
+describe("ledger settings", () => {
+  function project(config: unknown, files: Record<string, string>): string {
+    const root = mkdtempSync(path.join(tmpdir(), "project-"))
+    const systemDir = path.join(root, "specs", "demo")
+    for (const [name, content] of Object.entries(files)) {
+      const full = path.join(root, name)
+      mkdirSync(path.dirname(full), { recursive: true })
+      writeFileSync(full, content)
+    }
+    if (config !== undefined) {
+      mkdirSync(path.join(root, ".centina"), { recursive: true })
+      writeFileSync(
+        path.join(root, ".centina", "config.json"),
+        JSON.stringify({ hostRoot: root, artifactsRoot: root, ...(config as object) }),
+      )
+    }
+    return systemDir
+  }
+
+  function run(dir: string): { code: number; output: string } {
+    const log = console.log
+    const lines: string[] = []
+    console.log = (...args: unknown[]) => lines.push(args.join(" "))
+    try {
+      return { code: runLedgerCommand([dir]), output: lines.join("\n") }
+    } finally {
+      console.log = log
+    }
+  }
+
+  it("checks the build roots named for the system", () => {
+    const dir = project(
+      { systems: { "specs/demo": { buildRoots: ["prototype/src"] } } },
+      {
+        "specs/demo/LEDGER.md": BUILD_LEDGER,
+        "specs/demo/REALIZE-STATE.md": "# Run frame\n\nBuild roots: see `.centina/config.json`.\n",
+        "prototype/src/registry.ts":
+          "export class R implements Registry {\n  go(): void {\n    throw new Error('owned by matcher:W3')\n  }\n}\n",
+      },
+    )
+    const { code, output } = run(dir)
+    assert.equal(code, 1)
+    assert.match(output, /ledger-unbuilt-owner/)
+    assert.match(output, /matcher:W3, which is done/)
+  })
+
+  it("reports a system that has run realize with no build roots named", () => {
+    const dir = project(
+      {},
+      { "specs/demo/LEDGER.md": BUILD_LEDGER, "specs/demo/REALIZE-STATE.md": "# Run frame\n" },
+    )
+    const { code, output } = run(dir)
+    assert.equal(code, 1)
+    assert.match(output, /ledger-config/)
+    assert.match(output, /systems\["specs\/demo"\]\.buildRoots is unset/)
+  })
+
+  it("stays quiet for a system that has not run realize", () => {
+    const dir = project({}, { "specs/demo/LEDGER.md": BUILD_LEDGER })
+    assert.equal(run(dir).code, 0)
+  })
+
+  it("reports a build root that does not exist", () => {
+    const dir = project(
+      { systems: { "specs/demo": { buildRoots: ["prototype/gone"] } } },
+      { "specs/demo/LEDGER.md": BUILD_LEDGER, "specs/demo/REALIZE-STATE.md": "# Run frame\n" },
+    )
+    const { code, output } = run(dir)
+    assert.equal(code, 1)
+    assert.match(output, /which does not exist/)
+  })
+})
+
+describe("limit rules", () => {
+  it("lists limits apart from the rules meant to last", () => {
+    const standing = renderStanding(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:R1: only the simulation generates content\n- Kind: structural\n- Status: ratified\n\n### sz:R2: bodies do not rotate\n- Kind: limit\n- Status: provisional\n- Review: when rotation is built\n`,
+        }),
+      ),
+    )
+    assert.match(standing, /## Rules\n\n- `sz:R1` \(structural\): only the simulation generates content/)
+    assert.match(standing, /## Current limits\n\n- `sz:R2` \(provisional\): bodies do not rotate/)
   })
 })

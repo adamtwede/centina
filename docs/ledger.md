@@ -77,7 +77,7 @@ always write the qualified label. Cite another system's label as
 | `O` | option within a fork | `open`, `chosen`, `declined` |
 | `W` | work item (`Kind`: `phase`, `step`, `spike`, `change-request`, `other`) | `planned`, `active`, `blocked`, `deferred`, `done`, `withdrawn` |
 | `G` | goal or thesis | `active`, `deferred`, `retired` |
-| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`) | `provisional`, `ratified`, `retired` |
+| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`) | `provisional`, `ratified`, `retired` |
 
 Every letter can also be `superseded`, which requires `Obsoleted-by`.
 
@@ -126,7 +126,8 @@ measured false, done, retired.
 
 1. Update the header, and the reverse marker on any entry it supersedes or
    updates.
-2. Search `specs/<system>/`, comments included, for:
+2. Search `specs/<system>/` and every path in `buildRoots`, comments and
+   thrown messages included, for:
    - the label;
    - the old claim's key terms and values (e.g. `2.5D`, `3 m`), which finds
      dependents that never cited the label.
@@ -144,6 +145,53 @@ ARCHITECTURE.md, PLAN.md, a phase close record, a migration or digest):
    contradicted it.
 3. Raise anything found with the human before writing.
 
+## Citations from build code
+
+`centina-realize` build code cites the ledger two ways. Record the build tree
+in `buildRoots` (below) or nothing in it is checked.
+
+**Ownership citations** name the work item that will fill an unbuilt member.
+They sit in the message thrown by a throw-only member: a member of a class
+implementing a spec contract whose entire body is a `throw` (`centina-realize`,
+"Using spec types" rule 4). Such a member is unbuilt by construction, so a
+label in it names an owner. Two requirements:
+
+- Exactly one resolvable label, in the member's own body. A shared constant
+  holding the message puts the label out of reach, so write it inline. Four
+  members sharing one owner string are usually four members that need four
+  different owners.
+- It resolves to a `W` whose status is `planned`, `active`, `blocked` or
+  `deferred`. Not a `Q`, not a `P`, not a phase's out-of-scope part, and not
+  a `W` that is `done`.
+
+**Rule citations** name the entry that ruled something working code enforces:
+a guard rejecting bad input, a clamp, a refusal. They may cite any letter, and
+citing a closed entry is correct: a ratified proposal or an answered question
+is still what the guard enforces. The checker reports one only when the entry
+stopped holding, which is `superseded`, `withdrawn`, `rejected`,
+`measured-false`, `retired` or `declined`.
+
+What the checker reads inside a build root:
+
+- every comment, for rule citations;
+- the body of a throw-only member, for its ownership citation;
+- no other string literal. A guard's message in a member with a real body is
+  never read, so put the label in a comment as well if you want it checked.
+
+Qualify every label. Build code is not a component spec, so a bare `W12` there
+is an error rather than a label in the file's own scope.
+
+Which kind a citation is follows from where it sits, never from how it is
+worded. A `throw` inside a member with a real body is a guard, not an owner,
+however it reads. A guard refusing a capability because nobody built it yet
+is still a guard: give it an `R` to cite (see "Goals and standing rules").
+
+Ownership citations fail in one direction. The string never changes and the
+ledger does, so a citation turns from a pointer at whoever will build the
+thing into a note about why the member is empty, with no edit anywhere and
+nothing in an invalid state at any moment. The check therefore runs on every
+ledger write, which is when a status moves.
+
 ## The checker
 
 ```
@@ -157,12 +205,41 @@ reports stale generated files without writing. `--contracts <file>` also
 lists the `@proposal` overrides in a `centina-realize` contracts module and
 reports any whose change request is closed.
 
-In Claude Code a hook runs it after every write inside the system directory
-and blocks on errors. The human controls this with `ledgerHook` in
-`.centina/config.json`. **Never change `ledgerHook` yourself**, and never
-edit a file to get past the hook without fixing the finding. On other
-harnesses, run the checker after every status change, at every gate, and
-before every derived-doc write.
+It also reads every build tree named by `buildRoots`, on every run. See
+"Citations from build code".
+
+### Settings
+
+`<artifactsRoot>/.centina/config.json` holds the project's settings, with one
+entry per system:
+
+```json
+{
+  "hostRoot": "<absolute path>",
+  "artifactsRoot": "<absolute path>",
+  "pluginVersion": "<version>",
+  "ledgerHook": "block",
+  "systems": {
+    "specs/sensor-door": { "buildRoots": ["prototype/src/sim"] }
+  }
+}
+```
+
+A system is keyed by its directory's path relative to `artifactsRoot`, not by
+its name: a system lives wherever a `LEDGER.md` sits, spec trees nest, and two
+systems can share a basename.
+
+`buildRoots` paths are relative to `hostRoot`. `centina-realize` writes them
+when it first establishes a build tree, and `REALIZE-STATE.md` cites this file
+instead of repeating the paths, so the location has one record. A system whose
+directory holds a `REALIZE-STATE.md` with no `buildRoots` entry is an error:
+build code exists and nothing is checking it.
+
+In Claude Code a hook runs the checker after every write inside the system
+directory and blocks on errors. The human controls this with `ledgerHook`.
+**Never change `ledgerHook` yourself**, and never edit a file to get past the
+hook without fixing the finding. On other harnesses, run the checker after
+every status change, at every gate, and before every derived-doc write.
 
 ## Reading
 
@@ -179,7 +256,25 @@ before every derived-doc write.
 - Record theses and project goals as `G`, standing rules as `R`. The human
   ratifies, promotes and retires them.
 - A rule that can be enforced by a type or test should be; cite it in
-  `Enforced-by`.
+  `Enforced-by`. A guard in build code counts as enforcement.
+- `Kind: limit` is for a rule that holds because something is not built: a
+  guard refusing a capability, an unsupported case, a hard-coded
+  simplification. It is the one Kind whose ordinary end is `retired`, once
+  somebody builds the thing. The other four record decisions meant to last.
+- **An answered `Q` that leaves a guard in build code produces an `R`, and
+  the guard cites the `R`.** `answered` means the question was settled; it
+  says nothing about whether the answer still holds, so a guard citing the
+  `Q` can never read as stale. `R` is the only letter whose terminal status
+  (`retired`) means the guard is now wrong. Leave the `Q` as the record that
+  the question was asked. Same for a guard citing a phase's out-of-scope
+  part: phase scope expires with the phase, so a refusal that outlives the
+  phase needed an `R`.
+- A rule that may not survive is `provisional` with a `Review`, which is a
+  fine thing for a guard to cite. Only `retired` and `superseded` make a
+  citation stale.
+- Add a `W` beside the `R` only when the work is actually scheduled. A
+  `deferred` `W` nobody intends to start is one more entry that quietly stops
+  meaning what it says.
 - `STANDING.md` lists active goals and current rules. Offer once per project
   to import it from the host project's CLAUDE.md (or AGENTS.md) with an
   `@<path to STANDING.md>` line, so the rules load in every session.

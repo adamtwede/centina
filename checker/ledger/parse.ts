@@ -305,3 +305,106 @@ export function scanSystemFiles(dir: string): ScannedFile[] {
   walk(dir)
   return scanned
 }
+
+export interface UnbuiltMember {
+  /** `Class.member`, for the message. */
+  name: string
+  /** The member declaration's line; every finding about it reports here. */
+  line: number
+  /** Every string in the thrown expression. */
+  strings: SourceLine[]
+}
+
+export interface BuildFile {
+  file: string
+  comments: SourceLine[]
+  unbuilt: UnbuiltMember[]
+}
+
+function memberName(node: ts.ClassElement): string | undefined {
+  const name = node.name
+  return name && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? name.text : undefined
+}
+
+/** The function body of a method, accessor, or a property holding a function. */
+function memberBody(node: ts.ClassElement): ts.Block | undefined {
+  if (ts.isMethodDeclaration(node) || ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node)) {
+    return node.body
+  }
+  if (ts.isPropertyDeclaration(node) && node.initializer) {
+    const value = node.initializer
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) {
+      return ts.isBlock(value.body) ? value.body : undefined
+    }
+  }
+  return undefined
+}
+
+function isStringPart(node: ts.Node): boolean {
+  return (
+    ts.isStringLiteralLike(node) ||
+    ts.isTemplateHead(node) ||
+    ts.isTemplateMiddle(node) ||
+    ts.isTemplateTail(node)
+  )
+}
+
+/**
+ * Members of `implements` classes whose whole body is a `throw`. Such a member
+ * is unbuilt by construction, so a label in what it throws names an owner —
+ * see docs/ledger.md, "Citations from build code".
+ */
+export function unbuiltMembers(file: string, text: string): UnbuiltMember[] {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
+  const lineOf = (node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
+  const members: UnbuiltMember[] = []
+
+  const visit = (node: ts.Node) => {
+    if ((ts.isClassDeclaration(node) || ts.isClassExpression(node)) && node.heritageClauses) {
+      const fills = node.heritageClauses.some((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword)
+      if (fills) {
+        const className = node.name?.text ?? "(anonymous class)"
+        for (const member of node.members) {
+          const body = memberBody(member)
+          if (!body || body.statements.length !== 1) continue
+          const [only] = body.statements
+          if (!ts.isThrowStatement(only)) continue
+          const strings: SourceLine[] = []
+          const collect = (child: ts.Node) => {
+            if (isStringPart(child)) strings.push({ text: child.getText(source), line: lineOf(child), code: false })
+            child.forEachChild(collect)
+          }
+          collect(only)
+          members.push({ name: `${className}.${memberName(member) ?? "(member)"}`, line: lineOf(member), strings })
+        }
+      }
+    }
+    node.forEachChild(visit)
+  }
+  visit(source)
+
+  return members
+}
+
+const BUILD_SKIP_DIRS = new Set(["node_modules", "dist", "build", "coverage"])
+
+/** TypeScript files under a build tree, with their comments and unbuilt members. */
+export function scanBuildRoot(root: string): BuildFile[] {
+  const files: BuildFile[] = []
+
+  const walk = (current: string) => {
+    for (const dirent of readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, dirent.name)
+      if (dirent.isDirectory()) {
+        if (!dirent.name.startsWith(".") && !BUILD_SKIP_DIRS.has(dirent.name)) walk(full)
+        continue
+      }
+      if (!/\.tsx?$/.test(dirent.name) || dirent.name.endsWith(".d.ts")) continue
+      const text = readFileSync(full, "utf8")
+      files.push({ file: full, comments: commentLines(full, text), unbuilt: unbuiltMembers(full, text) })
+    }
+  }
+
+  walk(root)
+  return files
+}

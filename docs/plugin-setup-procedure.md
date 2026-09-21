@@ -51,6 +51,11 @@ Write `<artifactsRoot>/.centina/config.json`:
 }
 ```
 
+Those three keys are what setup writes; the file gains others as they are
+needed — `ledgerHook`, and a `systems` entry per system carrying its
+`buildRoots` (`ledger.md`, "The checker"). Keep any that are already there
+when rewriting this file.
+
 Append `artifactsRoot` to `${CLAUDE_PLUGIN_DATA}/known-projects.json`.
 
 ## Step 3 — create the directory shape

@@ -1,5 +1,6 @@
 import { Finding } from "../types"
 import {
+  BuildFile,
   Entry,
   LabelRef,
   Ledger,
@@ -26,7 +27,7 @@ export const STATUSES: Record<Letter, string[]> = {
 
 const KINDS: Partial<Record<Letter, string[]>> = {
   W: ["phase", "step", "spike", "change-request", "other"],
-  R: ["structural", "design", "method", "process"],
+  R: ["structural", "design", "method", "process", "limit"],
 }
 
 const AGENT_LABEL = /@agent\(([^)]*)\)/g
@@ -38,6 +39,9 @@ function isLedgerLabel(text: string): boolean {
 
 /** Statuses meaning the entry no longer holds; citing one from a current-state file is an error. */
 export const NOT_HOLDING = new Set(["superseded", "withdrawn", "rejected", "measured-false", "retired", "declined"])
+
+/** Work-item statuses an unbuilt member may name as its owner. */
+export const OPEN_WORK = new Set(["planned", "active", "blocked", "deferred"])
 
 interface ListFieldSpec {
   single?: boolean
@@ -79,7 +83,7 @@ const FIELD_LETTERS: Record<string, Letter[]> = {
   Evidence: ["F"],
 }
 
-export function checkLedger(ledger: Ledger, scanned: ScannedFile[]): Finding[] {
+export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: BuildFile[] = []): Finding[] {
   const findings: Finding[] = []
   const seen = new Set<string>()
   const error = (rule: string, file: string, line: number, message: string) => {
@@ -139,11 +143,13 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[]): Finding[] {
   for (const entry of ledger.entries) checkLedgerLines(entry.file, entry.body)
   for (const { file, lines } of ledger.looseLines) checkLedgerLines(file, lines)
 
-  for (const scannedFile of scanned) {
-    const isSpecSource = scannedFile.file.endsWith(".ts")
+  const allScanned = [...scanned, ...build.map((buildFile) => ({ file: buildFile.file, lines: buildFile.comments }))]
+  for (const scannedFile of allScanned) {
+    // `@agent:` notes are spec-authoring metadata, so the rule covers specs only.
+    const isSpec = scannedFile.file.endsWith(".centina.ts")
     for (const sourceLine of scannedFile.lines) {
       if (sourceLine.code) continue
-      if (isSpecSource) {
+      if (isSpec) {
         for (const note of sourceLine.text.matchAll(AGENT_LABEL)) {
           if (!isLedgerLabel(note[1])) {
             error(
@@ -179,7 +185,83 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[]): Finding[] {
     }
   }
 
+  checkOwnership(ledger, build, error, resolve)
+
   return findings
+}
+
+/**
+ * Ownership citations: a throw-only member of an `implements` class is unbuilt
+ * by construction, so the label it throws names the work item that will fill
+ * it. See docs/ledger.md, "Citations from build code".
+ */
+function checkOwnership(
+  ledger: Ledger,
+  build: BuildFile[],
+  error: ErrorFn,
+  resolve: (ref: LabelRef) => Entry | undefined,
+): void {
+  for (const buildFile of build) {
+    for (const member of buildFile.unbuilt) {
+      const report = (message: string) => error("ledger-unbuilt-owner", buildFile.file, member.line, message)
+      const refs: LabelRef[] = []
+      let sawBare = false
+      for (const sourceLine of member.strings) {
+        for (const { ref, bare } of refsInText(sourceLine.text)) {
+          if (bare) {
+            sawBare = true
+            error(
+              "ledger-bare-label",
+              buildFile.file,
+              sourceLine.line,
+              `bare label ${formatRef(ref)} in build code; qualify it with its scope`,
+            )
+          } else if (!ref.system) {
+            refs.push(ref)
+          }
+        }
+      }
+
+      // A bare label already reported what is wrong; do not also call it missing.
+      if (refs.length === 0 && sawBare) continue
+      if (refs.length === 0) {
+        report(`${member.name} is unbuilt and names no work item; throw a message naming the W that fills it`)
+        continue
+      }
+      if (refs.length > 1) {
+        report(
+          `${member.name} names ${refs.map(formatRef).join(", ")}; an unbuilt member has one owner`,
+        )
+        continue
+      }
+
+      const [ref] = refs
+      if (ref.part) {
+        report(`${member.name} names ${formatRef(ref)}; an owner is a whole work item, not a part of one`)
+        continue
+      }
+      const target = resolve(ref)
+      if (!target) {
+        error(
+          "ledger-undefined-label",
+          buildFile.file,
+          member.line,
+          `${formatRef(ref)} is not defined in the ${ledger.system} ledger`,
+        )
+        continue
+      }
+      if (target.ref.letter !== "W") {
+        report(`${member.name} names ${target.key}, which is not a work item; an unbuilt member is owned by a W`)
+        continue
+      }
+      const targetStatus = status(target) ?? ""
+      if (!OPEN_WORK.has(targetStatus)) {
+        report(
+          `${member.name} names ${target.key}, which is ${targetStatus}; retarget it to the work item that will fill this member`,
+        )
+      }
+    }
+  }
 }
 
 const PROPOSAL_TAG = /@proposal\(([^)]*)\)/g
