@@ -87,13 +87,33 @@ export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: stri
         const target = byKey.get(labelKey(ref))
         const targetStatus = target && status(target)
         if (!targetStatus) continue
-        if (NOT_HOLDING.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
-        } else if (field === "Depends-on" && workStatus === "blocked" && RESOLVED.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}; may unblock`)
-        }
+        if (NOT_HOLDING.has(targetStatus)) reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
       }
     }
+
+    // "May unblock" only holds when every Depends-on is resolved — one still
+    // open means the item stays blocked regardless of the others, and saying
+    // "may unblock" anyway sends the reader looking for an unblock that
+    // cannot happen.
+    if (workStatus === "blocked") {
+      const resolved: string[] = []
+      const open: string[] = []
+      for (const ref of fieldRefs(work, "Depends-on").refs) {
+        const target = byKey.get(labelKey(ref))
+        const targetStatus = target && status(target)
+        if (!targetStatus) continue
+        if (RESOLVED.has(targetStatus)) resolved.push(`${formatRef(ref)} is ${targetStatus}`)
+        else if (!NOT_HOLDING.has(targetStatus)) open.push(formatRef(ref))
+      }
+      if (resolved.length > 0) {
+        reasons.push(
+          open.length === 0
+            ? `Depends-on ${resolved.join(", ")}; may unblock`
+            : `Depends-on ${resolved.join(", ")}; still blocked on ${open.join(", ")}`,
+        )
+      }
+    }
+
     if (reasons.length > 0) affected.push({ entry: work, reasons })
   }
   return affected

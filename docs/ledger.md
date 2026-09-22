@@ -1,9 +1,8 @@
 # The system ledger
 
 Working rules for `centina-session-zero`, `centina-iterate` and
-`centina-realize`. Imperative on purpose. For rationale and the evidence
-behind each rule, see `docs/ledger-provenance-design.md` in the Centina
-repository (not bundled).
+`centina-realize`. Imperative on purpose; see "Why this format" below for the
+evidence behind it.
 
 ## What it is
 
@@ -22,6 +21,42 @@ rejected, chosen, and so on).
 
 Create `LEDGER.md` at the first decision worth recording, once the system
 name is known. Start it with a one-line title (`# Ledger: <system>`).
+
+## Why this format
+
+Drawn from the Chrysalis Underworld project (`chrysalis/prototype/` and
+`chrysalis/centina/specs/underworld/`, including `archive/`), which surfaced
+the failure modes this format exists to close. Most had no cross-reference to
+follow at the time the new decision was recorded, so a rule that only fires
+when a new proposal is recorded would not have caught them:
+
+1. **Unlabeled claim.** A prose line ("Bathymetry is 2.5D") had no label; a
+   proposal rejected it by name a day later, but nothing pointed back to the
+   line. It stood unstruck for eleven days, and a terrain generator was
+   designed against it.
+2. **Status change without a new proposal.** Two entries still read `OPEN`
+   after ratification, because ratification was written in a separate block.
+3. **Only one copy amended.** A fix landed in one table row; a second,
+   unstruck row making the same claim survived a doc migration and stood
+   wrong for months.
+4. **Dependency on a value, not a decision.** A spec comment quoted a figure
+   a later decision changed; nothing tied the comment to the decision, and it
+   stayed wrong for a week.
+5. **Implicit contradiction.** One proposal contradicted an earlier one
+   without naming it. Found a week later, during implementation.
+6. **Stale reference.** A cross-reference pointed to "risk 16" as its
+   successor; after renumbering, risk 16 was unrelated content.
+
+Restructuring the docs into separate current-state and history files did not
+fix case 3 — the stale line survived because carrying items forward meant
+copying their text. The problem was **duplication** (the same claim restated
+in several places), not the number of files. Hence: entries are append-only,
+status lives in exactly one place (the header), and every derived view
+(`LEDGER-INDEX.md`, `STANDING.md`) is generated, never hand-copied.
+
+The label scheme is drawn from legislative drafting (pinpoint citation,
+amendments as separate instruments, no renumbering) and IETF RFCs
+(`Obsoletes` / `Updates`, with reverse links recorded on the old document).
 
 ## Entry format
 
@@ -133,7 +168,11 @@ measured false, done, retired.
      dependents that never cited the label.
 3. Fix each dependent, or raise it with the human if the fix is a decision.
 4. Run the checker (below) and fix what it reports.
-5. Check `LEDGER-INDEX.md`'s "Affected work items" section.
+5. Check `LEDGER-INDEX.md`'s "Affected work items" section. A blocked `W`
+   reads "may unblock" only when every `Depends-on` is resolved; one still
+   naming a status that is neither resolved nor stale reads "still blocked
+   on" the rest, so it does not send you looking for an unblock that can't
+   happen yet.
 
 ## Sweeps
 
@@ -300,7 +339,9 @@ every status change, at every gate, and before every derived-doc write.
 
 In Claude Code, a hook copies the session transcript into
 `specs/<system>/transcripts/<session-id>.jsonl` for any system whose ledger
-or state file records the session ID.
+or state file records the session ID. The agent never writes its own
+transcript: it would be a paraphrase, it cannot recover text lost to
+compaction, and it roughly doubles output tokens.
 
 1. **Always ask the human before opening a transcript,** in every case.
    Transcripts are large enough to fill the context window.

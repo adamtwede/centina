@@ -244,6 +244,38 @@ describe("ledger generation", () => {
       [["sz:W1", ["Premises sz:F1 is measured-false"]]],
     )
   })
+
+  it("reads 'may unblock' only when every Depends-on is resolved", () => {
+    const ledger = readLedger(
+      system({
+        "LEDGER.md": [
+          "### sz:Q5: still open",
+          "- Status: open",
+          "",
+          "### sz:W12: done dependency",
+          "- Kind: step",
+          "- Status: done",
+          "",
+          "### sz:Q17: also still open",
+          "- Status: open",
+          "",
+          "### sz:W7: blocked on three",
+          "- Kind: step",
+          "- Status: blocked",
+          "- Depends-on: sz:Q5, sz:W12, sz:Q17",
+          "",
+          "### sz:W20: blocked on one, now resolved",
+          "- Kind: step",
+          "- Status: blocked",
+          "- Depends-on: sz:W12",
+        ].join("\n"),
+      }),
+    )
+    assert.deepEqual(affectedWorkItems(ledger).map(({ entry, reasons }) => [entry.key, reasons]), [
+      ["sz:W7", ["Depends-on sz:W12 is done; still blocked on sz:Q5, sz:Q17"]],
+      ["sz:W20", ["Depends-on sz:W12 is done; may unblock"]],
+    ])
+  })
 })
 
 describe("ledger command", () => {
