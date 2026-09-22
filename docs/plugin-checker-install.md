@@ -44,10 +44,10 @@ amount of redundant copying.
 Two cost tiers, handled differently:
 
 - **Cheap: copying `checker/` and `centina.ts` source.** A handful of
-  small `.ts` files. Regenerate unconditionally on every `SessionStart`,
-  same philosophy as the setup step's Steps 3/4 — no diff-and-skip logic
-  needed when the operation is this cheap, and unconditional means no
-  stale-copy failure mode.
+  small `.ts` files. Regenerate unconditionally, and cheap enough that
+  `bin/centina-check` repeats it before every run rather than trusting
+  `SessionStart` alone — see "Source freshness" below. No diff-and-skip
+  logic is needed when the operation is this cheap.
 - **Expensive: `npm install` for `ts-morph`/`typescript`.** Real time and
   network cost. Gate behind a content comparison, only run when changed.
 
@@ -76,6 +76,32 @@ and a hash comparison, not a full reinstall attempted every time.
    in the setup-step doc, and it's just as bad here: a checker that
    quietly never runs is worse than one that visibly errors.
 
+## Source freshness
+
+`SessionStart` is not enough on its own, and the original design's claim
+that "unconditional means no stale-copy failure mode" was wrong: it is
+unconditional *per session*, and a plugin update lands *during* one. The
+hook does not fire again, so `DATA` keeps running the previous checker.
+
+Measured in Chrysalis Underworld (`sensor-door:F31`'s own follow-up): a
+human updated the plugin mid-session, `buildRoots` was registered, and the
+checker printed `ledger: clean` twice against a tree with seven genuine
+errors, because the `DATA` copy predated the rule and had nothing to
+report. It was caught only by a deliberate positive control.
+
+The shape is what makes it serious. A missing `node_modules` is detected
+and refused with a clear message; a stale source copy **passes**. That is
+the same failure the ledger's citation rules exist to catch — nothing in
+an invalid state, an unchanged artifact whose meaning moved underneath it
+— and it lands on exactly the run where a human has just added a rule and
+most wants to know whether the tree complies.
+
+So the source copy belongs in both callers. `scripts/checker-sync.mjs`
+holds it, and `scripts/session-start-install.mjs` and `bin/centina-check`
+both call it. `cpSync` adds and replaces without deleting, which is why
+`DATA`'s installed `node_modules` survives a sync; a dev checkout's own
+`node_modules` is filtered out so it is not dragged across.
+
 ## `bin/centina-check` wrapper
 
 Invokes the copy at `${CLAUDE_PLUGIN_DATA}/checker/cli.ts` (via `tsx`, or
@@ -85,12 +111,28 @@ directly, so module resolution naturally finds
 resolution — no environment-variable tricks needed, since source and
 dependencies are colocated by construction.
 
-Before invoking, check that `${CLAUDE_PLUGIN_DATA}/checker/node_modules`
-exists. If it doesn't (install never succeeded, or hasn't run yet this
-install), fail with an explicit message pointing at the cause — "checker
-dependencies aren't installed; this should resolve on the next session
-start, or check network access" — rather than letting a bare
-module-not-found stack trace surface to whatever invoked the wrapper.
+Before invoking, in order:
+
+1. **Sync source** from `ROOT` ("Source freshness"). When
+   `CLAUDE_PLUGIN_ROOT` is unset the sync cannot run, so say so on stderr
+   rather than proceeding as if the copy were known current.
+2. **Check `${CLAUDE_PLUGIN_DATA}/checker/node_modules` exists.** If it
+   doesn't (install never succeeded, or hasn't run yet this install), fail
+   with an explicit message pointing at the cause — "checker dependencies
+   aren't installed; this should resolve on the next session start, or
+   check network access" — rather than letting a bare module-not-found
+   stack trace surface to whatever invoked the wrapper.
+3. **Compare the dependency hash** against the marker. A mismatch means the
+   synced source is newer than the installed dependencies, so refuse:
+   running current rules against older dependencies is the same
+   silent-wrong-answer case in a different place. The install happens at
+   the next session start, and the message says so.
+4. **Say which checker ran** — version and `ROOT` path, on stderr. Cheap,
+   and it makes the thing that was invisible visible.
+
+`pluginVersion` is read from `ROOT`'s own manifest rather than from
+`.centina/config.json`'s `pluginVersion`, which is written once at project
+setup and never maintained afterward.
 
 ## Concurrency
 

@@ -3,10 +3,10 @@
 // Design: docs/plugin-checker-install.md. Fires on every session, so the
 // no-op path (nothing changed) must stay cheap — a read and a hash compare.
 
-import { createHash } from "node:crypto"
 import { spawnSync } from "node:child_process"
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
+import { HASH_MARKER, installedHash, packageHash, syncCheckerSource } from "./checker-sync.mjs"
 
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT
 const pluginData = process.env.CLAUDE_PLUGIN_DATA
@@ -22,26 +22,15 @@ const dataCheckerDir = path.join(pluginData, "checker")
 mkdirSync(dataCheckerDir, { recursive: true })
 
 // Step 1 — copy source unconditionally. Cheap: a handful of small .ts files.
-cpSync(path.join(pluginRoot, "checker"), dataCheckerDir, { recursive: true })
-cpSync(path.join(pluginRoot, "centina.ts"), path.join(pluginData, "centina.ts"))
-cpSync(
-  path.join(pluginRoot, "conformance.ts"),
-  path.join(pluginData, "conformance.ts")
-)
+// bin/centina-check repeats this before every run, since a plugin update
+// lands mid-session and this hook does not fire again.
+syncCheckerSource(pluginRoot, pluginData)
 
 // Step 2 — gate the expensive npm install behind a package.json hash.
-const packageJsonPath = path.join(pluginRoot, "checker", "package.json")
-const hashMarkerPath = path.join(pluginData, ".installed-package-hash")
+const hashMarkerPath = path.join(pluginData, HASH_MARKER)
+const currentHash = packageHash(pluginRoot)
 
-const currentHash = createHash("sha256")
-  .update(readFileSync(packageJsonPath))
-  .digest("hex")
-
-const storedHash = existsSync(hashMarkerPath)
-  ? readFileSync(hashMarkerPath, "utf8").trim()
-  : null
-
-if (currentHash === storedHash) {
+if (currentHash === installedHash(pluginData)) {
   process.exit(0)
 }
 

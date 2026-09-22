@@ -288,6 +288,45 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   what distinguishes these is their expected end, `retired` once someone
   builds the thing.
 
+- **The checker's own delivery path had the same failure shape**
+  (`scripts/checker-sync.mjs`, `bin/centina-check`,
+  `docs/plugin-checker-install.md`) — found by the first `centina-realize`
+  session to exercise the ownership rules on a live tree. `bin/centina-check`
+  runs the copy at `CLAUDE_PLUGIN_DATA`, the only one with `node_modules`,
+  and `session-start-install.mjs` refreshes that copy's source on
+  `SessionStart` only. The original design called the unconditional copy
+  proof against a stale-copy failure mode; it is unconditional per *session*,
+  and a plugin update lands during one. In Underworld the checker printed
+  `ledger: clean` twice against a tree with seven genuine errors, because the
+  `DATA` copy predated the rule, and it was caught only by a deliberate
+  positive control. A missing `node_modules` is detected and refused; a stale
+  source copy passes — the same unchanged-artifact-whose-meaning-moved shape
+  as `sensor-door:F31`, in the tool built to catch it. The source copy now
+  lives in `scripts/checker-sync.mjs` and both callers use it, so the wrapper
+  re-syncs before every run; `cpSync` adds without deleting, so `DATA`'s
+  `node_modules` survives, and a dev checkout's own is filtered out. The
+  wrapper also refuses when the dependency hash says the synced source is
+  newer than the installed dependencies, and prints which checker version ran
+  from which root. Rejected: comparing `.centina/config.json`'s
+  `pluginVersion`, which is written once at project setup and never
+  maintained, so it would be a third thing that can go stale silently.
+- **A guard's rule citation must be an `R`** (`docs/ledger.md`,
+  `skills/centina-realize/SKILL.md` rule 6) — the same session found that
+  rule 6 said "never a `Q` or a phase" while its own argument (only `R` has a
+  terminal status meaning the guard is now wrong) applies identically to a
+  `done` step, which the rule did not mention and the checker allows. Two
+  guards in Underworld cite a `done` step and read as provenance rather than
+  as the rule. Ruled consistently: the rule a guard enforces is always an
+  `R`; a `Q`, `P` or `W` may sit beside it as the provenance of the ruling,
+  never alone. That leaves `sensor-door:F31(d)`'s sites correct but
+  incomplete — each needs an `R` that its guard can cite. Also stated
+  plainly, after the same session measured 17 citations whose comment
+  coverage was complete by luck rather than by construction: a guard's label
+  belongs in its comment, which is the copy the checker reads, and the thrown
+  message is for whoever meets the error. Widening the checker to read string
+  literals in built members stays declined — the measurement does not yet
+  show the convention failing.
+
 ## Open / under discussion
 
 - Whether the ledger hook should fire on writes under `buildRoots`. It finds

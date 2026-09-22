@@ -142,16 +142,18 @@ Status is `planned` until the human confirms the plan, then the phase becomes
 5. Writing code against the declared types is itself a check on the spec.
    When a type cannot carry what the code needs, that is a contract problem:
    raise a change request, do not work around it.
-6. **A guard in working code cites an `R`, never a `Q` or a phase.** A guard
-   that refuses an input or a capability enforces a ruling, and `R` is the
-   only letter whose terminal status (`retired`) says the ruling stopped
-   holding — a guard citing an answered `Q` or a done phase can never read as
-   stale. So an answered `Q` that leaves a guard behind needs an `R` for the
-   guard to cite. A standing rule is the human's call: raise it, do not write
-   one (rules of engagement 2). Use `Kind: limit` when the guard is there
-   because something is not built yet, and `provisional` with a `Review`
-   while the rule may not last. Add a `W` beside the `R` only when the work
-   is actually scheduled.
+6. **A guard in working code cites an `R`. A `Q`, `P` or `W` may sit beside
+   it; none may sit there alone.** `answered`, `ratified` and `done` mean the
+   entry finished, not that the ruling stopped holding, so a guard citing
+   only one of them can never read as stale — `R` is the only letter with
+   `retired`. An answered `Q` that leaves a guard behind needs an `R`, and so
+   does a `done` step that ruled one; keep the original entry beside the `R`
+   as the provenance of the decision. A standing rule is the human's call:
+   raise it, do not write one (rules of engagement 2). Use `Kind: limit` when
+   the guard is there because something is not built yet, and `provisional`
+   with a `Review` while the rule may not last. Name the `W` that would
+   remove the guard only when that work is actually scheduled. Put the label
+   in the guard's comment: that is the copy the checker reads.
 
 ## Conformance
 

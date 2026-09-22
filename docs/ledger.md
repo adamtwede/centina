@@ -164,19 +164,26 @@ label in it names an owner. Two requirements:
   `deferred`. Not a `Q`, not a `P`, not a phase's out-of-scope part, and not
   a `W` that is `done`.
 
-**Rule citations** name the entry that ruled something working code enforces:
-a guard rejecting bad input, a clamp, a refusal. They may cite any letter, and
-citing a closed entry is correct: a ratified proposal or an answered question
-is still what the guard enforces. The checker reports one only when the entry
-stopped holding, which is `superseded`, `withdrawn`, `rejected`,
-`measured-false`, `retired` or `declined`.
+**Rule citations** name what a guard in working code enforces: a rejected
+input, a clamp, a refusal. **The rule is always an `R`.** A `Q`, a `P` or a
+`W` may sit beside it as the provenance of the ruling — the question that
+settled it, the step that ruled it — but never alone. Their terminal statuses
+(`answered`, `ratified`, `done`) mean the entry finished, not that the ruling
+stopped holding, so a guard citing only one of them can never read as stale.
+`R` is the only letter with `retired`. See "Goals and standing rules".
+
+The checker reports a citation only when its entry stopped holding, which is
+`superseded`, `withdrawn`, `rejected`, `measured-false`, `retired` or
+`declined`.
 
 What the checker reads inside a build root:
 
 - every comment, for rule citations;
 - the body of a throw-only member, for its ownership citation;
-- no other string literal. A guard's message in a member with a real body is
-  never read, so put the label in a comment as well if you want it checked.
+- no other string literal. **A guard's label belongs in its comment**, which
+  is the copy the checker reads. Repeating it in the thrown message is for
+  whoever meets the error and is not checked, and nothing reports a label
+  that appears only there.
 
 Qualify every label. Build code is not a component spec, so a bare `W12` there
 is an error rather than a label in the file's own scope.
@@ -261,14 +268,15 @@ every status change, at every gate, and before every derived-doc write.
   guard refusing a capability, an unsupported case, a hard-coded
   simplification. It is the one Kind whose ordinary end is `retired`, once
   somebody builds the thing. The other four record decisions meant to last.
-- **An answered `Q` that leaves a guard in build code produces an `R`, and
-  the guard cites the `R`.** `answered` means the question was settled; it
-  says nothing about whether the answer still holds, so a guard citing the
-  `Q` can never read as stale. `R` is the only letter whose terminal status
-  (`retired`) means the guard is now wrong. Leave the `Q` as the record that
-  the question was asked. Same for a guard citing a phase's out-of-scope
-  part: phase scope expires with the phase, so a refusal that outlives the
-  phase needed an `R`.
+- **A guard in build code cites an `R`. Whatever settled the rule may sit
+  beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
+  all mean the entry finished, not that the ruling stopped holding, so a
+  guard citing only a `Q`, a `P` or a `W` can never read as stale. `R` is the
+  only letter with `retired`. So an answered `Q` that leaves a guard behind
+  produces an `R`, and so does a `done` step that ruled one; keep the
+  original entry beside the `R` as the provenance of the decision. A guard
+  citing a phase's out-of-scope part is the same case with less to recommend
+  it, since phase scope expires with the phase.
 - A rule that may not survive is `provisional` with a `Review`, which is a
   fine thing for a guard to cite. Only `retired` and `superseded` make a
   citation stale.
