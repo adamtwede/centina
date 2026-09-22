@@ -3,10 +3,47 @@ import path from "node:path"
 import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
+import { buildRootsFor, findConfig, systemKey } from "./config"
 import { renderIndex, renderStanding } from "./generate"
-import { LEDGER_INDEX, STANDING, commentLines, readLedger, scanSystemFiles } from "./parse"
+import { BuildFile, LEDGER_INDEX, STANDING, commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
 
 const USAGE = "usage: centina-check ledger [--check] [--contracts <file>]... <system-dir>..."
+
+const REALIZE_STATE = "REALIZE-STATE.md"
+
+/**
+ * A system's build trees, from `systems.<key>.buildRoots` in the nearest
+ * `.centina/config.json`. A system that has run `centina-realize` but names no
+ * build tree is an error: build code exists and nothing is checking it. See
+ * docs/ledger.md, "Citations from build code".
+ */
+function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: Finding[] } {
+  const findings: Finding[] = []
+  const files: BuildFile[] = []
+  const config = findConfig(systemDir)
+  const roots = config ? buildRootsFor(config, systemDir) : []
+  const report = (file: string, message: string) =>
+    findings.push({ rule: "ledger-config", severity: "error", file, line: 1, message })
+
+  if (config?.problem) report(config.file, config.problem)
+
+  for (const root of roots) {
+    if (existsSync(root)) files.push(...scanBuildRoot(root))
+    else report(config!.file, `buildRoots names ${root}, which does not exist`)
+  }
+
+  const realizeState = path.join(systemDir, REALIZE_STATE)
+  if (roots.length === 0 && existsSync(realizeState)) {
+    report(
+      realizeState,
+      config
+        ? `${REALIZE_STATE} records build work, but systems["${systemKey(config, systemDir)}"].buildRoots is unset in ${config.file}; build code is not being checked`
+        : `${REALIZE_STATE} records build work, but there is no .centina/config.json above ${systemDir} to name its buildRoots`,
+    )
+  }
+
+  return { files, findings }
+}
 
 /**
  * `centina-check ledger <system-dir>...`: validates each system's ledger and
@@ -57,7 +94,11 @@ export function runLedgerCommand(argv: string[]): number {
     }
 
     const ledger = readLedger(systemDir)
-    const findings: Finding[] = checkLedger(ledger, scanSystemFiles(systemDir))
+    const build = collectBuildFiles(systemDir)
+    const findings: Finding[] = [
+      ...build.findings,
+      ...checkLedger(ledger, scanSystemFiles(systemDir), build.files),
+    ]
 
     for (const contractsFile of contractsFiles.map((file) => path.resolve(baseDir, file))) {
       if (!existsSync(contractsFile)) {

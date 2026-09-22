@@ -87,7 +87,7 @@ code with precise runtime semantics. Keep these distinctions in mind:
   the checker requires that entry to exist. Without a ledger, labels are free
   text the human assigns (`@agent(C1): ...`). Either way, never renumber one.
 
-- **`deferred<F>()` calls** are marker functions: a typed hole whose *routing*
+- **`deferred<F>()` calls** are marker functions: a typed hole whose _routing_
   (stays in this spec / belongs in a separate spec / left to a runtime
   agent's judgment) is still open. Don't resolve a `deferred` by guessing an
   implementation — the routing decision is exactly what this loop should
@@ -117,7 +117,7 @@ an idea up quickly without a detour to a second file. Two things to check
 during a normal iteration pass:
 
 - **Dependency direction.** A boundary door's parameters/return types must
-  not resolve to a type declared in the *consuming* spec (a local interface,
+  not resolve to a type declared in the _consuming_ spec (a local interface,
   or an object-shaped type alias) — that's the boundary depending on its own
   caller, backwards from how a real external system would typecheck.
   Primitives, `unknown`, opaque `Unshaped<...>` brands, and closed enums are
@@ -161,7 +161,7 @@ orientation. Suggest an order, don't pick one:
 
 This is process guidance, not meaning: naming which hole is worth tackling
 first is a structural observation the agent is allowed to make (Rule 0 is
-about deciding what a hole *resolves to*, not about suggesting an order to
+about deciding what a hole _resolves to_, not about suggesting an order to
 approach them in). Let the human pick the actual starting point; then proceed
 into the normal check/fix loop below.
 
@@ -187,7 +187,6 @@ into the normal check/fix loop below.
 3. **If there are diagnostics**, take them one at a time, in the order
    reported (lowest line number first). For each one, classify it before
    doing anything:
-
    - **Mechanical fix** — the diagnostic has one obviously-correct resolution
      given everything already established in the document and the
      conversation (a typo matching an existing identifier, a missing `as`
@@ -222,7 +221,7 @@ into the normal check/fix loop below.
 
 6. **Repeat** from step 1 until the check is clean or the human says to stop.
 
-6. Warnings (if the checker distinguishes them from errors) are reviewed the
+7. Warnings (if the checker distinguishes them from errors) are reviewed the
    same way, but don't block calling the loop "done" — confirm with the human
    whether they want to address open warnings now or leave them.
 
@@ -341,14 +340,22 @@ completed status:
 ## What NOT to do
 
 - **Rule 0: never write a Centina spec on a human's behalf.** Not even when
-  asked, and not because it's hard or tedious — *because* writing the spec is
+  asked, and not because it's hard or tedious — _because_ writing the spec is
   the entire point of Centina. The spec is where a human and a coding model
   reach shared understanding; authoring it for them inserts exactly the layer
   of insulation Centina exists to remove, and hands the thinking back to the
   model. Relatively small, focused snippets in service of a discussion are
   fine (illustrating a syntax point, sketching one door), but do not produce,
   fill in, or "finish" a spec — the human is the architect. If a human asks
-  you to write one, decline and redirect to iterating on what *they* write.
+  you to write one, decline and redirect to iterating on what _they_ write.
+  If this seems like a bottleneck, it is, deliberately. The purpose of pushing
+  the human to make code edits to a spec — even if given step-by-step instructions
+  on exactly how in some cases — is to ensure the spec can't get away from them,
+  that each edit is done with their knowledge. This is a calculated tradeoff: more
+  time now for less risk later. If this process starts to become truly onerous,
+  it may indicate a gap in the spec large enough to justify a full skeleton spec of
+  its own, which means breaking that part out into its own system and kicking off
+  a session-zero for it.
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
   Even once a fix or a routing decision is fully settled — mechanical or
   not — don't volunteer to be the one who writes it into the file. Surface

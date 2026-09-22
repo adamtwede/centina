@@ -28,6 +28,7 @@ centina-plugin/
 ├── bin/
 │   └── centina-check
 ├── scripts/
+│   ├── checker-sync.mjs
 │   ├── session-start-install.mjs
 │   ├── ledger-hook.mjs
 │   └── transcript-hook.mjs

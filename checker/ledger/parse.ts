@@ -305,3 +305,135 @@ export function scanSystemFiles(dir: string): ScannedFile[] {
   walk(dir)
   return scanned
 }
+
+export interface UnbuiltMember {
+  /** `Class.member`, for the message. */
+  name: string
+  /** The member declaration's line; every finding about it reports here. */
+  line: number
+  /** Every string in the final `throw`. */
+  strings: SourceLine[]
+}
+
+export interface BuildFile {
+  file: string
+  comments: SourceLine[]
+  unbuilt: UnbuiltMember[]
+}
+
+function memberName(node: ts.ClassElement): string | undefined {
+  const name = node.name
+  return name && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? name.text : undefined
+}
+
+/** The function body of a method, accessor, or a property holding a function. */
+function memberBody(node: ts.ClassElement): ts.Block | undefined {
+  if (ts.isMethodDeclaration(node) || ts.isGetAccessorDeclaration(node) || ts.isSetAccessorDeclaration(node)) {
+    return node.body
+  }
+  if (ts.isPropertyDeclaration(node) && node.initializer) {
+    const value = node.initializer
+    if (ts.isArrowFunction(value) || ts.isFunctionExpression(value)) {
+      return ts.isBlock(value.body) ? value.body : undefined
+    }
+  }
+  return undefined
+}
+
+/** An `if` branch that cannot complete normally. */
+function throwsOnly(node: ts.Statement): boolean {
+  if (ts.isThrowStatement(node)) return true
+  if (ts.isBlock(node)) return endsInThrow(node.statements)
+  return false
+}
+
+/**
+ * A statement that cannot let the member return. Validating, logging and
+ * binding a local are all fine before an unbuilt member throws; a `return`, a
+ * loop, a `switch` or a `try` (whose `catch` could swallow the throw) are not.
+ */
+function cannotReturn(node: ts.Statement): boolean {
+  if (ts.isExpressionStatement(node) || ts.isVariableStatement(node) || ts.isThrowStatement(node)) return true
+  if (ts.isIfStatement(node)) {
+    return throwsOnly(node.thenStatement) && (node.elseStatement === undefined || throwsOnly(node.elseStatement))
+  }
+  return false
+}
+
+/** Whether these statements end in an unconditional `throw` and no path returns. */
+function endsInThrow(statements: readonly ts.Statement[]): boolean {
+  const last = statements[statements.length - 1]
+  if (!last || !ts.isThrowStatement(last)) return false
+  return statements.slice(0, -1).every(cannotReturn)
+}
+
+function isStringPart(node: ts.Node): boolean {
+  return (
+    ts.isStringLiteralLike(node) ||
+    ts.isTemplateHead(node) ||
+    ts.isTemplateMiddle(node) ||
+    ts.isTemplateTail(node)
+  )
+}
+
+/**
+ * Members of `implements` classes that cannot return: the body ends in an
+ * unconditional `throw` and nothing before it can complete normally. Such a
+ * member is unbuilt by construction, so a label in what it throws names an
+ * owner — see docs/ledger.md, "Citations from build code".
+ *
+ * Only the final `throw` supplies labels. An earlier guard throw carries a
+ * rule citation, and reading it here would report it as a second owner.
+ */
+export function unbuiltMembers(file: string, text: string): UnbuiltMember[] {
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
+  const lineOf = (node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
+  const members: UnbuiltMember[] = []
+
+  const visit = (node: ts.Node) => {
+    if ((ts.isClassDeclaration(node) || ts.isClassExpression(node)) && node.heritageClauses) {
+      const fills = node.heritageClauses.some((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword)
+      if (fills) {
+        const className = node.name?.text ?? "(anonymous class)"
+        for (const member of node.members) {
+          const body = memberBody(member)
+          if (!body || !endsInThrow(body.statements)) continue
+          const strings: SourceLine[] = []
+          const collect = (child: ts.Node) => {
+            if (isStringPart(child)) strings.push({ text: child.getText(source), line: lineOf(child), code: false })
+            child.forEachChild(collect)
+          }
+          collect(body.statements[body.statements.length - 1])
+          members.push({ name: `${className}.${memberName(member) ?? "(member)"}`, line: lineOf(member), strings })
+        }
+      }
+    }
+    node.forEachChild(visit)
+  }
+  visit(source)
+
+  return members
+}
+
+const BUILD_SKIP_DIRS = new Set(["node_modules", "dist", "build", "coverage"])
+
+/** TypeScript files under a build tree, with their comments and unbuilt members. */
+export function scanBuildRoot(root: string): BuildFile[] {
+  const files: BuildFile[] = []
+
+  const walk = (current: string) => {
+    for (const dirent of readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, dirent.name)
+      if (dirent.isDirectory()) {
+        if (!dirent.name.startsWith(".") && !BUILD_SKIP_DIRS.has(dirent.name)) walk(full)
+        continue
+      }
+      if (!/\.tsx?$/.test(dirent.name) || dirent.name.endsWith(".d.ts")) continue
+      const text = readFileSync(full, "utf8")
+      files.push({ file: full, comments: commentLines(full, text), unbuilt: unbuiltMembers(full, text) })
+    }
+  }
+
+  walk(root)
+  return files
+}

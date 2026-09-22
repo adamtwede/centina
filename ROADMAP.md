@@ -238,7 +238,137 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   promotion trigger recorded in the skill: the first step that closes with a
   missing assertion.
 
+- **Ownership citations in build code** (`checker/ledger/config.ts`,
+  `parse.ts`, `check.ts`, `command.ts`, `generate.ts`; `docs/ledger.md`) —
+  closes `sensor-door:F31` from Chrysalis Underworld: a work-item label
+  inside a runtime string was the one citation form nothing verified, and
+  every one naming an owner had gone stale at some point in the phase, five
+  still stale at its close. The failure is time-ordered and silent — the
+  string never changes and the ledger does, so a label naming who will build
+  a member turns into a note about why it is empty, with no edit and nothing
+  in an invalid state at any moment. Two gaps, not the one the finding named:
+  the ledger checker walked only the system directory, so build code was
+  unscanned entirely, and it read only comments, so string literals were
+  invisible even where it did look. A naive rule would be wrong — nine
+  further citations correctly name `done` or `answered` entries, citing the
+  ruling a working guard enforces rather than an owner. The kind is now
+  decided by position, not wording: a member of an `implements` class whose
+  whole body is a `throw` is unbuilt by construction, so its label is an
+  owner and must be exactly one, whole rather than a part, and a `W` that is
+  `planned`, `active`, `blocked` or `deferred`; a `throw` inside a member
+  with a real body is a guard whatever it reads like. Position also
+  enumerates the population, which the seven conformance assertions added in
+  that phase could not: they fire when someone edits the string, which is not
+  the failure mode, and exist only for sites somebody already noticed. A
+  prose marker ("owned by <label>") was rejected because a misspelled one
+  drops its site from the checked set silently, failing in the same direction
+  as the bug. Build trees come from
+  `systems["<dir relative to artifactsRoot>"].buildRoots` in
+  `<artifactsRoot>/.centina/config.json`, relative to `hostRoot`, read on
+  every run so the existing hook fires the check at a ledger write — which is
+  exactly when a status moves; a system with a `REALIZE-STATE.md` and no
+  entry is an error, so the check cannot silently cover nothing. One config
+  file with a `systems` map was chosen over per-system config files, which
+  would have shadowed the project's `ledgerHook` (the hook returns at the
+  first config it finds and defaults a missing key to `block`); systems are
+  keyed by directory rather than name, since a system lives wherever a
+  `LEDGER.md` sits and spec trees nest. Build-code comments joined the
+  existing citation scan at the same time, which also extends the
+  `@agent(label)` rule there. The two cases `sensor-door:F31(e)` left
+  unresolved — guards on partly-built doors citing an answered `Q` and a done
+  phase's out-of-scope part — are settled by a process rule, not a checker
+  rule: `R` is the only letter whose terminal status (`retired`) means the
+  guard is now wrong, so an answered `Q` that leaves a guard produces an `R`
+  for the guard to cite, `provisional` with a `Review` while it may not last,
+  and a `W` beside it only when the work is scheduled. New `R` `Kind: limit`
+  for a rule holding only because something is not built, listed under its
+  own `STANDING.md` heading so the rule list stays decisions meant to last;
+  named `limit` over `constraint` because phase `W` entries already carry a
+  `Constraints` field citing any `R`, and because every `R` is a constraint —
+  what distinguishes these is their expected end, `retired` once someone
+  builds the thing.
+
+- **The checker's own delivery path had the same failure shape**
+  (`scripts/checker-sync.mjs`, `bin/centina-check`,
+  `docs/plugin-checker-install.md`) — found by the first `centina-realize`
+  session to exercise the ownership rules on a live tree. `bin/centina-check`
+  runs the copy at `CLAUDE_PLUGIN_DATA`, the only one with `node_modules`,
+  and `session-start-install.mjs` refreshes that copy's source on
+  `SessionStart` only. The original design called the unconditional copy
+  proof against a stale-copy failure mode; it is unconditional per *session*,
+  and a plugin update lands during one. In Underworld the checker printed
+  `ledger: clean` twice against a tree with seven genuine errors, because the
+  `DATA` copy predated the rule, and it was caught only by a deliberate
+  positive control. A missing `node_modules` is detected and refused; a stale
+  source copy passes — the same unchanged-artifact-whose-meaning-moved shape
+  as `sensor-door:F31`, in the tool built to catch it. The source copy now
+  lives in `scripts/checker-sync.mjs` and both callers use it, so the wrapper
+  re-syncs before every run; `cpSync` adds without deleting, so `DATA`'s
+  `node_modules` survives, and a dev checkout's own is filtered out. The
+  wrapper also refuses when the dependency hash says the synced source is
+  newer than the installed dependencies, and prints which checker version ran
+  from which root. Rejected: comparing `.centina/config.json`'s
+  `pluginVersion`, which is written once at project setup and never
+  maintained, so it would be a third thing that can go stale silently.
+- **A guard's rule citation must be an `R`** (`docs/ledger.md`,
+  `skills/centina-realize/SKILL.md` rule 6) — the same session found that
+  rule 6 said "never a `Q` or a phase" while its own argument (only `R` has a
+  terminal status meaning the guard is now wrong) applies identically to a
+  `done` step, which the rule did not mention and the checker allows. Two
+  guards in Underworld cite a `done` step and read as provenance rather than
+  as the rule. Ruled consistently: the rule a guard enforces is always an
+  `R`; a `Q`, `P` or `W` may sit beside it as the provenance of the ruling,
+  never alone. That leaves `sensor-door:F31(d)`'s sites correct but
+  incomplete — each needs an `R` that its guard can cite. Also stated
+  plainly, after the same session measured 17 citations whose comment
+  coverage was complete by luck rather than by construction: a guard's label
+  belongs in its comment, which is the copy the checker reads, and the thrown
+  message is for whoever meets the error. Widening the checker to read string
+  literals in built members stays declined — the measurement does not yet
+  show the convention failing.
+
+- **Unbuilt members that validate before they throw**
+  (`checker/ledger/parse.ts`, `check.ts`, `ledger.test.ts`;
+  `docs/ledger.md`, `skills/centina-realize/SKILL.md`) — the first live run
+  found the ownership check blind to its own target shape. Requiring the
+  whole body to be one `throw` dropped every member that checks an argument
+  first, e.g. `{ this.getOrThrow(id); throw new Error("not built, owned by
+  W53") }`; a positive control retargeted that throw to a `done` `W` and the
+  run still printed `clean`. The test is now that the member cannot return:
+  the last statement is an unconditional `throw`, and each statement before
+  it is an expression, a declaration, an earlier throw, or an `if` whose
+  branches only throw. A `return`, loop, `switch` or `try` takes it out of
+  the set — a `catch` could swallow the throw, and a member that can return
+  is not unbuilt. Type-level reachability (a `never` return) was rejected:
+  the ledger checker parses with `ts.createSourceFile` alone, and building a
+  Program over a build tree with no tsconfig would cost far more without
+  being more precise here. Reporting the near miss instead was rejected too,
+  since the author's only remedy would be to reshape the member. Widening
+  the body forced a second change the old shape had been hiding: labels now
+  come from the final `throw` only, because a guard throw above it carries a
+  rule citation, which a whole-body read would report as a second owner.
+  Severity split at the same time — a member naming nobody is a warning,
+  since blocking would push an author to cite whichever `W` is handy for a
+  member no phase covers yet, and a citation nobody means is the failure
+  being checked for; a label that is wrong stays an error. Also settled:
+  uncited guards in working code are not reported and cannot be, because no
+  syntactic fact separates a deliberate refusal from ordinary argument
+  validation, so such a rule would report every `throw` in the tree. That
+  shrinks the Underworld repair from 17 sites to the 6 citing closed
+  entries. `centina-realize` gained a positive-controls note: a check whose
+  failure mode is a pass proves nothing when quiet, so break one citation,
+  confirm the error, and revert before leaning on a clean run at a gate —
+  both holes found in these checks so far came from a deliberate
+  falsification, neither from reading output.
+
 ## Open / under discussion
+
+- Whether the ledger hook should fire on writes under `buildRoots`. It finds
+  a system by walking up from the written file for a `LEDGER.md`, which finds
+  nothing from build code, so a newly written owner label waits for the next
+  write inside the system directory. The stale-after-close case that motivated
+  the rule is caught either way, since that one is triggered by a ledger edit.
+  Left alone until it bites.
 
 - **Head-to-head validation** (from `docs/fit-validation.md`): prose vs.
   Centina on the same anchor task, both handed to a fresh agent, comparing the

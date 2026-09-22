@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 // Wrapper invoking the checker copy the SessionStart hook maintains at
 // CLAUDE_PLUGIN_DATA — never the bundle's own ROOT copy, since DATA is the
-// only location with node_modules actually installed. See
+// only location with node_modules actually installed.
+//
+// It re-syncs that copy's source first. A plugin update lands mid-session,
+// the SessionStart hook does not fire again, and the unsynced DATA copy runs
+// the previous rules and prints "clean" — a pass that means nothing, on the
+// run where a new rule most wants an answer. See
 // docs/plugin-checker-install.md.
 
 import { existsSync } from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { depsCurrent, pluginVersion, syncCheckerSource } from "../scripts/checker-sync.mjs"
 
 const pluginData = process.env.CLAUDE_PLUGIN_DATA
+const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT
+
 if (!pluginData) {
   console.error("centina-check: CLAUDE_PLUGIN_DATA is not set.")
   process.exit(1)
@@ -17,12 +25,39 @@ if (!pluginData) {
 const checkerDir = path.join(pluginData, "checker")
 const nodeModulesDir = path.join(checkerDir, "node_modules")
 
+if (pluginRoot) {
+  syncCheckerSource(pluginRoot, pluginData)
+} else {
+  console.error(
+    "centina-check: CLAUDE_PLUGIN_ROOT is not set, so the checker at " +
+      `${checkerDir} could not be brought up to date. It may be running an ` +
+      "older version of the rules."
+  )
+}
+
 if (!existsSync(nodeModulesDir)) {
   console.error(
     "centina-check: checker dependencies aren't installed; this should " +
       "resolve on the next session start, or check network access."
   )
   process.exit(1)
+}
+
+// New source against the dependencies of an older plugin version is the
+// silent-wrong-answer case this wrapper exists to prevent, so refuse.
+if (pluginRoot && !depsCurrent(pluginRoot, pluginData)) {
+  console.error(
+    "centina-check: the checker's dependencies are out of date for this " +
+      "plugin version. They install at the next session start; until then a " +
+      "run here would apply the current rules against older dependencies, so " +
+      "it is refusing rather than reporting a result."
+  )
+  process.exit(1)
+}
+
+if (pluginRoot) {
+  const version = pluginVersion(pluginRoot)
+  console.error(`centina-check: checker${version ? ` ${version}` : ""} from ${pluginRoot}`)
 }
 
 const result = spawnSync(

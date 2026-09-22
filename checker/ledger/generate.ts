@@ -44,21 +44,28 @@ function table(header: string[], rows: string[][]): string[] {
 function standingLines(entries: Entry[]): string[] {
   const goals = entries.filter((e) => e.ref.letter === "G" && status(e) === "active")
   const rules = entries.filter((e) => e.ref.letter === "R" && status(e) !== undefined && !NOT_HOLDING.has(status(e)!))
+  const kindOf = (rule: Entry) => rule.fields.get("Kind")?.value
 
-  const ruleNote = (rule: Entry) => {
-    const notes = [rule.fields.get("Kind")?.value, status(rule) === "provisional" ? "provisional" : undefined]
+  // `limit` rules hold only because something is not built. They are listed
+  // apart so the rule list stays a list of decisions meant to last.
+  const decided = rules.filter((r) => kindOf(r) !== "limit")
+  const limits = rules.filter((r) => kindOf(r) === "limit")
+
+  const line = (rule: Entry, withKind: boolean) => {
+    const notes = [withKind ? kindOf(rule) : undefined, status(rule) === "provisional" ? "provisional" : undefined]
     const present = notes.filter(Boolean)
-    return present.length > 0 ? ` (${present.join(", ")})` : ""
+    const note = present.length > 0 ? ` (${present.join(", ")})` : ""
+    return `- \`${rule.key}\`${note}: ${rule.title}`
   }
 
+  const section = (heading: string, lines: string[]) => [heading, "", ...(lines.length > 0 ? lines : ["_None._"])]
+
   return [
-    "## Goals",
+    ...section("## Goals", goals.map((g) => `- \`${g.key}\`: ${g.title}`)),
     "",
-    ...(goals.length > 0 ? goals.map((g) => `- \`${g.key}\`: ${g.title}`) : ["_None._"]),
+    ...section("## Rules", decided.map((r) => line(r, true))),
     "",
-    "## Rules",
-    "",
-    ...(rules.length > 0 ? rules.map((r) => `- \`${r.key}\`${ruleNote(r)}: ${r.title}`) : ["_None._"]),
+    ...section("## Current limits", limits.map((r) => line(r, false))),
   ]
 }
 
