@@ -136,7 +136,9 @@ Status is `planned` until the human confirms the plan, then the phase becomes
    and the checker holds that name to an open `W` (`ledger.md`, "Citations
    from build code"). One label, written inline in the member: a shared
    message constant puts it out of the checker's reach, and members sharing
-   one owner string usually need different owners anyway. Never return zeros
+   one owner string usually need different owners anyway. Validating or
+   logging ahead of the throw is fine; a path that can return is not, and
+   takes the member out of the checked set. Never return zeros
    or empty values from a stub; downstream code would mistake "not built" for
    "nothing there".
 5. Writing code against the declared types is itself a check on the spec.
@@ -330,6 +332,18 @@ If a step ever closes with a fill whose assertion is missing, say so and
 raise it for Centina itself — that is the event that promotes this from a
 process step to a checker rule, and if it never happens the rule was never
 needed.
+
+### Positive controls
+
+A check whose failure mode is a **pass** tells you nothing when it is quiet.
+A clean run proves the check ran and found nothing only if you have seen it
+fail on purpose. This applies to the citation checks and to the conformance
+assertions alike: both report by staying silent.
+
+So before you lean on one at a gate, falsify it once. Break a single
+citation — retarget an owner to a `done` `W`, or point a guard at a retired
+`R` — confirm the error appears, and revert. It costs a minute and it is the
+only evidence that "clean" means anything.
 
 ## Spikes and claims
 

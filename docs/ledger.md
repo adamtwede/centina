@@ -151,18 +151,26 @@ ARCHITECTURE.md, PLAN.md, a phase close record, a migration or digest):
 in `buildRoots` (below) or nothing in it is checked.
 
 **Ownership citations** name the work item that will fill an unbuilt member.
-They sit in the message thrown by a throw-only member: a member of a class
-implementing a spec contract whose entire body is a `throw` (`centina-realize`,
-"Using spec types" rule 4). Such a member is unbuilt by construction, so a
-label in it names an owner. Two requirements:
+They sit in the message thrown by an unbuilt member: a member of a class
+implementing a spec contract that cannot return (`centina-realize`, "Using
+spec types" rule 4). Its body ends in an unconditional `throw`, and nothing
+before that throw can complete normally — validating an argument or binding a
+local is fine, a `return` anywhere is not. Such a member is unbuilt by
+construction, so a label in its final `throw` names an owner. Two
+requirements:
 
-- Exactly one resolvable label, in the member's own body. A shared constant
+- Exactly one resolvable label, in that final `throw`. A shared constant
   holding the message puts the label out of reach, so write it inline. Four
   members sharing one owner string are usually four members that need four
   different owners.
 - It resolves to a `W` whose status is `planned`, `active`, `blocked` or
   `deferred`. Not a `Q`, not a `P`, not a phase's out-of-scope part, and not
   a `W` that is `done`.
+
+A member that names **nobody** is a warning. Blocking on it would push an
+author to cite whichever `W` is handy for a member no phase covers yet, and a
+citation nobody means is the thing this check exists to catch. A label that
+is **wrong** — unresolvable, not a `W`, or a `W` that closed — is an error.
 
 **Rule citations** name what a guard in working code enforces: a rejected
 input, a clamp, a refusal. **The rule is always an `R`.** A `Q`, a `P` or a
@@ -179,7 +187,7 @@ The checker reports a citation only when its entry stopped holding, which is
 What the checker reads inside a build root:
 
 - every comment, for rule citations;
-- the body of a throw-only member, for its ownership citation;
+- the final `throw` of an unbuilt member, for its ownership citation;
 - no other string literal. **A guard's label belongs in its comment**, which
   is the copy the checker reads. Repeating it in the thrown message is for
   whoever meets the error and is not checked, and nothing reports a label
@@ -189,8 +197,9 @@ Qualify every label. Build code is not a component spec, so a bare `W12` there
 is an error rather than a label in the file's own scope.
 
 Which kind a citation is follows from where it sits, never from how it is
-worded. A `throw` inside a member with a real body is a guard, not an owner,
-however it reads. A guard refusing a capability because nobody built it yet
+worded. A `throw` in a member that can still return is a guard, not an owner,
+however it reads, and so is any throw an unbuilt member reaches before its
+last. A guard refusing a capability because nobody built it yet
 is still a guard: give it an `R` to cite (see "Goals and standing rules").
 
 Ownership citations fail in one direction. The string never changes and the

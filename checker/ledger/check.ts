@@ -86,11 +86,11 @@ const FIELD_LETTERS: Record<string, Letter[]> = {
 export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: BuildFile[] = []): Finding[] {
   const findings: Finding[] = []
   const seen = new Set<string>()
-  const error = (rule: string, file: string, line: number, message: string) => {
+  const error: ErrorFn = (rule, file, line, message, severity = "error") => {
     const id = `${rule}|${file}|${line}|${message}`
     if (seen.has(id)) return
     seen.add(id)
-    findings.push({ rule, severity: "error", file, line, message })
+    findings.push({ rule, severity, file, line, message })
   }
 
   for (const problem of ledger.problems) {
@@ -203,7 +203,8 @@ function checkOwnership(
 ): void {
   for (const buildFile of build) {
     for (const member of buildFile.unbuilt) {
-      const report = (message: string) => error("ledger-unbuilt-owner", buildFile.file, member.line, message)
+      const report = (message: string, severity?: Finding["severity"]) =>
+        error("ledger-unbuilt-owner", buildFile.file, member.line, message, severity)
       const refs: LabelRef[] = []
       let sawBare = false
       for (const sourceLine of member.strings) {
@@ -224,8 +225,15 @@ function checkOwnership(
 
       // A bare label already reported what is wrong; do not also call it missing.
       if (refs.length === 0 && sawBare) continue
+      // A missing owner is a warning, not an error. Blocking here would push
+      // an author to cite whichever W is handy for a member no phase covers
+      // yet, and a citation nobody means is the failure this check exists to
+      // catch. A label that is wrong stays an error.
       if (refs.length === 0) {
-        report(`${member.name} is unbuilt and names no work item; throw a message naming the W that fills it`)
+        report(
+          `${member.name} is unbuilt and names no work item; throw a message naming the W that fills it`,
+          "warning",
+        )
         continue
       }
       if (refs.length > 1) {
@@ -307,7 +315,13 @@ export function checkProposals(ledger: Ledger, contractsFile: string, lines: Sou
   return findings
 }
 
-type ErrorFn = (rule: string, file: string, line: number, message: string) => void
+type ErrorFn = (
+  rule: string,
+  file: string,
+  line: number,
+  message: string,
+  severity?: Finding["severity"],
+) => void
 
 function checkHeader(
   entry: Entry,

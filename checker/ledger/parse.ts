@@ -311,7 +311,7 @@ export interface UnbuiltMember {
   name: string
   /** The member declaration's line; every finding about it reports here. */
   line: number
-  /** Every string in the thrown expression. */
+  /** Every string in the final `throw`. */
   strings: SourceLine[]
 }
 
@@ -340,6 +340,33 @@ function memberBody(node: ts.ClassElement): ts.Block | undefined {
   return undefined
 }
 
+/** An `if` branch that cannot complete normally. */
+function throwsOnly(node: ts.Statement): boolean {
+  if (ts.isThrowStatement(node)) return true
+  if (ts.isBlock(node)) return endsInThrow(node.statements)
+  return false
+}
+
+/**
+ * A statement that cannot let the member return. Validating, logging and
+ * binding a local are all fine before an unbuilt member throws; a `return`, a
+ * loop, a `switch` or a `try` (whose `catch` could swallow the throw) are not.
+ */
+function cannotReturn(node: ts.Statement): boolean {
+  if (ts.isExpressionStatement(node) || ts.isVariableStatement(node) || ts.isThrowStatement(node)) return true
+  if (ts.isIfStatement(node)) {
+    return throwsOnly(node.thenStatement) && (node.elseStatement === undefined || throwsOnly(node.elseStatement))
+  }
+  return false
+}
+
+/** Whether these statements end in an unconditional `throw` and no path returns. */
+function endsInThrow(statements: readonly ts.Statement[]): boolean {
+  const last = statements[statements.length - 1]
+  if (!last || !ts.isThrowStatement(last)) return false
+  return statements.slice(0, -1).every(cannotReturn)
+}
+
 function isStringPart(node: ts.Node): boolean {
   return (
     ts.isStringLiteralLike(node) ||
@@ -350,9 +377,13 @@ function isStringPart(node: ts.Node): boolean {
 }
 
 /**
- * Members of `implements` classes whose whole body is a `throw`. Such a member
- * is unbuilt by construction, so a label in what it throws names an owner —
- * see docs/ledger.md, "Citations from build code".
+ * Members of `implements` classes that cannot return: the body ends in an
+ * unconditional `throw` and nothing before it can complete normally. Such a
+ * member is unbuilt by construction, so a label in what it throws names an
+ * owner — see docs/ledger.md, "Citations from build code".
+ *
+ * Only the final `throw` supplies labels. An earlier guard throw carries a
+ * rule citation, and reading it here would report it as a second owner.
  */
 export function unbuiltMembers(file: string, text: string): UnbuiltMember[] {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
@@ -366,15 +397,13 @@ export function unbuiltMembers(file: string, text: string): UnbuiltMember[] {
         const className = node.name?.text ?? "(anonymous class)"
         for (const member of node.members) {
           const body = memberBody(member)
-          if (!body || body.statements.length !== 1) continue
-          const [only] = body.statements
-          if (!ts.isThrowStatement(only)) continue
+          if (!body || !endsInThrow(body.statements)) continue
           const strings: SourceLine[] = []
           const collect = (child: ts.Node) => {
             if (isStringPart(child)) strings.push({ text: child.getText(source), line: lineOf(child), code: false })
             child.forEachChild(collect)
           }
-          collect(only)
+          collect(body.statements[body.statements.length - 1])
           members.push({ name: `${className}.${memberName(member) ?? "(member)"}`, line: lineOf(member), strings })
         }
       }

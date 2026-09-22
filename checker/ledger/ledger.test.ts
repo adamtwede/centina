@@ -356,6 +356,15 @@ describe("build-code citations", () => {
     assert.match(found[0].message, /matcher:W3, which is done/)
     assert.match(found[1].message, /matcher:Q1, which is not a work item/)
     assert.match(found[2].message, /names no work item/)
+    // A missing owner is a warning; a label that resolves wrongly is an error.
+    assert.deepEqual(found.map((f) => f.severity), [
+      "error",
+      "error",
+      "warning",
+      "error",
+      "error",
+      "error",
+    ])
     assert.match(found[3].message, /an unbuilt member has one owner/)
     assert.match(found[4].message, /not a part of one/)
   })
@@ -419,6 +428,49 @@ describe("build-code citations", () => {
         ].join("\n"),
       },
     )
+    assert.deepEqual(found, [])
+  })
+
+  it("covers an unbuilt member that validates before it throws", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "panel.ts": [
+        "export class PanelImpl implements Panel {",
+        "  scrollback(id: string): unknown {",
+        "    this.getOrThrow(id)",
+        "    throw new Error('not built; owned by matcher:W3')",
+        "  }",
+        "  history(id: string): unknown {",
+        "    const known = this.getOrThrow(id)",
+        "    if (known === undefined) throw new Error('rejected per matcher:P2')",
+        "    throw new Error('not built; owned by matcher:W2')",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
+    // `history` is well-formed: its owner is open, and the label in the guard
+    // above it is not a second owner.
+    assert.deepEqual(found.map((f) => [f.rule, f.line]), [["ledger-unbuilt-owner", 2]])
+    assert.match(found[0].message, /matcher:W3, which is done/)
+  })
+
+  it("leaves a member that can still return out of the unbuilt set", () => {
+    const found = checkBuild(BUILD_LEDGER, {
+      "partial.ts": [
+        "export class PartialImpl implements Panel {",
+        "  cached(id: string): number {",
+        "    if (id === '') return 0",
+        "    throw new Error('owned by matcher:W3')",
+        "  }",
+        "  swallowed(id: string): number {",
+        "    try {",
+        "      return this.lookup(id)",
+        "    } catch {",
+        "      throw new Error('owned by matcher:W3')",
+        "    }",
+        "  }",
+        "}",
+      ].join("\n"),
+    })
     assert.deepEqual(found, [])
   })
 })

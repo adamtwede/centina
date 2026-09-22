@@ -327,6 +327,40 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   literals in built members stays declined — the measurement does not yet
   show the convention failing.
 
+- **Unbuilt members that validate before they throw**
+  (`checker/ledger/parse.ts`, `check.ts`, `ledger.test.ts`;
+  `docs/ledger.md`, `skills/centina-realize/SKILL.md`) — the first live run
+  found the ownership check blind to its own target shape. Requiring the
+  whole body to be one `throw` dropped every member that checks an argument
+  first, e.g. `{ this.getOrThrow(id); throw new Error("not built, owned by
+  W53") }`; a positive control retargeted that throw to a `done` `W` and the
+  run still printed `clean`. The test is now that the member cannot return:
+  the last statement is an unconditional `throw`, and each statement before
+  it is an expression, a declaration, an earlier throw, or an `if` whose
+  branches only throw. A `return`, loop, `switch` or `try` takes it out of
+  the set — a `catch` could swallow the throw, and a member that can return
+  is not unbuilt. Type-level reachability (a `never` return) was rejected:
+  the ledger checker parses with `ts.createSourceFile` alone, and building a
+  Program over a build tree with no tsconfig would cost far more without
+  being more precise here. Reporting the near miss instead was rejected too,
+  since the author's only remedy would be to reshape the member. Widening
+  the body forced a second change the old shape had been hiding: labels now
+  come from the final `throw` only, because a guard throw above it carries a
+  rule citation, which a whole-body read would report as a second owner.
+  Severity split at the same time — a member naming nobody is a warning,
+  since blocking would push an author to cite whichever `W` is handy for a
+  member no phase covers yet, and a citation nobody means is the failure
+  being checked for; a label that is wrong stays an error. Also settled:
+  uncited guards in working code are not reported and cannot be, because no
+  syntactic fact separates a deliberate refusal from ordinary argument
+  validation, so such a rule would report every `throw` in the tree. That
+  shrinks the Underworld repair from 17 sites to the 6 citing closed
+  entries. `centina-realize` gained a positive-controls note: a check whose
+  failure mode is a pass proves nothing when quiet, so break one citation,
+  confirm the error, and revert before leaning on a clean run at a gate —
+  both holes found in these checks so far came from a deliberate
+  falsification, neither from reading output.
+
 ## Open / under discussion
 
 - Whether the ledger hook should fire on writes under `buildRoots`. It finds
