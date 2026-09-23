@@ -3,8 +3,8 @@
 **Status:** agreed and built in the 2026-09-15 improvement session
 (`skills/centina-realize/`, `docs/measurement-methodology.md`,
 `centina-check ledger --contracts`). Not yet used on a project. Depends on
-`docs/ledger-provenance-design.md` (labels, entry headers, generated views,
-lint), which should be built first.
+the ledger machinery in `docs/ledger.md` (labels, entry headers, generated
+views, lint), built the same session.
 
 ## Purpose
 
@@ -290,8 +290,7 @@ one-contracts-module rule, since it exports no spec types.
 
 ## Exchange with centina-iterate
 
-Uses the ledger machinery from `docs/ledger-provenance-design.md`; no separate
-channel.
+Uses the ledger machinery from `docs/ledger.md`; no separate channel.
 
 1. **Question** (`Q`, iterate → realize): the spec cannot settle something
    without code. Realize answers with a finding (`F`) or a spike (`W`,

@@ -374,7 +374,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   Centina on the same anchor task, both handed to a fresh agent, comparing the
   implementation plans (goal-3 evidence). The planned third arm (from-scratch
   AISL) was mooted by the pivot.
-- **Ledger provenance** (`docs/ledger-provenance-design.md`): supersession
+- **Ledger provenance** (`docs/ledger.md`): supersession
   tracking, scoped labels with structured entry headers, a lint mode for
   `bin/centina-check`, and session-transcript capture. Agreed and built
   2026-09-15: `centina-check ledger`, the ledger and transcript hooks,

@@ -3,20 +3,35 @@
 // LEDGER.md, runs `centina-check ledger` on that directory. Errors block by
 // default (exit 2, reason shown to Claude). The human can set
 // "ledgerHook": "warn" or "off" in the project's .centina/config.json.
-// Design: docs/ledger-provenance-design.md.
+// Design: docs/ledger.md.
 
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
 const MODES = new Set(["block", "warn", "off"])
 
+/**
+ * True if `dir` contains a file whose name is exactly "LEDGER.md" — checked
+ * against the directory listing, not `existsSync`, because `existsSync` matches
+ * case-insensitively on case-insensitive filesystems (default macOS/Windows) and
+ * would wrongly treat a same-named-but-different-case file (e.g. a reference doc
+ * called `ledger.md`) as a system marker.
+ */
+function hasLedgerFile(dir) {
+  try {
+    return readdirSync(dir).includes("LEDGER.md")
+  } catch {
+    return false
+  }
+}
+
 /** Nearest ancestor directory of `filePath` containing LEDGER.md. */
 export function findSystemDir(filePath) {
   let dir = path.dirname(path.resolve(filePath))
   for (;;) {
-    if (existsSync(path.join(dir, "LEDGER.md"))) return dir
+    if (hasLedgerFile(dir)) return dir
     const parent = path.dirname(dir)
     if (parent === dir) return undefined
     dir = parent

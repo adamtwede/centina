@@ -392,7 +392,7 @@ territory for fill/iterate, not session zero — declare the door and move on.
   give a one-clause summary ("sz:P4, cap escalation depth at 3 attempts," not
   "sz:P4"). When re-citing one, restate a brief reminder if more than 10 labels
   of the same letter have come up since. Err toward restating when unsure. The
-  label index is `LEDGER-INDEX.md`; don't keep a separate one.
+  label index is `LEDGER-LABELS.md`; don't keep a separate one.
 - **Explain formula terms on introduction.** When a mathematical or scientific
   formula appears for the first time in a session, or reappears in a long
   session where you can't be confident the human still has each term in mind,

@@ -4,8 +4,17 @@ import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
 import { buildRootsFor, findConfig, systemKey } from "./config"
-import { renderIndex, renderStanding } from "./generate"
-import { BuildFile, LEDGER_INDEX, STANDING, commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
+import { renderIndex, renderLabels, renderStanding } from "./generate"
+import {
+  BuildFile,
+  LEDGER_INDEX,
+  LEDGER_LABELS,
+  STANDING,
+  commentLines,
+  readLedger,
+  scanBuildRoot,
+  scanSystemFiles,
+} from "./parse"
 
 const USAGE = "usage: centina-check ledger [--check] [--contracts <file>]... <system-dir>..."
 
@@ -47,11 +56,11 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
 
 /**
  * `centina-check ledger <system-dir>...`: validates each system's ledger and
- * the label citations in its files, then writes LEDGER-INDEX.md and
- * STANDING.md. With `--check`, reports out-of-date generated files instead of
- * writing them. `--contracts <file>` (one system only) also enumerates the
- * `@proposal` overrides in a centina-realize contracts module. Returns the
- * exit code.
+ * the label citations in its files, then writes LEDGER-INDEX.md,
+ * LEDGER-LABELS.md and STANDING.md. With `--check`, reports out-of-date
+ * generated files instead of writing them. `--contracts <file>` (one system
+ * only) also enumerates the `@proposal` overrides in a centina-realize
+ * contracts module. Returns the exit code.
  */
 export function runLedgerCommand(argv: string[]): number {
   let checkOnly = false
@@ -112,6 +121,7 @@ export function runLedgerCommand(argv: string[]): number {
 
     const generated: [string, string][] = [
       [LEDGER_INDEX, renderIndex(ledger)],
+      [LEDGER_LABELS, renderLabels(ledger)],
       [STANDING, renderStanding(ledger)],
     ]
     for (const [name, content] of generated) {

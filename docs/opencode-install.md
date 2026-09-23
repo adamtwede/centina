@@ -69,11 +69,11 @@ only used to produce the install and to source updates from later.
    ./install.sh ~/.config/opencode/centina
    ```
 
-   This copies `centina.ts`, `tsconfig.template.json`, `checker/` (source
-   only — see next step), and the `docs/` subset the skills reference
-   (`boundaries.md`, `fit-validation.md`, `plan-organization.md`,
-   `output-management.md`, `plugin-setup-procedure.md`) into the install
-   root, and deliberately strips `checker/node_modules` and
+   This copies `centina.ts`, `conformance.ts`, `tsconfig.template.json`,
+   `checker/` (source only — see next step), and the `docs/` subset the
+   skills reference (`plugin-setup-procedure.md`, `output-management.md`,
+   `ledger.md`, `measurement-methodology.md`) into the install root, and
+   deliberately strips `checker/node_modules` and
    `package-lock.json` — those are install-time artifacts, not something to
    ship stale.
 
@@ -317,8 +317,9 @@ Write `<artifactsRoot>/.centina/config.json` with `hostRoot`,
 ## Step 3 — create the directory shape
 
 At `artifactsRoot`, create `specs/`, a copy of `<INSTALL_ROOT>/centina.ts`,
-and `docs/` containing copies of `<INSTALL_ROOT>/docs/boundaries.md`,
-`fit-validation.md`, and `plan-organization.md`.
+and a copy of `<INSTALL_ROOT>/conformance.ts`. No docs are copied — Centina's
+design reference isn't bundled at all; a human who wants it reads it in the
+Centina repository.
 
 ## Step 4 — write the stub tsconfig
 

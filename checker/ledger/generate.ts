@@ -73,6 +73,23 @@ export function renderStanding(ledger: Ledger): string {
   return [GENERATED_NOTE, "", `# Standing goals and rules: ${ledger.system}`, "", ...standingLines(uniqueEntries(ledger)), ""].join("\n")
 }
 
+/** Every label, for taking the next number in a scope and for looking up a label's file. */
+export function renderLabels(ledger: Ledger): string {
+  const entries = uniqueEntries(ledger)
+  const relative = (file: string) => path.relative(ledger.dir, file)
+  return [
+    GENERATED_NOTE,
+    "",
+    `# All labels: ${ledger.system}`,
+    "",
+    ...table(
+      ["Label", "Status", "Title", "File"],
+      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
+    ),
+    "",
+  ].join("\n")
+}
+
 export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: string[] }[] {
   const entries = uniqueEntries(ledger)
   const byKey = new Map(entries.map((e) => [e.key, e]))
@@ -121,7 +138,6 @@ export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: stri
 
 export function renderIndex(ledger: Ledger): string {
   const entries = uniqueEntries(ledger)
-  const relative = (file: string) => path.relative(ledger.dir, file)
 
   const open = entries.filter((e) => OPEN_STATUSES.has(status(e) ?? ""))
   const phaseGroups = new Map<string, Entry[]>()
@@ -190,10 +206,7 @@ export function renderIndex(ledger: Ledger): string {
     "",
     "# All labels",
     "",
-    ...table(
-      ["Label", "Status", "Title", "File"],
-      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
-    ),
+    "See `LEDGER-LABELS.md`.",
     "",
   )
 

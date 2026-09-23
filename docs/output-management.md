@@ -18,7 +18,8 @@ All in `<artifactsRoot>/specs/<system>/`:
    - pointers: DAG files, and open threads by label.
 
    Keep it under ~100 lines. Never copy entry content or status into it.
-3. **Generated views:** `LEDGER-INDEX.md` and `STANDING.md`.
+3. **Generated views:** `LEDGER-INDEX.md`, `LEDGER-LABELS.md` and
+   `STANDING.md`.
 
 Ask the human for the system name before the first write to disk, if they
 have not given one.

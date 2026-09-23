@@ -10,7 +10,8 @@ One ledger per system, in `<artifactsRoot>/specs/<system>/`:
 
 - `LEDGER.md`, plus `LEDGER-<part>.md` partitions once it grows (see
   `output-management.md`).
-- `LEDGER-INDEX.md` and `STANDING.md`: generated. Never edit them.
+- `LEDGER-INDEX.md`, `LEDGER-LABELS.md` and `STANDING.md`: generated. Never
+  edit them.
 - `transcripts/`: session transcript copies. See "Transcripts".
 
 The ledger records decisions, questions, findings, options, work items, goals
@@ -140,8 +141,8 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 1. **Label anything something else could depend on, when you record it:**
    proposals, questions, findings, options, work items, goals, rules, and
    decided values (as parts of the entry that decided them).
-2. **Take the next number** in the scope from `LEDGER-INDEX.md`'s "All labels"
-   table. Never reuse or renumber a label. If two sessions created the same
+2. **Take the next number** in the scope from `LEDGER-LABELS.md`. Never reuse
+   or renumber a label. If two sessions created the same
    label, renumber the one not yet merged and add `Renumbered-from`.
 3. **Record predictions before measuring,** as `F` with `Status: predicted`,
    including the reasoning and numbers. A claim not backed by evidence is
@@ -298,9 +299,11 @@ every status change, at every gate, and before every derived-doc write.
 
 ## Reading
 
-1. At setup, if `LEDGER-INDEX.md` exists, read it: the standing section, the
-   affected work items, and the open items for your scope.
-2. Look up individual entries by label: search for `### <label>:`.
+1. At setup, if `LEDGER-INDEX.md` exists, read it whole: the standing
+   section, the affected work items, and the open items for your scope.
+2. Consult `LEDGER-LABELS.md` only to look up a label's file and status, or
+   to take the next number in a scope. Look up an entry's full text by
+   searching the ledger for `### <label>:`.
 3. Do not read the whole ledger into context.
 4. The first time you mention a label to the human in a session, say what it
    is ("sz:P4, the escalation-depth cap"). Restate that reminder whenever
