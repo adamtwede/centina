@@ -1,7 +1,7 @@
 # ARCHITECTURE — grid-inventory
 
 **Produced by:** `centina-session-zero`, live interactive run, 2026-07-21.
-**Skeleton:** `shared.ts` (vocabulary), `grid-inventory.centina.ts` (the core
+**Skeleton:** `shared.centina.ts` (vocabulary), `grid-inventory.centina.ts` (the core
 node). Each component below is ready for `centina-iterate`.
 
 Grid-based inventory for a modular, swappable game-systems ecosystem. Configurable
@@ -52,7 +52,7 @@ reads resolve to the placement *covering* a coord, writes place rooted at it.
 | restore | `restore(snapshot: Snapshot): void` | write | decided |
 | policy seam | `Policy.evaluate(operation, affected, context?): PolicyDecision` | read (internal) | decided |
 
-Vocabulary decided (in `shared.ts`): `ItemType` (definitional: id, maxStackSize,
+Vocabulary decided (in `shared.centina.ts`): `ItemType` (definitional: id, maxStackSize,
 footprint, weight, tags, stackingPolicy) vs `ItemInstance` (per-copy: optional
 client-minted `id`, its type, held stack-busting properties); `Stack` (homogeneous
 by type, bounded by maxStackSize); `CellView` (`{ rootCoord, footprint,
@@ -72,7 +72,7 @@ not by a prose note — a checked guarantee in both directions.
 
 | Hole | Where | Routing |
 | --- | --- | --- |
-| Stacking-policy shape | `StackingPolicy` (shared.ts) | held; opaque brand, per-ItemType |
+| Stacking-policy shape | `StackingPolicy` (shared.centina.ts) | held; opaque brand, per-ItemType |
 | Instance stack-busting property set | `InstanceProperties` | held; filled at iterate |
 | Policy op / role / id / error-code vocabularies | `PolicyOperation` etc. | held; opaque brands |
 | Policy `context` bag | `PolicyContext` | PARKED |
@@ -80,11 +80,11 @@ not by a prose note — a checked guarantee in both directions.
 | Empty-input (`[]`) store convention | store doors | open, minor |
 | store-in-any multi-cell receipt grouping | `StoreResult` | open convention |
 | retrieve out-of-bounds behavior | `retrieveByCell` | open convention |
-| Built-in `SortOrder` set | `SortOrder` (shared.ts) | held; enum starter, non-exhaustive |
+| Built-in `SortOrder` set | `SortOrder` (shared.centina.ts) | held; enum starter, non-exhaustive |
 | Snapshot schema | `Snapshot` | held; opaque, round-trippable, owned by Inventory |
 | **Fit / packing algorithm** | `fitPlacement` (`deferred<"unimplemented">`) | held realization — the dominant hole; shared by store-in-any & sort's repack; multi-cell footprints + parked orientation live here |
 | Placement-regime implementation count | `fitPlacement` interior | deferred to fill (one branching impl vs. two) |
-| Query homogeneity (`Stack` type) | shared.ts | untypeable — `@agent:` note, not a type |
+| Query homogeneity (`Stack` type) | shared.centina.ts | untypeable — `@agent:` note, not a type |
 
 ## 4. Terminal nodes
 

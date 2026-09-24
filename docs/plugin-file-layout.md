@@ -102,7 +102,7 @@ Registers four hooks. The file itself is the reference; in summary:
 | `SessionEnd` | none | `transcript-hook.mjs` | Same copy at session end; `timeout: 30` raises the 1.5 s `SessionEnd` budget |
 
 The ledger and transcript hooks are specified in
-`docs/ledger-provenance-design.md`. `scripts/session-start-install.mjs`
+`docs/ledger.md`. `scripts/session-start-install.mjs`
 implements the copy-source / hash-and-conditionally-`npm install` logic
 specced in `plugin-checker-install.md`.
 

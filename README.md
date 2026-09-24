@@ -602,7 +602,7 @@ flowchart LR
 ```
 
 **Session-zero emits the skeleton** — typed seam, routed holes, no bodies.
-`shared.ts` carries the ratified vocabulary:
+`shared.centina.ts` carries the ratified vocabulary:
 
 ```ts
 export enum OrderStatus { PLACED, SHIPPED, DELIVERED, CANCELLED }

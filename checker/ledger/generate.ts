@@ -73,6 +73,23 @@ export function renderStanding(ledger: Ledger): string {
   return [GENERATED_NOTE, "", `# Standing goals and rules: ${ledger.system}`, "", ...standingLines(uniqueEntries(ledger)), ""].join("\n")
 }
 
+/** Every label, for taking the next number in a scope and for looking up a label's file. */
+export function renderLabels(ledger: Ledger): string {
+  const entries = uniqueEntries(ledger)
+  const relative = (file: string) => path.relative(ledger.dir, file)
+  return [
+    GENERATED_NOTE,
+    "",
+    `# All labels: ${ledger.system}`,
+    "",
+    ...table(
+      ["Label", "Status", "Title", "File"],
+      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
+    ),
+    "",
+  ].join("\n")
+}
+
 export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: string[] }[] {
   const entries = uniqueEntries(ledger)
   const byKey = new Map(entries.map((e) => [e.key, e]))
@@ -87,21 +104,137 @@ export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: stri
         const target = byKey.get(labelKey(ref))
         const targetStatus = target && status(target)
         if (!targetStatus) continue
-        if (NOT_HOLDING.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
-        } else if (field === "Depends-on" && workStatus === "blocked" && RESOLVED.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}; may unblock`)
-        }
+        if (NOT_HOLDING.has(targetStatus)) reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
       }
     }
+
+    // "May unblock" only holds when every Depends-on is resolved — one still
+    // open means the item stays blocked regardless of the others, and saying
+    // "may unblock" anyway sends the reader looking for an unblock that
+    // cannot happen.
+    if (workStatus === "blocked") {
+      const resolved: string[] = []
+      const open: string[] = []
+      for (const ref of fieldRefs(work, "Depends-on").refs) {
+        const target = byKey.get(labelKey(ref))
+        const targetStatus = target && status(target)
+        if (!targetStatus) continue
+        if (RESOLVED.has(targetStatus)) resolved.push(`${formatRef(ref)} is ${targetStatus}`)
+        else if (!NOT_HOLDING.has(targetStatus)) open.push(formatRef(ref))
+      }
+      if (resolved.length > 0) {
+        reasons.push(
+          open.length === 0
+            ? `Depends-on ${resolved.join(", ")}; may unblock`
+            : `Depends-on ${resolved.join(", ")}; still blocked on ${open.join(", ")}`,
+        )
+      }
+    }
+
     if (reasons.length > 0) affected.push({ entry: work, reasons })
   }
   return affected
 }
 
+const CLOSURE_FIELDS = ["Depends-on", "Premises", "Constraints"]
+
+/**
+ * A phase-scoped view: the phase itself, everything whose `Phase` field
+ * points at it, and the transitive closure of `Depends-on`/`Premises`/
+ * `Constraints` out from that set. Settled and Deferred entries appear only
+ * when something in that closure actually cites them — not by default, the
+ * way the full index's "Settled" table lists every invalidated entry ever
+ * recorded. Computed on demand, never written to disk: a project with many
+ * phases would otherwise accumulate one stale file per closed phase, the
+ * same unbounded-growth problem this view exists to avoid on the index.
+ *
+ * The one thing this cannot catch: an entry that's genuinely relevant to the
+ * phase but was never cited by anything in it. Closure only follows pointers
+ * that were actually written down. `ledger.md`'s phase-gate sweep (reading
+ * the full index) remains the periodic backstop for that gap.
+ */
+export function renderPhaseView(ledger: Ledger, phaseKey: string): { ok: true; text: string } | { ok: false; error: string } {
+  const entries = uniqueEntries(ledger)
+  const byKey = new Map(entries.map((e) => [e.key, e]))
+  const phase = byKey.get(phaseKey)
+  if (!phase) return { ok: false, error: `no entry ${phaseKey} in this ledger` }
+  if (phase.ref.letter !== "W" || phase.fields.get("Kind")?.value !== "phase") {
+    return { ok: false, error: `${phaseKey} is not a phase (a W entry with Kind: phase)` }
+  }
+
+  const isPhaseItem = (e: Entry) =>
+    e.key === phase.key || fieldRefs(e, "Phase").refs.some((ref) => labelKey(ref) === phaseKey)
+
+  const included = new Map<string, Entry>([[phase.key, phase]])
+  const queue: Entry[] = [phase]
+  for (const entry of entries) {
+    if (!included.has(entry.key) && isPhaseItem(entry)) {
+      included.set(entry.key, entry)
+      queue.push(entry)
+    }
+  }
+  while (queue.length > 0) {
+    const current = queue.pop()!
+    for (const field of CLOSURE_FIELDS) {
+      for (const ref of fieldRefs(current, field).refs) {
+        const target = byKey.get(labelKey(ref))
+        if (target && !included.has(target.key)) {
+          included.set(target.key, target)
+          queue.push(target)
+        }
+      }
+    }
+  }
+
+  const phaseItems = sorted([...included.values()].filter(isPhaseItem))
+  const pulledIn = sorted([...included.values()].filter((e) => !isPhaseItem(e)))
+  const rules = pulledIn.filter((e) => e.ref.letter === "R")
+  const otherPulledIn = pulledIn.filter((e) => e.ref.letter !== "R")
+  const goals = entries.filter((e) => e.ref.letter === "G" && status(e) === "active")
+
+  const ruleLine = (rule: Entry) => {
+    const notes = [rule.fields.get("Kind")?.value, status(rule) === "provisional" ? "provisional" : undefined]
+    const present = notes.filter(Boolean)
+    const note = present.length > 0 ? ` (${present.join(", ")})` : ""
+    return `- \`${rule.key}\`${note}: ${rule.title}`
+  }
+
+  const lines = [
+    "<!-- Computed on demand by `centina-check ledger --phase`; not written to disk. -->",
+    "",
+    `# Phase view: ${phase.key} — ${phase.title}`,
+    "",
+    "## Goals",
+    "",
+    ...(goals.length > 0 ? goals.map((g) => `- \`${g.key}\`: ${g.title}`) : ["_None._"]),
+    "",
+    "## Rules bearing on this phase",
+    "",
+    ...(rules.length > 0
+      ? rules.map(ruleLine)
+      : ["_None cited via `Constraints`, or reached from a phase item's `Depends-on`/`Premises`._"]),
+    "",
+    "## This phase's items",
+    "",
+    ...table(
+      ["Label", "Kind", "Status", "Title"],
+      phaseItems.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", e.title]),
+    ),
+    "",
+    "## Pulled in via Depends-on / Premises / Constraints",
+    "",
+    ...table(
+      ["Label", "Status", "Title"],
+      otherPulledIn.map((e) => [e.key, status(e) ?? "", e.title]),
+    ),
+    "",
+  ]
+
+  return { ok: true, text: lines.join("\n") }
+}
+
 export function renderIndex(ledger: Ledger): string {
   const entries = uniqueEntries(ledger)
-  const relative = (file: string) => path.relative(ledger.dir, file)
 
   const open = entries.filter((e) => OPEN_STATUSES.has(status(e) ?? ""))
   const phaseGroups = new Map<string, Entry[]>()
@@ -170,10 +303,7 @@ export function renderIndex(ledger: Ledger): string {
     "",
     "# All labels",
     "",
-    ...table(
-      ["Label", "Status", "Title", "File"],
-      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
-    ),
+    "See `LEDGER-LABELS.md`.",
     "",
   )
 

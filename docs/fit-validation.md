@@ -1,10 +1,13 @@
-# Fit validation — testing AISL's premise and its fit classifier
+# Fit validation — the AISL→Centina pivot record
 
-**Status:** Active design session (opened 2026-06-30). Internal language-design
-exercise, not a feature. **Rule 0 is lifted for this work by the author** — the
-judgment under test is AISL's *suitability for a task*, which is a subjective
-authorial call, not task meaning; so the agent may draft specs and thin slices
-here as instruments, while the author keeps the suitability verdict.
+**Status:** closed, historical. This is the session log that produced the
+AISL→Centina pivot (see `CLAUDE.md`'s "History: the AISL pivot") and the
+retirement of `Unprivileged` and the `aisl-fit` classifier. Kept as the
+record of *why*, not as a live design session — `CLAUDE.md` says to read it
+before proposing checker or vocabulary changes that touch provenance or fit.
+Rule 0 was lifted for this session by the author, since the judgment under
+test was AISL's *suitability for a task* (a subjective authorial call, not
+task meaning); that lift does not extend to ordinary spec-writing sessions.
 
 ## Why this exists
 
@@ -23,28 +26,21 @@ exercise has to test both, and keep them separate.
 *precipitating* concern, but it is downstream of this: see "Provenance is a
 hypothesis" below.
 
-## The invariant: AISL's goals
+## The invariant: the goals (G1–G4)
 
-These are the **only** invariant. Everything else — including "AISL never
-manufactures data" — is a *means* under test, kept only insofar as it serves
-these. AISL produces structured, rule-checked pseudocode that:
+These were the **only** invariant this session tested against — everything
+else, including "AISL never manufactures data," was a *means* under test,
+kept only insofar as it served these. Canonical current wording is README's
+"The goals"; restated here at label length, since G1–G4 are cited by label
+throughout the rest of this log:
 
-1. makes it easier for a human to describe and understand a complex coding task
-   (a relative measure), at a given level of detail, **to himself and other
-   humans, than conversational prose**.
-2. makes it **more likely** that during spec-writing and spec-review sessions,
-   unknowns / ambiguities / oversights that would have been missed in
-   conversational planning are identified, discussed, and remediated.
-3. makes it **more likely** a coding agent reviewing the spec produces an
-   implementation plan (or other artifact) that accurately reflects the human
-   spec-writer's intention, than it would from conversational prose.
-4. provides a foundation to iterate on, both before and after the planning and
-   implementation phases.
+- **G1** — easier for a human to describe/understand a task than prose.
+- **G2** — more likely spec-writing/review catches what prose would miss.
+- **G3** — more likely a coding agent's plan matches the spec-writer's intent.
+- **G4** — a foundation to iterate on, before and after planning/implementation.
 
-Bonus: the spec file is a self-documenting record for later reference.
-
-Note every one of 1–3 is **comparative** ("...than conversational prose"). A spec
-we like in isolation tests nothing — an honest test needs a **prose baseline**.
+Every one of G1–G3 is **comparative** against conversational prose — a spec
+liked in isolation tests nothing; the session needed a prose baseline.
 
 ## Provenance is a hypothesis, not an axiom
 

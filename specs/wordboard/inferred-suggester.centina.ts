@@ -11,7 +11,7 @@
 // produced that aren't dictionary words (a future Suggestion flag plus an
 // InferredSuggester -> dictionary seam). See hole ledger.
 
-import { Suggestion } from "./shared"
+import { Suggestion } from "./shared.centina"
 
 /**
  * @datasource

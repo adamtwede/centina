@@ -2,12 +2,13 @@ import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { ts } from "ts-morph"
 
-// Ledger format: docs/ledger-provenance-design.md.
+// Ledger format: docs/ledger.md.
 
 export const LETTERS = ["P", "Q", "F", "O", "W", "G", "R"] as const
 export type Letter = (typeof LETTERS)[number]
 
 export const LEDGER_INDEX = "LEDGER-INDEX.md"
+export const LEDGER_LABELS = "LEDGER-LABELS.md"
 export const STANDING = "STANDING.md"
 
 export interface LabelRef {
@@ -217,7 +218,10 @@ export function parseLedgerFile(
 }
 
 export function isLedgerFileName(name: string): boolean {
-  return name === "LEDGER.md" || (name.startsWith("LEDGER-") && name.endsWith(".md") && name !== LEDGER_INDEX)
+  return (
+    name === "LEDGER.md" ||
+    (name.startsWith("LEDGER-") && name.endsWith(".md") && name !== LEDGER_INDEX && name !== LEDGER_LABELS)
+  )
 }
 
 export function readLedger(dir: string): Ledger {
@@ -288,7 +292,13 @@ export function scanSystemFiles(dir: string): ScannedFile[] {
         continue
       }
       const topLevel = current === dir
-      if (topLevel && (isLedgerFileName(dirent.name) || dirent.name === LEDGER_INDEX || dirent.name === STANDING)) {
+      if (
+        topLevel &&
+        (isLedgerFileName(dirent.name) ||
+          dirent.name === LEDGER_INDEX ||
+          dirent.name === LEDGER_LABELS ||
+          dirent.name === STANDING)
+      ) {
         continue
       }
       if (dirent.name.endsWith(".md")) {

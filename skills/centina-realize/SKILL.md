@@ -16,14 +16,17 @@ description: Works behind a Centina spec's boundaries while the spec is still be
 4. Identify the system (`specs/<system>/`). It must have a `LEDGER.md`. If it
    does not, stop: suggest `centina-session-zero` for a new system, or ask
    the human whether to start a ledger for an existing one.
-5. Read the system's `LEDGER-INDEX.md`: the standing goals and rules, the
-   affected work items, and the open items.
-6. Read or create the run frame, `specs/<system>/REALIZE-STATE.md`
+5. Read or create the run frame, `specs/<system>/REALIZE-STATE.md`
    (`output-management.md`). It records the implementation root (where code
    lives), the contracts module path, the path build code uses to import
    `<artifactsRoot>/conformance.ts`, the spike source tree, the current phase
    and step, and session IDs. Ask the human for anything not yet recorded.
-7. Record the build tree in `<artifactsRoot>/.centina/config.json`, under
+   If it already names a current phase, read that phase's view
+   (`centina-check ledger --phase <label> <dir>`); otherwise (no phase yet,
+   or between one closing and the next starting) read the system's
+   `LEDGER-INDEX.md`: the standing goals and rules, the affected work items,
+   and the open items.
+6. Record the build tree in `<artifactsRoot>/.centina/config.json`, under
    `systems["<system directory, relative to artifactsRoot>"].buildRoots` and
    relative to `hostRoot` (`ledger.md`, "Settings"). The checker reads build
    code from there, and reports any system that has a `REALIZE-STATE.md` and

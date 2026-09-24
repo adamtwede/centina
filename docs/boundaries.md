@@ -1,19 +1,20 @@
-# Boundaries (design proposal)
+# Boundaries
 
-> **Post-pivot status (2026-07-04):** this document survives the AISL→Centina
-> pivot. Its design content — affordances-not-transports, the three roles,
-> direction-from-returns, the boundary-drawing guidelines, and "when not to
-> reach for a boundary" — carries into Centina unchanged. Only the concrete
-> syntax below is AISL v0 (preserved at tag `aisl-v0-standalone-language`).
-> The Centina spelling is a JSDoc-tagged `declare class`
-> (`/** @datasource | @datasink | @boundary */`) — see `centina.ts` and the
-> worked use in `specs/hill-climbing-loop/hill-climbing-loop.centina.ts`.
-> Checker enforcement is roadmapped.
+**Status:** implemented. `checker/rules/boundaryDirection.ts` enforces the
+direction rules below; `checker/rules/boundaryDependency.ts` enforces the
+dependency-direction check in "Provisional boundaries." Current syntax is
+JSDoc tags (`@datasource`/`@datasink`/`@boundary`) on a `declare class` — see
+`centina.ts` and "Syntax" below. Worked examples:
+`specs/wordboard/algorithmic-suggester.centina.ts` (`@datasource`),
+`specs/wordboard/user.centina.ts` (`@boundary`).
 
-**Status:** Designed, not yet implemented. This is a language-design document — the
-first concrete fragment of the eventual `SPEC.md` referenced in `ROADMAP.md`. It
-captures the decisions and reasoning from the boundaries design discussion so they
-stop living only in a chat thread. No checker/parser support exists yet.
+This document predates Centina's TypeScript pivot — it was drafted for AISL,
+the from-scratch language Centina replaced (see `CLAUDE.md`'s "History: the
+AISL pivot"). Its modeling content — affordances vs. transports, the three
+roles, the drawing guidelines, dependency direction — carried over unchanged;
+the syntax and type-rules sections below have been updated for Centina's
+actual type system, which has no `Unspecified`/`Unknown`/`Unprivileged`
+lattice (see "Type rules").
 
 ## Why boundaries exist
 
@@ -92,70 +93,80 @@ A "door" is a declared method on the boundary — the privileged entry/exit poin
 
 ## Syntax
 
-A boundary is a **kind** (declared once: constructor signature + interface of doors)
-that is **constructed** into instances (which supply config and inherit the kind's
-role). Everything is indentation-based, consistent with the rest of AISL — the
-interface block uses `:` + indentation, not braces, and each door reads like a
-function header without a body.
+A boundary is a `declare class`, tagged with its role as a JSDoc tag on the
+class. Each method is a **door** — a declared entry/exit point, no body.
 
-```
-datasource GoogleSearch(url: String):
-    search(term: String) -> SearchResult[]
+```typescript
+/**
+ * @datasource
+ * Read-only. Every door returns data.
+ */
+declare class AlgorithmicSuggester {
+  suggest(word: string): Suggestion[]
+}
 
-boundary EditableDoc(path: String):
-    read() -> Markdown
-    write(content: Markdown)
+/**
+ * @boundary
+ * Both directions, over the same resource.
+ */
+declare class WordLog {
+  writeLogToStorage(entry: LogEntry): void
+  readLog(): LogEntry[]
+}
 
-datasink LogFile(path: String):
-    write(line: String)
-```
-
-Instances construct with config and inherit the kind's role:
-
-```
-google = GoogleSearch("https://google.com")
-errlog = LogFile("errors.log")
-```
-
-Usage — declared doors only, direction enforced:
-
-```
-results = google.search("aisl language")    # -> SearchResult[], nominal, no cast
-errlog.write("disk full")                    # ok: write door on a datasink
-google.write("...")                          # ERROR: GoogleSearch is a datasource (read-only)
-google.fetch_all()                           # ERROR: 'fetch_all' is not a declared door of GoogleSearch
+/**
+ * @datasink
+ * Write-only. Every door returns void.
+ */
+declare class ErrorLog {
+  write(line: string): void
+}
 ```
 
-Construction arguments obey "never manufactures data": a literal, or a value that is
-itself privileged-sourced.
+Instances are constructed normally and inherit the class's role:
 
-`Agent` is, in effect, the one boundary the language ships pre-built — `prompt()` and
-`review()` are its doors. The new primitives let an author declare their own.
+```typescript
+export const algorithmicSuggester = new AlgorithmicSuggester()
+export const wordLog = new WordLog()
+```
+
+Usage — declared doors only, direction enforced by `checker/rules/boundaryDirection.ts`:
+
+```typescript
+const suggestions = algorithmicSuggester.suggest("wrold") // ok: read door on a @datasource
+wordLog.writeLogToStorage(entry)                           // ok: write door on a @boundary
+// algorithmicSuggester.write(...)                          // tsc error: not a declared method
+```
+
+`Agent` (`centina.ts`) is, in effect, the one boundary the vocabulary ships
+pre-built — `prompt()` and `review()` are its doors. Everything else is an
+author-declared `declare class`. Worked examples:
+`specs/wordboard/algorithmic-suggester.centina.ts` (`@datasource`),
+`specs/wordboard/user.centina.ts` (`@boundary`).
 
 ## Type rules
 
-Boundaries slot into the existing `Unspecified`/`Unknown`/`Unprivileged` lattice:
+Centina has no privilege lattice — `Unspecified`/`Unknown`/`Unprivileged` were
+AISL-era and did not survive the pivot (see `CLAUDE.md`'s "History: the AISL
+pivot"; the retirement is recorded in `docs/fit-validation.md`). Boundary
+doors are ordinary TypeScript on a `declare class`, checked by `tsc`:
 
-- **A door with an annotated return type yields that type nominally** — no cast
-  required, because the author committed to the shape. Being forced to write
-  `-> SearchResult[]` is AISL doing its job: making the author name the boundary's
-  data shape instead of skipping that thinking.
-- **A door with no return annotation yields `Unspecified`** (castable), the usual
-  gradual-typing escape hatch.
-- **Types referenced in door signatures are implicitly treated as `Unknown`** — the
-  boundary declaration is itself the seam to external code, so any type name in a
-  door param or return type that isn't already declared is auto-implied as an assumed
-  external type. You do not need a separate `assumed external type SearchResult` just
-  because `SearchResult` appears in a door signature. If a type *is* already declared
-  (via `type`, `enum`, or `external`), the declared version is used instead.
-- **An undeclared method call on a boundary instance is an ERROR**, not
-  `Unspecified`. This is the one place a boundary is *stricter* than a plain `type`
-  (whose ad-hoc method calls yield `Unprivileged`). Declaring a boundary is a
-  commitment to a *closed* interface; allowing ad-hoc calls through a side door would
-  hand back the extemporized looseness the commitment is meant to buy you out of. The
-  same closed-ness is what gives the "not a declared door" diagnostic its teeth.
-- **A boundary read result is a privileged source** under "never manufactures data" —
-  the fourth alongside params, `Agent`, and `external`.
+- **A door's declared parameter and return types are nominal** — checked like
+  any other TypeScript signature. Being forced to write `suggest(word: string):
+  Suggestion[]` is still doing its job: naming the boundary's data shape
+  instead of skipping that thinking.
+- **A type referenced in a door signature that isn't declared anywhere in the
+  file is an unresolved name** — `tsc`, and the checker's naming-consistency
+  rule, flag it — unless it's routed through a `/** @external "<source>" */
+  declare` statement, which is where the assumption about the outside world
+  gets recorded.
+- **An undeclared method call on a boundary instance is a plain `tsc` error.**
+  `declare class` gives a closed interface, with no ad-hoc fallback type to
+  catch a call that isn't a declared door.
+- **A boundary read is a legitimate source of concrete data.** Provenance here
+  is bookkeeping — names resolve, casts are recorded assumptions — not a
+  checked privilege system. See `CLAUDE.md`: "provenance means bookkeeping,
+  not prohibition."
 
 ### Direction enforcement (structural, not lexical)
 
@@ -165,16 +176,19 @@ Direction is inferred from each door's **signature**, never from its name (no
 - a door that **returns data** (non-void) is a *read*;
 - a door that **returns nothing** (void) is a *write*.
 
-Then:
+Then, as `checker/rules/boundaryDirection.ts` enforces it:
 
-- on a `datasource`, every door must return data; a void door warns/errors ("this
-  looks like a write; did you mean `boundary`?");
-- on a `datasink`, every door must be void; a data-returning door warns ("you're
-  getting data back; did you mean `boundary`?");
-- on a `boundary`, any mix is allowed.
+- on a `@datasource`, every door must return data; a void door is an error
+  ("datasource doors must return data");
+- on a `@datasink`, every door must be void; a data-returning door is an error
+  ("datasink doors must return void");
+- on a `@boundary`, any mix is allowed — but if every door turns out to be the
+  same direction, the checker flags it at info level ("every door is
+  read-only; `@datasource` may fit better"), since that's a sign the class
+  should have been declared narrower in the first place.
 
 Classification is by **return only, never by arguments** — so a selector argument
-like `search(term: String) -> SearchResult[]` does not false-trip as "writing to the
+like `suggest(word: string): Suggestion[]` does not false-trip as "writing to the
 source." Passing a selector is not exporting your domain data; returning nothing while
 accepting a payload is.
 
@@ -286,7 +300,7 @@ essence is manufacturing — *algorithm* (how a result is computed), *dynamics* 
 behavior unfolds over time), *aesthetics* (how something is perceived) — and points
 healthy iteration *inward*, deeper into provenance / flow / contract, rather than
 *outward* toward general-purpose programming. The `centina-session-zero` skill
-(`.claude/skills/centina-session-zero/SKILL.md`) operationalizes this as a
+(`skills/centina-session-zero/SKILL.md`) operationalizes this as a
 per-node routing judgment during DAG construction — structural nodes earn a
 filled spec, realization-dominated ones route behind a door (see its "Which
 nodes earn a spec" section).

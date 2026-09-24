@@ -15,13 +15,23 @@ skill is invoked against a tree with no existing config, this is the step
 that stands one up.
 
 **If the spec's system directory (`specs/<system>/`) has a `LEDGER.md`,** read
-`${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and the system's `LEDGER-INDEX.md`
-before the first check: the standing goals and rules, the affected work
-items, and the open items for this component. Entries from this loop use the
+`${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` before the first check. If the run
+frame (`ITERATE-STATE.md`, or `REALIZE-STATE.md` if this system also has a
+`centina-realize` phase in progress) names a current phase, read that phase's
+view (`centina-check ledger --phase <label> <dir>`) instead of the full
+index; otherwise read the system's `LEDGER-INDEX.md`: the standing goals and
+rules, the affected work items, and the open items for this component.
+Entries from this loop use the
 spec file's basename as their scope (`task-matcher.centina.ts` gives
-`task-matcher`), and this session's ID, for the `Session` header, is
-`${CLAUDE_SESSION_ID}`. If there is no ledger, the loop works as before; don't
-create one unless the human asks.
+`task-matcher`) **only when the entry is actually about that component.** A
+decision or rule that reaches beyond the one spec being iterated (e.g. a
+naming convention, a cross-seam invariant) is not a `task-matcher` entry and
+is not an `sz` entry either — `sz` names session-zero's own entries, not
+"applies everywhere." Give it a named cross-cutting scope instead (see
+`ledger.md`, "Scopes": "a named scope for work not tied to one component"),
+and say so to the human so the scope name is agreed, not assumed. This
+session's ID, for the `Session` header, is `${CLAUDE_SESSION_ID}`. If there is
+no ledger, the loop works as before; don't create one unless the human asks.
 
 **If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
 existing config was found and setup just created one, or a config exists
@@ -243,7 +253,7 @@ Both apply throughout this loop, not just in a fresh session-zero handoff:
   scope-crossing identifier in `matchTasks`," not the bare tag). When
   re-citing one, restate a brief reminder if more than 10 labels of the same
   letter have come up since. Err toward restating when unsure. With a ledger,
-  the label index is `LEDGER-INDEX.md`; without one, keep a compact label
+  the label index is `LEDGER-LABELS.md`; without one, keep a compact label
   index in the state file.
 - **Transcripts and concurrency.** Never open a session transcript without
   asking first, and warn the human about concurrent sessions, per `ledger.md`.

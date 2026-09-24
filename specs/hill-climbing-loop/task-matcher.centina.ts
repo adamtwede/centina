@@ -14,7 +14,7 @@
  */
 
 import { Agent, deferred, Skill } from "../../centina"
-import { ModelId } from "./shared"
+import { ModelId } from "./shared.centina"
 
 import { taskCorpusStore } from "./task-corpus.centina"
 import type {

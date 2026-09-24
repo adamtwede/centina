@@ -4,10 +4,21 @@ import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
 import { buildRootsFor, findConfig, systemKey } from "./config"
-import { renderIndex, renderStanding } from "./generate"
-import { BuildFile, LEDGER_INDEX, STANDING, commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
+import { renderIndex, renderLabels, renderPhaseView, renderStanding } from "./generate"
+import {
+  BuildFile,
+  LEDGER_INDEX,
+  LEDGER_LABELS,
+  STANDING,
+  commentLines,
+  labelKey,
+  parseQualified,
+  readLedger,
+  scanBuildRoot,
+  scanSystemFiles,
+} from "./parse"
 
-const USAGE = "usage: centina-check ledger [--check] [--contracts <file>]... <system-dir>..."
+const USAGE = "usage: centina-check ledger [--check] [--contracts <file>]... [--phase <label>] <system-dir>..."
 
 const REALIZE_STATE = "REALIZE-STATE.md"
 
@@ -47,16 +58,21 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
 
 /**
  * `centina-check ledger <system-dir>...`: validates each system's ledger and
- * the label citations in its files, then writes LEDGER-INDEX.md and
- * STANDING.md. With `--check`, reports out-of-date generated files instead of
- * writing them. `--contracts <file>` (one system only) also enumerates the
- * `@proposal` overrides in a centina-realize contracts module. Returns the
- * exit code.
+ * the label citations in its files, then writes LEDGER-INDEX.md,
+ * LEDGER-LABELS.md and STANDING.md. With `--check`, reports out-of-date
+ * generated files instead of writing them. `--contracts <file>` (one system
+ * only) also enumerates the `@proposal` overrides in a centina-realize
+ * contracts module. `--phase <label>` (one system only) prints a
+ * phase-scoped view — the phase's items plus what its
+ * `Depends-on`/`Premises`/`Constraints` reach — to stdout; it is never
+ * written to disk. See docs/ledger.md, "Reading in a long session". Returns
+ * the exit code.
  */
 export function runLedgerCommand(argv: string[]): number {
   let checkOnly = false
   const dirs: string[] = []
   const contractsFiles: string[] = []
+  let phaseLabel: string | undefined
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === "--check") checkOnly = true
@@ -67,6 +83,13 @@ export function runLedgerCommand(argv: string[]): number {
         return 1
       }
       contractsFiles.push(file)
+    } else if (arg === "--phase") {
+      const label = argv[++i]
+      if (!label) {
+        console.error(`--phase requires a label\n${USAGE}`)
+        return 1
+      }
+      phaseLabel = label
     } else if (arg.startsWith("--")) {
       console.error(`unknown option ${arg}\n${USAGE}`)
       return 1
@@ -78,6 +101,10 @@ export function runLedgerCommand(argv: string[]): number {
   }
   if (contractsFiles.length > 0 && dirs.length > 1) {
     console.error(`--contracts applies to one system directory at a time\n${USAGE}`)
+    return 1
+  }
+  if (phaseLabel !== undefined && dirs.length > 1) {
+    console.error(`--phase applies to one system directory at a time\n${USAGE}`)
     return 1
   }
 
@@ -112,6 +139,7 @@ export function runLedgerCommand(argv: string[]): number {
 
     const generated: [string, string][] = [
       [LEDGER_INDEX, renderIndex(ledger)],
+      [LEDGER_LABELS, renderLabels(ledger)],
       [STANDING, renderStanding(ledger)],
     ]
     for (const [name, content] of generated) {
@@ -137,6 +165,20 @@ export function runLedgerCommand(argv: string[]): number {
       hasErrors ||= findings.some((finding) => finding.severity === "error")
     } else {
       console.log(`ledger: clean (${ledger.system})`)
+    }
+
+    if (phaseLabel !== undefined) {
+      const parsed = parseQualified(phaseLabel)
+      const view = parsed && renderPhaseView(ledger, labelKey(parsed))
+      if (!parsed || !view) {
+        console.error(`--phase ${phaseLabel} is not a qualified label (scope:W<n>)`)
+        hasErrors = true
+      } else if (!view.ok) {
+        console.error(`--phase ${phaseLabel}: ${view.error}`)
+        hasErrors = true
+      } else {
+        console.log(view.text)
+      }
     }
   }
 

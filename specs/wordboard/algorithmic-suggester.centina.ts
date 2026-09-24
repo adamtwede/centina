@@ -10,7 +10,7 @@
 // source; see ARCHITECTURE.md). Declared at fill, where the matching logic that
 // calls it is written — not reached through the door here.
 
-import { Suggestion } from "./shared"
+import { Suggestion } from "./shared.centina"
 
 /**
  * @datasource

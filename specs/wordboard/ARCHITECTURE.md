@@ -76,7 +76,7 @@ naming convention. All contracts below are **decided** unless noted.
 - `exchangeExportFormat(formats: ExportFormat[]): ExportFormat` — pick a format.
 - `writeLogToUser(formattedLog: string): void` — deliver the export.
 
-**Vocabulary** (`shared.ts`, all decided): `InitiationMode = "algorithmic" | "inferred"`;
+**Vocabulary** (`shared.centina.ts`, all decided): `InitiationMode = "algorithmic" | "inferred"`;
 `Suggestion = { word }`; `Definition = string`; `ExportFormat { TEXT, MARKDOWN, CANONICAL }`;
 `InferenceOutcome { RETRY, SAVE_AS_INCOMPLETE, DISCARD }`; `LogEntry = CompleteEntry | IncompleteEntry`
 (discriminated on `status`).

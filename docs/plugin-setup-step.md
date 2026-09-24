@@ -1,9 +1,14 @@
 # Plugin setup step (design spec)
 
-Status: design, not yet implemented. Written during a packaging-design session
-(2026-08). Assumes the "Centina ships as a global Claude Code plugin" decision
-(see conversation log / future ROADMAP.md entry) and the "fully self-contained,
-no required host-project references" requirement that decision was built on.
+Status: implemented. Written during a packaging-design session (2026-08),
+when this was still a proposal; the design below shipped, and
+`docs/plugin-setup-procedure.md` is now the terse, imperative version skills
+actually run (see `docs/plugin-file-layout.md`). This document is the
+rationale record going forward — read it for *why*, not *what to do*; for
+the current procedure, read `plugin-setup-procedure.md`. Assumes the
+"Centina ships as a global Claude Code plugin" decision (see conversation
+log / future ROADMAP.md entry) and the "fully self-contained, no required
+host-project references" requirement that decision was built on.
 
 ## Problem
 
@@ -156,22 +161,22 @@ At `artifactsRoot`, if not already present:
   vocabulary module, at `<artifactsRoot>/centina.ts`. Every spec imports
   this by relative path (`import { Agent, deferred } from "../../centina"`
   in the founding fixture) — without this copy, every spec's import fails
-  the moment `artifactsRoot` isn't this repo. This is the same copy
-  treatment as the reference docs below, just easy to miss since it's code,
-  not a doc.
-- Copies (not symlinks) of the bundled reference docs from
-  `${CLAUDE_PLUGIN_ROOT}/docs/`: `boundaries.md`, `fit-validation.md`,
-  `plan-organization.md` — written to `<artifactsRoot>/docs/`, not loose at
-  `artifactsRoot` itself, so a spec author's own project files don't end up
-  interleaved with Centina's reference docs in one flat listing. These are
-  the docs identified as load-bearing guidance the skills actively cite, as
-  opposed to this project's own dev-history docs (`ROADMAP.md`,
-  `session-zero-test-cases.md`), which stay behind and never ship.
-  `plugin-setup-procedure.md` (the terse, imperative
-  form of this whole document, extracted for skills to actually follow —
-  see `docs/plugin-file-layout.md`) is *not* copied here: it's procedural
-  guidance for the skill itself, not spec-writing reference material for
-  the human, so it stays read directly from `${CLAUDE_PLUGIN_ROOT}/docs/`.
+  the moment `artifactsRoot` isn't this repo.
+- A copy of `${CLAUDE_PLUGIN_ROOT}/conformance.ts`, same rule. Build-plane,
+  not spec vocabulary: only a `centina-realize` build tree imports it, and a
+  project that never runs that skill simply leaves it unread.
+
+**Revised: no docs are copied.** An earlier version of this step also wrote
+copies of the bundled reference docs (`boundaries.md`, `fit-validation.md`,
+`plan-organization.md`) to `<artifactsRoot>/docs/`, reasoning that they were
+load-bearing guidance the skills actively cite. That never made it into
+`plugin-setup-procedure.md` (the terse, imperative form of this document
+that skills actually run — see `docs/plugin-file-layout.md`): Centina's
+design reference isn't bundled at all, and a human who wants it reads it in
+the Centina repository. `plugin-setup-procedure.md` itself is also not
+copied — it's procedural guidance for the skill itself, not spec-writing
+reference material for the human, so it stays read directly from
+`${CLAUDE_PLUGIN_ROOT}/docs/`.
 
 ## Step 4 — write the stub `tsconfig.json`
 
