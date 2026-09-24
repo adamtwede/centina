@@ -53,13 +53,7 @@ async function main() {
   let level = process.argv[2]
   if (!level) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    const proceed = await ask(rl, `Bump version (currently ${current})? [y/N] `)
-    if (!/^y(es)?$/i.test(proceed.trim())) {
-      rl.close()
-      console.log("Skipped.")
-      return 0
-    }
-    level = (await ask(rl, "major, minor, or hotfix? ")).trim().toLowerCase()
+    level = (await ask(rl, "major, minor, or hotfix? (ctrl+c to skip)")).trim().toLowerCase()
     rl.close()
   }
 

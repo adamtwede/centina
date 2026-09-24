@@ -92,6 +92,13 @@ describe("ledger check", () => {
     assert.ok(found.includes("ledger-field-not-applicable"))
   })
 
+  it("accepts Kind: premise on an R entry", () => {
+    assert.deepEqual(
+      check({ "LEDGER.md": `### sz:R1: ice-shell thickness\n- Kind: premise\n- Status: ratified\n` }),
+      [],
+    )
+  })
+
   it("reports one-way supersession and a status mismatch", () => {
     const found = rules({
       "LEDGER.md": `### sz:P1: old\n- Status: superseded\n\n### sz:P2: new\n- Status: ratified\n- Obsoletes: sz:P1\n`,

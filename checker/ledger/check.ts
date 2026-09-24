@@ -27,7 +27,7 @@ export const STATUSES: Record<Letter, string[]> = {
 
 const KINDS: Partial<Record<Letter, string[]>> = {
   W: ["phase", "step", "spike", "change-request", "other"],
-  R: ["structural", "design", "method", "process", "limit"],
+  R: ["structural", "design", "method", "process", "limit", "premise"],
 }
 
 const AGENT_LABEL = /@agent\(([^)]*)\)/g

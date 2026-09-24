@@ -113,7 +113,7 @@ always write the qualified label. Cite another system's label as
 | `O` | option within a fork | `open`, `chosen`, `declined` |
 | `W` | work item (`Kind`: `phase`, `step`, `spike`, `change-request`, `other`) | `planned`, `active`, `blocked`, `deferred`, `done`, `withdrawn` |
 | `G` | goal or thesis | `active`, `deferred`, `retired` |
-| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`) | `provisional`, `ratified`, `retired` |
+| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`, `premise`) | `provisional`, `ratified`, `retired` |
 
 Every letter can also be `superseded`, which requires `Obsoleted-by`.
 
@@ -183,6 +183,12 @@ measured false, done, retired.
    naming a status that is neither resolved nor stale reads "still blocked
    on" the rest, so it does not send you looking for an unblock that can't
    happen yet.
+6. The checker only confirms a citation *resolves*, not that it still says
+   what the citing text claims — a valid label pointing at the wrong entry
+   (mis-cited, not stale) passes every check. When you re-examine a premise
+   or decision, open the entry any code comment or spec cites for it and
+   confirm the entry actually says what's claimed, rather than trusting the
+   label alone.
 
 ## Sweeps
 
@@ -338,8 +344,21 @@ every status change, at every gate, and before every derived-doc write.
   `Enforced-by`. A guard in build code counts as enforcement.
 - `Kind: limit` is for a rule that holds because something is not built: a
   guard refusing a capability, an unsupported case, a hard-coded
-  simplification. It is the one Kind whose ordinary end is `retired`, once
-  somebody builds the thing. The other four record decisions meant to last.
+  simplification. Its ordinary end is `retired`, once somebody builds the
+  thing.
+- `Kind: premise` is for an authored property a simulated or generated world
+  leaves open by design — ice-shell thickness, an ambient noise floor, a
+  power-scaling law — chosen within a sourced plausible range rather than
+  derived. Record the value, the range and its source, and whether it was
+  selected deliberately or only inherited from an earlier choice, in the
+  body (as lettered parts). It is revisable by design: record a changed
+  value as a new entry that `Obsoletes` the old one, the same as any other
+  supersession, rather than editing the value in place. Unlike `limit`, a
+  premise does not end at `retired` when something is built — it keeps
+  getting superseded as the authored value moves.
+- `structural`, `design`, `method` and `process` record decisions meant to
+  last; `limit` and `premise` are the two Kinds that are expected to change
+  or disappear on purpose.
 - **A guard in build code cites an `R`. Whatever settled the rule may sit
   beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
   all mean the entry finished, not that the ruling stopped holding, so a
