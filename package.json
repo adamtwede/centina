@@ -5,7 +5,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check": "tsx checker/cli.ts",
-    "test": "tsx --test \"checker/**/*.test.ts\" \"scripts/**/*.test.mjs\""
+    "test": "tsx --test \"checker/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
+    "bump-version": "node scripts/bump-version.mjs"
   },
   "keywords": [],
   "author": "",
