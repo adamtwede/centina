@@ -1,11 +1,11 @@
 import assert from "node:assert/strict"
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { checkLedger, checkProposals } from "./check"
 import { runLedgerCommand } from "./command"
-import { affectedWorkItems, renderIndex, renderStanding } from "./generate"
+import { affectedWorkItems, renderIndex, renderPhaseView, renderStanding } from "./generate"
 import { commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
 
 function system(files: Record<string, string>): string {
@@ -244,6 +244,26 @@ describe("ledger generation", () => {
       [["sz:W1", ["Premises sz:F1 is measured-false"]]],
     )
   })
+
+  it("scopes a phase view to the phase's items and what they cite, not everything settled", () => {
+    const ledger = readLedger(system({ "LEDGER.md": VALID }))
+    const view = renderPhaseView(ledger, "matcher:W1")
+    assert.equal(view.ok, true)
+    if (!view.ok) return
+    assert.match(view.text, /matcher:W1.*phase 1, the matcher slice/)
+    assert.match(view.text, /\| matcher:W2 \| step \| planned \| build the scorer \|/)
+    assert.match(view.text, /- `sz:R1` \(structural\): Only the simulation touches content generation/)
+    assert.match(view.text, /\| sz:P2 \| ratified \| cap escalation depth at 5 attempts \|/)
+    assert.match(view.text, /- `sz:G1`: Is information-first play engaging\?/)
+    // sz:P1 is only reachable from sz:P2 via Obsoletes, which is not a closure field.
+    assert.doesNotMatch(view.text, /sz:P1/)
+  })
+
+  it("rejects a phase view for an unknown label or a non-phase entry", () => {
+    const ledger = readLedger(system({ "LEDGER.md": VALID }))
+    assert.equal(renderPhaseView(ledger, "matcher:W99").ok, false)
+    assert.equal(renderPhaseView(ledger, "sz:G1").ok, false)
+  })
 })
 
 describe("ledger command", () => {
@@ -259,6 +279,39 @@ describe("ledger command", () => {
       assert.equal(runLedgerCommand([dir]), 0)
       assert.match(readFileSync(path.join(dir, "STANDING.md"), "utf8"), /sz:G2/)
     } finally {
+      console.log = log
+    }
+  })
+
+  it("prints a phase view on --phase and writes no phase-specific file to disk", () => {
+    const dir = system({ "LEDGER.md": VALID })
+    const log = console.log
+    const printed: string[] = []
+    console.log = (text: string) => printed.push(text)
+    try {
+      assert.equal(runLedgerCommand(["--phase", "matcher:W1", dir]), 0)
+    } finally {
+      console.log = log
+    }
+    assert.ok(printed.some((line) => line.includes("Phase view: matcher:W1")))
+    // Only the two views written on every run (LEDGER-INDEX.md, STANDING.md) land
+    // on disk — --phase adds nothing there, on purpose (see renderPhaseView).
+    assert.deepEqual(
+      readdirSync(dir).filter((name) => name !== "LEDGER.md"),
+      ["LEDGER-INDEX.md", "STANDING.md"],
+    )
+  })
+
+  it("fails --phase on a label that isn't a phase", () => {
+    const dir = system({ "LEDGER.md": VALID })
+    const err = console.error
+    console.error = () => {}
+    const log = console.log
+    console.log = () => {}
+    try {
+      assert.equal(runLedgerCommand(["--phase", "sz:G1", dir]), 1)
+    } finally {
+      console.error = err
       console.log = log
     }
   })
