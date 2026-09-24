@@ -106,6 +106,27 @@ describe("ledger check", () => {
     assert.ok(found.includes("ledger-supersession"))
   })
 
+  it("reports an open item whose Phase points at a closed phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+    })
+    assert.ok(found.includes("ledger-phase-closed"))
+  })
+
+  it("does not flag a dispositioned item under a closed phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: answered before close\n- Phase: sz:W1\n- Status: answered\n`,
+    })
+    assert.ok(!found.includes("ledger-phase-closed"))
+  })
+
+  it("does not flag an open item under a still-open phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: active\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+    })
+    assert.ok(!found.includes("ledger-phase-closed"))
+  })
+
   it("requires Evidence, Depends-on and Review where they apply", () => {
     const found = check({
       "LEDGER.md": `### sz:F1: measured\n- Status: measured\n\n### sz:W1: blocked\n- Kind: step\n- Status: blocked\n\n### sz:R1: provisional\n- Kind: method\n- Status: provisional\n`,
@@ -231,6 +252,17 @@ describe("ledger generation", () => {
     const index = renderIndex(readLedger(system({ "LEDGER.md": VALID })))
     assert.match(index, /## Phase matcher:W1\n\n\| Label \| Kind \| Status \| Title \|/)
     assert.match(index, /\| sz:P1 \| superseded \| cap escalation depth at 3 attempts \| sz:P2 \|/)
+  })
+
+  it("flags a closed phase's leftover open items in the index instead of blending them into a live section", () => {
+    const index = renderIndex(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+        }),
+      ),
+    )
+    assert.match(index, /## Phase sz:W1 \(phase closed: orphaned\)\n\n\| Label \| Kind \| Status \| Title \|/)
   })
 
   it("points from the index to LEDGER-LABELS.md instead of listing labels inline", () => {

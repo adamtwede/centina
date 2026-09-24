@@ -1,5 +1,5 @@
 import path from "node:path"
-import { NOT_HOLDING } from "./check"
+import { CLOSED_PHASE, NOT_HOLDING } from "./check"
 import { Entry, LETTERS, Ledger, fieldRefs, formatRef, labelKey, status } from "./parse"
 
 const GENERATED_NOTE =
@@ -233,19 +233,29 @@ export function renderPhaseView(ledger: Ledger, phaseKey: string): { ok: true; t
   return { ok: true, text: lines.join("\n") }
 }
 
+const ORPHANED_SUFFIX = " (phase closed: orphaned)"
+
 export function renderIndex(ledger: Ledger): string {
   const entries = uniqueEntries(ledger)
+  const byKey = new Map(entries.map((e) => [e.key, e]))
 
   const open = entries.filter((e) => OPEN_STATUSES.has(status(e) ?? ""))
   const phaseGroups = new Map<string, Entry[]>()
   for (const entry of open) {
     const phase = fieldRefs(entry, "Phase").refs[0]
-    const group = phase ? `Phase ${formatRef(phase)}` : "No phase"
+    let group = "No phase"
+    if (phase) {
+      const phaseEntry = byKey.get(labelKey(phase))
+      const phaseStatus = phaseEntry && status(phaseEntry)
+      const orphaned = phaseStatus !== undefined && CLOSED_PHASE.has(phaseStatus)
+      group = `Phase ${formatRef(phase)}${orphaned ? ORPHANED_SUFFIX : ""}`
+    }
     phaseGroups.set(group, [...(phaseGroups.get(group) ?? []), entry])
   }
-  const groupNames = [...phaseGroups.keys()].sort((a, b) =>
-    a === "No phase" ? 1 : b === "No phase" ? -1 : a.localeCompare(b),
-  )
+  // Order: live phases, then orphaned ones (flagged, not blended in with the
+  // live sections above), then unphased items last.
+  const rank = (name: string) => (name === "No phase" ? 2 : name.endsWith(ORPHANED_SUFFIX) ? 1 : 0)
+  const groupNames = [...phaseGroups.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
 
   const lines = [
     GENERATED_NOTE,

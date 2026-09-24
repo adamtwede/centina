@@ -392,15 +392,30 @@ such. Recording one as fact is not.
    checks the build tree's ownership citations), the `--contracts` check, and
    the conformance-coverage check.
 2. Run the definition-of-done test.
-3. Record the close as an `F` entry, `Status: measured`, with the
+3. **Disposition every open item still carrying this phase's `Phase:`
+   field** — read this phase's group in `LEDGER-INDEX.md`'s open items (or
+   `--phase <label>`). For each one, raise it with the human and, per their
+   call: move it forward (edit its `Phase` field to a phase that will own
+   it), drop the field if nobody owns it yet, or resolve/withdraw/defer the
+   item itself. Do not leave one open under this phase on the assumption
+   that a future phase or the index will pick it up — pointing at the index
+   in the close record (step 4) is for someone reading the close later, not
+   a substitute for this. Nothing else sweeps a closing phase's own
+   backlog: an item raised here but owned elsewhere still needs its `Phase`
+   moved, even though it was never really this phase's to finish. The
+   checker enforces this (`ledger-phase-closed`): it refuses an open item
+   whose `Phase` points at a `done`/`withdrawn`/`superseded` phase, so step 5
+   will fail if this step is skipped.
+4. Record the close as an `F` entry, `Status: measured`, with the
    definition-of-done run as `Evidence`. Its body states:
    - what the slice proves;
    - each boundary's status: specced, planned, mocked, or implemented. This
      is read off the unbuilt members and their owners, so it is only as good
      as step 1: a close record is what gets trusted later, when nobody
      remembers;
-   - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them).
-4. Set the phase `W` entry `done`.
+   - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them) — by now
+     none should still carry this phase.
+5. Set the phase `W` entry `done`.
 
 ## Implementation plans (provisional)
 

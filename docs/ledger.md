@@ -154,6 +154,15 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
    and state files cite labels; the index shows status.
 6. **Cite labels from what depends on them:** spec comments, ARCHITECTURE.md
    rows, PLAN.md steps.
+7. **Disposition every open item still on a phase before that phase closes.**
+   `Phase` marks a work item as belonging to that phase's scope, not just
+   where it happened to surface; a still-open entry whose `Phase` points at a
+   phase that has gone `done`, `withdrawn` or `superseded` is a checker error
+   (`ledger-phase-closed`), because nothing else re-reads a closed phase's
+   scope afterward. Before setting the phase `done`, move each of its still-
+   open items to the phase that will own it, drop the `Phase` field if
+   nobody does yet, or resolve/withdraw/defer the item itself — never leave
+   one for "the index" to catch.
 
 ## When a status changes
 

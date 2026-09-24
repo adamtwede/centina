@@ -43,6 +43,12 @@ export const NOT_HOLDING = new Set(["superseded", "withdrawn", "rejected", "meas
 /** Work-item statuses an unbuilt member may name as its owner. */
 export const OPEN_WORK = new Set(["planned", "active", "blocked", "deferred"])
 
+/** Phase statuses meaning the phase is no longer running. */
+export const CLOSED_PHASE = new Set(["done", "withdrawn", "superseded"])
+
+/** Non-terminal statuses across letters; an entry in one of these is still undispositioned. */
+const OPEN_ITEM = new Set(["open", "hypothesis", "predicted", "planned", "blocked", "active"])
+
 interface ListFieldSpec {
   single?: boolean
   parts: boolean
@@ -421,8 +427,19 @@ function checkHeader(
   const phase = entry.fields.get("Phase")
   for (const ref of fieldRefs(entry, "Phase").refs) {
     const target = resolve(ref)
-    if (target && (target.ref.letter !== "W" || target.fields.get("Kind")?.value !== "phase")) {
+    if (!target) continue
+    if (target.ref.letter !== "W" || target.fields.get("Kind")?.value !== "phase") {
       error("ledger-malformed", entry.file, phase!.line, `"Phase" must cite a W entry with Kind: phase, not ${target.key}`)
+      continue
+    }
+    const phaseStatus = status(target)
+    if (statusValue && OPEN_ITEM.has(statusValue) && phaseStatus && CLOSED_PHASE.has(phaseStatus)) {
+      error(
+        "ledger-phase-closed",
+        entry.file,
+        phase!.line,
+        `${entry.key} is ${statusValue} but its Phase ${target.key} is ${phaseStatus}; disposition it (move it to an open phase, defer it, or close it) instead of leaving it under a closed phase`,
+      )
     }
   }
 }
