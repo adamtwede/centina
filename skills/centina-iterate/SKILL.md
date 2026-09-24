@@ -15,9 +15,13 @@ skill is invoked against a tree with no existing config, this is the step
 that stands one up.
 
 **If the spec's system directory (`specs/<system>/`) has a `LEDGER.md`,** read
-`${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and the system's `LEDGER-INDEX.md`
-before the first check: the standing goals and rules, the affected work
-items, and the open items for this component. Entries from this loop use the
+`${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` before the first check. If the run
+frame (`ITERATE-STATE.md`, or `REALIZE-STATE.md` if this system also has a
+`centina-realize` phase in progress) names a current phase, read that phase's
+view (`centina-check ledger --phase <label> <dir>`) instead of the full
+index; otherwise read the system's `LEDGER-INDEX.md`: the standing goals and
+rules, the affected work items, and the open items for this component.
+Entries from this loop use the
 spec file's basename as their scope (`task-matcher.centina.ts` gives
 `task-matcher`) **only when the entry is actually about that component.** A
 decision or rule that reaches beyond the one spec being iterated (e.g. a

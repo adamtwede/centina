@@ -299,13 +299,25 @@ every status change, at every gate, and before every derived-doc write.
 
 ## Reading
 
-1. At setup, if `LEDGER-INDEX.md` exists, read it whole: the standing
-   section, the affected work items, and the open items for your scope.
-2. Consult `LEDGER-LABELS.md` only to look up a label's file and status, or
+1. **At setup, if the run frame (`ITERATE-STATE.md`/`REALIZE-STATE.md`) names
+   a current phase, run**
+   `${CLAUDE_PLUGIN_ROOT}/bin/centina-check ledger --phase <label> <dir>`
+   **and read that instead of the full index.** It prints the phase's own
+   items plus what their `Depends-on`/`Premises`/`Constraints` reach —
+   computed on demand from the ledger's citation graph, never written to
+   disk. It is not exhaustive: an entry that's genuinely relevant to the
+   phase but was never cited by anything in it will not appear. That gap is
+   closed by the phase-gate sweep (below), not by reading more here — the
+   point of this view is to stay small on every routine setup.
+2. **If there is no current phase yet** (before phase 1 starts, or between a
+   phase closing and the next one starting), read `LEDGER-INDEX.md` whole
+   instead: the standing section, the affected work items, and the open
+   items for your scope.
+3. Consult `LEDGER-LABELS.md` only to look up a label's file and status, or
    to take the next number in a scope. Look up an entry's full text by
    searching the ledger for `### <label>:`.
-3. Do not read the whole ledger into context.
-4. The first time you mention a label to the human in a session, say what it
+4. Do not read the whole ledger into context.
+5. The first time you mention a label to the human in a session, say what it
    is ("sz:P4, the escalation-depth cap"). Restate that reminder whenever
    more than 10 labels of the same letter have come up since.
 

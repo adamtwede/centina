@@ -41,10 +41,12 @@ human.
 
 ## Reading in a long session
 
-1. Read `LEDGER-INDEX.md` and the run frame, not the ledger.
+1. Read the run frame, and the phase view (`centina-check ledger --phase
+   <label> <dir>`) if a current phase is set, or `LEDGER-INDEX.md` if not —
+   not the ledger. See `ledger.md`, "Reading".
 2. Look up entries by label as needed (`### <label>:`).
-3. After a compaction, reread the run frame and `LEDGER-INDEX.md` before
-   continuing.
+3. After a compaction, reread the run frame and the same phase view or index
+   before continuing.
 
 ### The 1500-line split rule is written against `LEDGER.md`, but partitions grow too
 
