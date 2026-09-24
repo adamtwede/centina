@@ -1,6 +1,6 @@
 {
   "name": "centina",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Centina — spec-flavored TypeScript: type-checked falsework for coding tasks. TypeScript is the grammar; a spec-plane checker (not tsc) is the arbiter of done.",
   "scripts": {
     "typecheck": "tsc --noEmit",

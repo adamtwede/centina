@@ -1,7 +1,7 @@
 {
   "name": "centina",
   "displayName": "Centina",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Spec-flavored TypeScript: type-checked falsework for coding tasks.",
   "license": "ISC"
 }
