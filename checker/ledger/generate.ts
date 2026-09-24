@@ -73,6 +73,23 @@ export function renderStanding(ledger: Ledger): string {
   return [GENERATED_NOTE, "", `# Standing goals and rules: ${ledger.system}`, "", ...standingLines(uniqueEntries(ledger)), ""].join("\n")
 }
 
+/** Every label, for taking the next number in a scope and for looking up a label's file. */
+export function renderLabels(ledger: Ledger): string {
+  const entries = uniqueEntries(ledger)
+  const relative = (file: string) => path.relative(ledger.dir, file)
+  return [
+    GENERATED_NOTE,
+    "",
+    `# All labels: ${ledger.system}`,
+    "",
+    ...table(
+      ["Label", "Status", "Title", "File"],
+      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
+    ),
+    "",
+  ].join("\n")
+}
+
 export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: string[] }[] {
   const entries = uniqueEntries(ledger)
   const byKey = new Map(entries.map((e) => [e.key, e]))
@@ -87,13 +104,33 @@ export function affectedWorkItems(ledger: Ledger): { entry: Entry; reasons: stri
         const target = byKey.get(labelKey(ref))
         const targetStatus = target && status(target)
         if (!targetStatus) continue
-        if (NOT_HOLDING.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
-        } else if (field === "Depends-on" && workStatus === "blocked" && RESOLVED.has(targetStatus)) {
-          reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}; may unblock`)
-        }
+        if (NOT_HOLDING.has(targetStatus)) reasons.push(`${field} ${formatRef(ref)} is ${targetStatus}`)
       }
     }
+
+    // "May unblock" only holds when every Depends-on is resolved — one still
+    // open means the item stays blocked regardless of the others, and saying
+    // "may unblock" anyway sends the reader looking for an unblock that
+    // cannot happen.
+    if (workStatus === "blocked") {
+      const resolved: string[] = []
+      const open: string[] = []
+      for (const ref of fieldRefs(work, "Depends-on").refs) {
+        const target = byKey.get(labelKey(ref))
+        const targetStatus = target && status(target)
+        if (!targetStatus) continue
+        if (RESOLVED.has(targetStatus)) resolved.push(`${formatRef(ref)} is ${targetStatus}`)
+        else if (!NOT_HOLDING.has(targetStatus)) open.push(formatRef(ref))
+      }
+      if (resolved.length > 0) {
+        reasons.push(
+          open.length === 0
+            ? `Depends-on ${resolved.join(", ")}; may unblock`
+            : `Depends-on ${resolved.join(", ")}; still blocked on ${open.join(", ")}`,
+        )
+      }
+    }
+
     if (reasons.length > 0) affected.push({ entry: work, reasons })
   }
   return affected
@@ -198,7 +235,6 @@ export function renderPhaseView(ledger: Ledger, phaseKey: string): { ok: true; t
 
 export function renderIndex(ledger: Ledger): string {
   const entries = uniqueEntries(ledger)
-  const relative = (file: string) => path.relative(ledger.dir, file)
 
   const open = entries.filter((e) => OPEN_STATUSES.has(status(e) ?? ""))
   const phaseGroups = new Map<string, Entry[]>()
@@ -267,10 +303,7 @@ export function renderIndex(ledger: Ledger): string {
     "",
     "# All labels",
     "",
-    ...table(
-      ["Label", "Status", "Title", "File"],
-      entries.map((e) => [e.key, status(e) ?? "", e.title, relative(e.file)]),
-    ),
+    "See `LEDGER-LABELS.md`.",
     "",
   )
 

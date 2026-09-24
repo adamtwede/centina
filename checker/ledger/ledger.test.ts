@@ -5,8 +5,8 @@ import path from "node:path"
 import { describe, it } from "node:test"
 import { checkLedger, checkProposals } from "./check"
 import { runLedgerCommand } from "./command"
-import { affectedWorkItems, renderIndex, renderPhaseView, renderStanding } from "./generate"
-import { commentLines, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
+import { affectedWorkItems, renderIndex, renderLabels, renderPhaseView, renderStanding } from "./generate"
+import { commentLines, isLedgerFileName, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
 
 function system(files: Record<string, string>): string {
   const dir = path.join(mkdtempSync(path.join(tmpdir(), "ledger-")), "demo")
@@ -233,6 +233,18 @@ describe("ledger generation", () => {
     assert.match(index, /\| sz:P1 \| superseded \| cap escalation depth at 3 attempts \| sz:P2 \|/)
   })
 
+  it("points from the index to LEDGER-LABELS.md instead of listing labels inline", () => {
+    const index = renderIndex(readLedger(system({ "LEDGER.md": VALID })))
+    assert.match(index, /# All labels\n\nSee `LEDGER-LABELS\.md`\./)
+    assert.doesNotMatch(index, /\| Label \| Status \| Title \| File \|/)
+  })
+
+  it("lists every label with its file in LEDGER-LABELS.md", () => {
+    const labels = renderLabels(readLedger(system({ "LEDGER.md": VALID })))
+    assert.match(labels, /\| Label \| Status \| Title \| File \|/)
+    assert.match(labels, /\| sz:P2 \| ratified \| cap escalation depth at 5 attempts \| LEDGER\.md \|/)
+  })
+
   it("lists work items whose premises no longer hold", () => {
     const ledger = readLedger(
       system({
@@ -264,6 +276,38 @@ describe("ledger generation", () => {
     assert.equal(renderPhaseView(ledger, "matcher:W99").ok, false)
     assert.equal(renderPhaseView(ledger, "sz:G1").ok, false)
   })
+
+  it("reads 'may unblock' only when every Depends-on is resolved", () => {
+    const ledger = readLedger(
+      system({
+        "LEDGER.md": [
+          "### sz:Q5: still open",
+          "- Status: open",
+          "",
+          "### sz:W12: done dependency",
+          "- Kind: step",
+          "- Status: done",
+          "",
+          "### sz:Q17: also still open",
+          "- Status: open",
+          "",
+          "### sz:W7: blocked on three",
+          "- Kind: step",
+          "- Status: blocked",
+          "- Depends-on: sz:Q5, sz:W12, sz:Q17",
+          "",
+          "### sz:W20: blocked on one, now resolved",
+          "- Kind: step",
+          "- Status: blocked",
+          "- Depends-on: sz:W12",
+        ].join("\n"),
+      }),
+    )
+    assert.deepEqual(affectedWorkItems(ledger).map(({ entry, reasons }) => [entry.key, reasons]), [
+      ["sz:W7", ["Depends-on sz:W12 is done; still blocked on sz:Q5, sz:Q17"]],
+      ["sz:W20", ["Depends-on sz:W12 is done; may unblock"]],
+    ])
+  })
 })
 
 describe("ledger command", () => {
@@ -278,6 +322,7 @@ describe("ledger command", () => {
       assert.equal(runLedgerCommand(["--check", dir]), 1)
       assert.equal(runLedgerCommand([dir]), 0)
       assert.match(readFileSync(path.join(dir, "STANDING.md"), "utf8"), /sz:G2/)
+      assert.match(readFileSync(path.join(dir, "LEDGER-LABELS.md"), "utf8"), /sz:G2/)
     } finally {
       console.log = log
     }
@@ -294,11 +339,11 @@ describe("ledger command", () => {
       console.log = log
     }
     assert.ok(printed.some((line) => line.includes("Phase view: matcher:W1")))
-    // Only the two views written on every run (LEDGER-INDEX.md, STANDING.md) land
-    // on disk — --phase adds nothing there, on purpose (see renderPhaseView).
+    // Only the views written on every run land on disk — --phase adds
+    // nothing there, on purpose (see renderPhaseView).
     assert.deepEqual(
-      readdirSync(dir).filter((name) => name !== "LEDGER.md"),
-      ["LEDGER-INDEX.md", "STANDING.md"],
+      readdirSync(dir).filter((name) => name !== "LEDGER.md").sort(),
+      ["LEDGER-INDEX.md", "LEDGER-LABELS.md", "STANDING.md"],
     )
   })
 
@@ -314,6 +359,21 @@ describe("ledger command", () => {
       console.error = err
       console.log = log
     }
+  })
+
+  it("does not read the generated LEDGER-LABELS.md back in as a ledger partition", () => {
+    // isLedgerFileName's `LEDGER-` prefix rule would otherwise pick up
+    // LEDGER-LABELS.md as a partition and double- or mis-parse its table.
+    assert.equal(isLedgerFileName("LEDGER-LABELS.md"), false)
+
+    const without = readLedger(system({ "LEDGER.md": VALID }))
+    const withLabels = readLedger(
+      system({ "LEDGER.md": VALID, "LEDGER-LABELS.md": renderLabels(readLedger(system({ "LEDGER.md": VALID }))) }),
+    )
+    assert.deepEqual(
+      withLabels.entries.map((e) => e.key),
+      without.entries.map((e) => e.key),
+    )
   })
 })
 

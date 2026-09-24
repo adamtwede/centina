@@ -4,10 +4,11 @@ import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
 import { buildRootsFor, findConfig, systemKey } from "./config"
-import { renderIndex, renderPhaseView, renderStanding } from "./generate"
+import { renderIndex, renderLabels, renderPhaseView, renderStanding } from "./generate"
 import {
   BuildFile,
   LEDGER_INDEX,
+  LEDGER_LABELS,
   STANDING,
   commentLines,
   labelKey,
@@ -57,14 +58,15 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
 
 /**
  * `centina-check ledger <system-dir>...`: validates each system's ledger and
- * the label citations in its files, then writes LEDGER-INDEX.md and
- * STANDING.md. With `--check`, reports out-of-date generated files instead of
- * writing them. `--contracts <file>` (one system only) also enumerates the
- * `@proposal` overrides in a centina-realize contracts module. `--phase
- * <label>` (one system only) prints a phase-scoped view — the phase's items
- * plus what its `Depends-on`/`Premises`/`Constraints` reach — to stdout; it
- * is never written to disk. See docs/ledger.md, "Reading in a long session".
- * Returns the exit code.
+ * the label citations in its files, then writes LEDGER-INDEX.md,
+ * LEDGER-LABELS.md and STANDING.md. With `--check`, reports out-of-date
+ * generated files instead of writing them. `--contracts <file>` (one system
+ * only) also enumerates the `@proposal` overrides in a centina-realize
+ * contracts module. `--phase <label>` (one system only) prints a
+ * phase-scoped view — the phase's items plus what its
+ * `Depends-on`/`Premises`/`Constraints` reach — to stdout; it is never
+ * written to disk. See docs/ledger.md, "Reading in a long session". Returns
+ * the exit code.
  */
 export function runLedgerCommand(argv: string[]): number {
   let checkOnly = false
@@ -137,6 +139,7 @@ export function runLedgerCommand(argv: string[]): number {
 
     const generated: [string, string][] = [
       [LEDGER_INDEX, renderIndex(ledger)],
+      [LEDGER_LABELS, renderLabels(ledger)],
       [STANDING, renderStanding(ledger)],
     ]
     for (const [name, content] of generated) {

@@ -78,6 +78,15 @@ and a hash comparison, not a full reinstall attempted every time.
 
 ## Source freshness
 
+Everything below is about `ROOT` → `DATA`, inside one already-installed
+copy. It says nothing about how `ROOT` itself gets updated from a dev
+checkout — that boundary is crossed only by the human running `install.sh`
+(`README.md`, `docs/plugin-distribution.md`). A commit in the checkout is
+invisible to every installed copy, and to any session running against one,
+until that happens; no hook or wrapper in this doc reaches across it. See
+CLAUDE.md's rules of engagement: an agent working in the checkout does not
+run `install.sh` on the author's behalf.
+
 `SessionStart` is not enough on its own, and the original design's claim
 that "unconditional means no stale-copy failure mode" was wrong: it is
 unconditional *per session*, and a plugin update lands *during* one. The

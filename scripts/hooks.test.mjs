@@ -27,6 +27,11 @@ describe("ledger hook", () => {
     assert.equal(findSystemDir(path.join(root, "specs/other.md")), undefined)
   })
 
+  it("does not treat a differently-cased file (e.g. a reference doc named ledger.md) as a system marker", () => {
+    const root = tree({ "docs/ledger.md": "", "docs/other.md": "" })
+    assert.equal(findSystemDir(path.join(root, "docs/other.md")), undefined)
+  })
+
   it("reads ledgerHook from the nearest config and defaults to block", () => {
     const root = tree({ "specs/demo/LEDGER.md": "", "specs/plain/LEDGER.md": "" })
     assert.equal(hookMode(path.join(root, "specs/demo")), "block")

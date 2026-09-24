@@ -3,7 +3,7 @@
 // <system>/transcripts/<session-id>.jsonl for every system directory whose
 // top-level markdown records the session ID (the Session header skills write
 // from ${CLAUDE_SESSION_ID}). Never blocks. Design:
-// docs/ledger-provenance-design.md, Item B.
+// docs/ledger.md, "Transcripts".
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs"
 import path from "node:path"

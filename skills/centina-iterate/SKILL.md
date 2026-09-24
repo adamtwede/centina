@@ -249,7 +249,7 @@ Both apply throughout this loop, not just in a fresh session-zero handoff:
   scope-crossing identifier in `matchTasks`," not the bare tag). When
   re-citing one, restate a brief reminder if more than 10 labels of the same
   letter have come up since. Err toward restating when unsure. With a ledger,
-  the label index is `LEDGER-INDEX.md`; without one, keep a compact label
+  the label index is `LEDGER-LABELS.md`; without one, keep a compact label
   index in the state file.
 - **Transcripts and concurrency.** Never open a session transcript without
   asking first, and warn the human about concurrent sessions, per `ledger.md`.
