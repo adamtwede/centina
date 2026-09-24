@@ -1,6 +1,6 @@
 // PROVISIONAL BOUNDARY DECLARATOR — declarations only, no implementation.
 
-import { ModelId } from "./shared"
+import { ModelId } from "./shared.centina"
 
 export const corpusFields = [
   "uuid",

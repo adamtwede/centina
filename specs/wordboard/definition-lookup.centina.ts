@@ -6,7 +6,7 @@
 // Terminal behind this door: @external dictionary — the same terminal the
 // AlgorithmicSuggester reads (concrete source TBD). Declared at fill.
 
-import { Definition } from "./shared"
+import { Definition } from "./shared.centina"
 
 /**
  * @datasource

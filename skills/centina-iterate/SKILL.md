@@ -19,9 +19,15 @@ that stands one up.
 before the first check: the standing goals and rules, the affected work
 items, and the open items for this component. Entries from this loop use the
 spec file's basename as their scope (`task-matcher.centina.ts` gives
-`task-matcher`), and this session's ID, for the `Session` header, is
-`${CLAUDE_SESSION_ID}`. If there is no ledger, the loop works as before; don't
-create one unless the human asks.
+`task-matcher`) **only when the entry is actually about that component.** A
+decision or rule that reaches beyond the one spec being iterated (e.g. a
+naming convention, a cross-seam invariant) is not a `task-matcher` entry and
+is not an `sz` entry either — `sz` names session-zero's own entries, not
+"applies everywhere." Give it a named cross-cutting scope instead (see
+`ledger.md`, "Scopes": "a named scope for work not tied to one component"),
+and say so to the human so the scope name is agreed, not assumed. This
+session's ID, for the `Session` header, is `${CLAUDE_SESSION_ID}`. If there is
+no ledger, the loop works as before; don't create one unless the human asks.
 
 **If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
 existing config was found and setup just created one, or a config exists

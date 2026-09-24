@@ -11,7 +11,7 @@
 // class tag doesn't disambiguate direction) are first-use and under test. See
 // ARCHITECTURE.md risks.
 
-import { Suggestion, Definition, ExportFormat, InferenceOutcome } from "./shared"
+import { Suggestion, Definition, ExportFormat, InferenceOutcome } from "./shared.centina"
 
 /**
  * @boundary

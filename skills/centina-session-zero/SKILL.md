@@ -519,12 +519,16 @@ terminals → skeleton.
   the gates and only rendered mermaid at the skeleton write. Mostly fine in a
   text medium, but it drove the softening of the diagram rule to
   offer-at-each-phase-boundary and proactive-on-confusion (above).
-- _Put cross-seam vocabulary in a `shared.ts`, not in a boundary declarator
-  file._ The checker confirmed it: wordboard's boundary files pass the
-  `boundary-dependency` rule because their contract types live in `shared.ts`,
-  whereas a declarator that co-locates its types with the boundary trips that
-  rule (the founding `task-corpus` fixture does). Default a session-zero skeleton
-  to a `shared.ts` for the vocabulary the DAG traffics in across seams.
+- _Put cross-seam vocabulary in a `shared.centina.ts`, not in a boundary
+  declarator file._ The checker confirmed it: wordboard's boundary files pass
+  the `boundary-dependency` rule because their contract types live in
+  `shared.centina.ts`, whereas a declarator that co-locates its types with the
+  boundary trips that rule (the founding `task-corpus` fixture does). It must
+  keep the `.centina.ts` suffix — the checker's spec-plane rules (hole
+  enumeration, `@agent:` labels) only scan files with that suffix, and a plain
+  `shared.ts` is invisible to them even though it can carry real spec content
+  (holes included). Default a session-zero skeleton to a `shared.centina.ts`
+  for the vocabulary the DAG traffics in across seams.
 - _Held internal-processing holes route to `deferred<"unimplemented">`_ — the
   human fills them, in place, at `centina-iterate`. That correctly leaves
   `bin/centina-check` reporting them as errors until fill: the honest "work

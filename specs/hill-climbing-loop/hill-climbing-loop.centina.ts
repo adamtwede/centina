@@ -32,7 +32,7 @@
 
 import { Agent, Skill, deferred } from "../../centina"
 import { taskMatcherEngine } from "./task-matcher.centina"
-import { ModelId } from "./shared"
+import { ModelId } from "./shared.centina"
 import {
   Attempt,
   Task,

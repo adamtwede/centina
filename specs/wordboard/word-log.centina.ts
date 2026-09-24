@@ -14,7 +14,7 @@
 // Promote it to its own node when a second consumer appears, Upload lands, or
 // formats proliferate (see ARCHITECTURE.md rejected alternatives).
 
-import { LogEntry, ExportFormat } from "./shared"
+import { LogEntry, ExportFormat } from "./shared.centina"
 
 /**
  * @boundary

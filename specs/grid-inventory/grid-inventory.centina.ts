@@ -29,7 +29,7 @@ import {
   SortCriteria,
   Stack,
   StoreResult,
-} from "./shared"
+} from "./shared.centina"
 
 // The frozen client door-set. Coordinate-addressed throughout: reads resolve to
 // the placement COVERING the given coord, writes place rooted at it. This is the
