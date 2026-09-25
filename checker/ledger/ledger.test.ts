@@ -92,9 +92,43 @@ describe("ledger check", () => {
     assert.ok(found.includes("ledger-field-not-applicable"))
   })
 
-  it("accepts Kind: premise on an R entry", () => {
+  it("accepts an A entry, with Tags and no Kind", () => {
     assert.deepEqual(
-      check({ "LEDGER.md": `### sz:R1: ice-shell thickness\n- Kind: premise\n- Status: ratified\n` }),
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness is 3 km\n- Status: ratified\n- Tags: world, terrain\n`,
+      }),
+      [],
+    )
+  })
+
+  it("rejects Tags on a non-A entry", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: a rule\n- Kind: structural\n- Status: ratified\n- Tags: world\n`,
+    })
+    assert.ok(found.includes("ledger-field-not-applicable"))
+  })
+
+  it("lets any letter cite Premises, not only W", () => {
+    assert.deepEqual(
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n\n### sz:R1: a rule consistent with the axiom\n- Kind: design\n- Status: ratified\n- Premises: sz:A1\n`,
+      }),
+      [],
+    )
+  })
+
+  it("locks axiom dependency direction: an A's Premises must resolve to other A entries", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: a rule\n- Kind: design\n- Status: ratified\n\n### sz:A1: an axiom depending on a rule\n- Status: ratified\n- Premises: sz:R1\n`,
+    })
+    assert.ok(found.includes("ledger-malformed"))
+  })
+
+  it("lets one axiom depend on another", () => {
+    assert.deepEqual(
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n\n### sz:A2: ocean depth, chosen given the shell\n- Status: ratified\n- Premises: sz:A1\n`,
+      }),
       [],
     )
   })
@@ -253,6 +287,31 @@ describe("ledger generation", () => {
     const standing = renderStanding(readLedger(system({ "LEDGER.md": VALID })))
     assert.match(standing, /- `sz:G1`: Is information-first play engaging\?/)
     assert.match(standing, /- `sz:R1` \(structural\): Only the simulation touches content generation/)
+  })
+
+  it("lists axioms flat when none are tagged, and excludes retired/superseded ones", () => {
+    const standing = renderStanding(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:A1: ice-shell thickness is 3 km\n- Status: ratified\n\n### sz:A2: an old value\n- Status: superseded\n- Obsoleted-by: sz:A1\n`,
+        }),
+      ),
+    )
+    assert.match(standing, /## Axioms\n\n- `sz:A1`: ice-shell thickness is 3 km/)
+    assert.doesNotMatch(standing, /sz:A2/)
+  })
+
+  it("groups tagged axioms into subsections, with untagged ones last", () => {
+    const standing = renderStanding(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n- Tags: world\n\n### sz:A2: hull mass\n- Status: provisional\n- Tags: vessel\n\n### sz:A3: unsorted value\n- Status: ratified\n`,
+        }),
+      ),
+    )
+    assert.match(standing, /### vessel\n\n- `sz:A2` \(provisional\): hull mass/)
+    assert.match(standing, /### world\n\n- `sz:A1`: ice-shell thickness/)
+    assert.match(standing, /### Untagged\n\n- `sz:A3`: unsorted value/)
   })
 
   it("groups open items by phase and lists settled items with successors", () => {

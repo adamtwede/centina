@@ -107,13 +107,14 @@ always write the qualified label. Cite another system's label as
 
 | Letter | For | Statuses |
 |---|---|---|
+| `A` | axiom: an authored, external-provenance given (see "Axioms") | `provisional`, `ratified`, `retired` |
 | `P` | proposal | `open`, `ratified`, `rejected`, `withdrawn` |
 | `Q` | question | `open`, `answered`, `withdrawn` |
 | `F` | finding | `hypothesis`, `predicted`, `measured`, `measured-false`, `withdrawn` |
 | `O` | option within a fork | `open`, `chosen`, `declined` |
 | `W` | work item (`Kind`: `phase`, `step`, `spike`, `change-request`, `other`) | `planned`, `active`, `blocked`, `deferred`, `done`, `withdrawn` |
 | `G` | goal or thesis | `active`, `deferred`, `retired` |
-| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`, `premise`) | `provisional`, `ratified`, `retired` |
+| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`) | `provisional`, `ratified`, `retired` |
 
 Every letter can also be `superseded`, which requires `Obsoleted-by`.
 
@@ -127,11 +128,12 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 | `Status` | any | Required |
 | `Kind` | `W`, `R` | Required on those letters |
 | `Depends-on` | `W` | Labels that must be resolved first; required when `blocked` |
-| `Premises` | `W` | Labels assumed true |
+| `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
 | `Constraints` | phase `W` | `R` labels that bear on the phase |
 | `Review` | `R` | When a `provisional` rule is reconsidered; required when `provisional` |
 | `Enforced-by` | `R` | The type or test enforcing the rule |
 | `Evidence` | `F` | Harness, command, commit; required when `measured` or `measured-false` |
+| `Tags` | `A` | Free-text, comma-separated categories for grouping (e.g. `world, vessel`) |
 | `Obsoletes` / `Obsoleted-by` | any | Full replacement, recorded on both entries |
 | `Updates` / `Updated-by` | any | Partial change (usually a part), recorded on both entries |
 | `Renumbered-from` | any | Old label after fixing a duplicate |
@@ -344,21 +346,16 @@ every status change, at every gate, and before every derived-doc write.
   `Enforced-by`. A guard in build code counts as enforcement.
 - `Kind: limit` is for a rule that holds because something is not built: a
   guard refusing a capability, an unsupported case, a hard-coded
-  simplification. Its ordinary end is `retired`, once somebody builds the
-  thing.
-- `Kind: premise` is for an authored property a simulated or generated world
-  leaves open by design — ice-shell thickness, an ambient noise floor, a
-  power-scaling law — chosen within a sourced plausible range rather than
-  derived. Record the value, the range and its source, and whether it was
-  selected deliberately or only inherited from an earlier choice, in the
-  body (as lettered parts). It is revisable by design: record a changed
-  value as a new entry that `Obsoletes` the old one, the same as any other
-  supersession, rather than editing the value in place. Unlike `limit`, a
-  premise does not end at `retired` when something is built — it keeps
-  getting superseded as the authored value moves.
-- `structural`, `design`, `method` and `process` record decisions meant to
-  last; `limit` and `premise` are the two Kinds that are expected to change
-  or disappear on purpose.
+  simplification. It is the one Kind whose ordinary end is `retired`, once
+  somebody builds the thing. The other four record decisions meant to last.
+- **Ratify an `R` against what it must stay consistent with, not in
+  isolation.** The standard for a rule is "we decided, consistent with
+  existing rules and axioms" — cite the `R` and `A` entries it must hold
+  alongside in `Premises` (any letter can carry `Premises`; see "Axioms" for
+  why an `A` can show up there). The citation can't verify the reasoning
+  itself, but it means the existing stale-citation check catches it
+  automatically the moment one of those cited entries is later superseded —
+  the rule's claimed context stops being silently taken for granted.
 - **A guard in build code cites an `R`. Whatever settled the rule may sit
   beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
   all mean the entry finished, not that the ruling stopped holding, so a
@@ -377,6 +374,66 @@ every status change, at every gate, and before every derived-doc write.
 - `STANDING.md` lists active goals and current rules. Offer once per project
   to import it from the host project's CLAUDE.md (or AGENTS.md) with an
   `@<path to STANDING.md>` line, so the rules load in every session.
+
+## Axioms
+
+An `A` records an authored, quantitative given about the thing being
+specified — an ice-shell thickness, an ambient noise floor, a power-scaling
+law — not a rule about how the project must behave. What tells the two
+apart:
+
+- **Provenance runs the opposite way from a rule's.** A rule's authority is
+  "we decided" (see above). An axiom's authority comes from outside the
+  project — real-world science, source material, whatever ground truth the
+  work answers to — chosen from within a sourced plausible range, not
+  derived and not decided from scratch.
+- **A rule is categorical; an axiom is a value picked from a range.** There's
+  no "why this number and not a nearby one" for a rule beyond a design
+  tradeoff. For an axiom there always is: record the range and its source in
+  the body (as lettered parts), and whether the value was selected
+  deliberately or only inherited from an earlier axiom — later axioms are
+  constrained by ones already chosen, unless there's a strong
+  project-goal-level reason otherwise.
+- **A rule is `Enforced-by` a guard; an axiom is instantiated, not
+  enforced.** Code reads an axiom's value; nothing refuses a violation of
+  it. A guard that keeps some *derived* value inside an axiom's range is
+  itself an `R`, layered on top — the axiom being right isn't something code
+  checks.
+- **A value that's derived from an axiom, not authored, is not itself an
+  axiom** — even if it's quantitative (a detection range, a speed penalty).
+  Record it as an `F` (`predicted`/`measured`, with `Evidence`) that cites
+  the axiom it derives from via `Premises`, so it's findable the same way
+  any other dependent is when the axiom moves.
+
+Statuses: `provisional` (not yet sourced — the placeholder case that used to
+get misfiled as `Kind: limit` on an `R`), `ratified` (a sourced value in
+effect), `superseded` when the authored value changes. `retired` is for the
+rare case where the axiom stops applying at all (the thing it described was
+cut), not for a value that changed — ending at `retired` is not an axiom's
+ordinary outcome the way it is for `Kind: limit`; an axiom normally keeps
+getting superseded as the authored value moves.
+
+**Dependency direction is locked one way, mechanically.** An axiom's
+`Premises` may only cite other axioms — the checker rejects any other letter
+there (`ledger-malformed`). Everything else cites `Premises` freely,
+including axioms (see the `R` bullet above). This is deliberate: letting an
+axiom cite a rule would let authored ground truth start quietly depending on
+an internal decision, the reverse of what an axiom is for.
+
+**"Depended on by" is a computed view, not a field.** Nothing hand-maintains
+a reverse pointer on the axiom itself — that would reintroduce the
+one-copy-amended drift "Why this format" exists to close, just on a new
+field, since it'd be added to incrementally by different entries at
+different times rather than written once by whoever supersedes something.
+What depends on an axiom is found by scanning for `Premises` citations that
+resolve to it, the same way `LEDGER-INDEX.md`'s "Affected work items" is
+generated from `Depends-on`/`Premises` today.
+
+**`Tags`** groups axioms into project-defined categories (e.g. `world`,
+`vessel`) for `STANDING.md` and human readability: free text,
+comma-separated, `A`-only, no fixed vocabulary, and an axiom can carry more
+than one. If a project wants axioms restricted to a single tag, record that
+as the project's own `R`; the checker doesn't enforce it.
 
 ## Transcripts
 

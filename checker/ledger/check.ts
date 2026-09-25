@@ -16,6 +16,7 @@ import {
 } from "./parse"
 
 export const STATUSES: Record<Letter, string[]> = {
+  A: ["provisional", "ratified", "retired", "superseded"],
   P: ["open", "ratified", "rejected", "withdrawn", "superseded"],
   Q: ["open", "answered", "withdrawn", "superseded"],
   F: ["hypothesis", "predicted", "measured", "measured-false", "withdrawn", "superseded"],
@@ -27,11 +28,11 @@ export const STATUSES: Record<Letter, string[]> = {
 
 const KINDS: Partial<Record<Letter, string[]>> = {
   W: ["phase", "step", "spike", "change-request", "other"],
-  R: ["structural", "design", "method", "process", "limit", "premise"],
+  R: ["structural", "design", "method", "process", "limit"],
 }
 
 const AGENT_LABEL = /@agent\(([^)]*)\)/g
-const BARE_LABEL_EXACT = /^[PQFOWGR][1-9]\d*$/
+const BARE_LABEL_EXACT = /^[PQFOWGRA][1-9]\d*$/
 
 function isLedgerLabel(text: string): boolean {
   return BARE_LABEL_EXACT.test(text) || parseQualified(text) !== undefined
@@ -76,17 +77,18 @@ const KNOWN_FIELDS = new Set([
   "Review",
   "Enforced-by",
   "Evidence",
+  "Tags",
   ...Object.keys(LIST_FIELDS),
 ])
 
 const FIELD_LETTERS: Record<string, Letter[]> = {
   Kind: ["W", "R"],
   "Depends-on": ["W"],
-  Premises: ["W"],
   Constraints: ["W"],
   Review: ["R"],
   "Enforced-by": ["R"],
   Evidence: ["F"],
+  Tags: ["A"],
 }
 
 export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: BuildFile[] = []): Finding[] {
@@ -421,6 +423,23 @@ function checkHeader(
   for (const ref of fieldRefs(entry, "Constraints").refs) {
     if (ref.letter !== "R") {
       error("ledger-malformed", entry.file, constraints!.line, `"Constraints" must cite R entries, not ${formatRef(ref)}`)
+    }
+  }
+
+  // An axiom's authority runs one way: it may rest on other axioms, but
+  // never on a decision made from inside the project (a Rule, a Proposal, a
+  // Work item, ...). Anything else cites Premises freely.
+  if (letter === "A") {
+    const premises = entry.fields.get("Premises")
+    for (const ref of fieldRefs(entry, "Premises").refs) {
+      if (ref.letter !== "A") {
+        error(
+          "ledger-malformed",
+          entry.file,
+          premises!.line,
+          `an axiom's "Premises" must cite other A entries, not ${formatRef(ref)}`,
+        )
+      }
     }
   }
 

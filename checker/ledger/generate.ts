@@ -41,8 +41,42 @@ function table(header: string[], rows: string[][]): string[] {
   ]
 }
 
+/** An axiom's `Tags` field, split into its (free-text, unresolved) categories. */
+function axiomTags(axiom: Entry): string[] {
+  const field = axiom.fields.get("Tags")
+  if (!field) return []
+  return field.value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+
+/** Axioms grouped by Tags, each tag getting its own subsection; untagged axioms come last. */
+function axiomLines(axioms: Entry[]): string[] {
+  if (axioms.length === 0) return ["_None._"]
+
+  const line = (a: Entry) => `- \`${a.key}\`${status(a) === "provisional" ? " (provisional)" : ""}: ${a.title}`
+
+  const byTag = new Map<string, Entry[]>()
+  const untagged: Entry[] = []
+  for (const axiom of axioms) {
+    const tags = axiomTags(axiom)
+    if (tags.length === 0) untagged.push(axiom)
+    for (const tag of tags) byTag.set(tag, [...(byTag.get(tag) ?? []), axiom])
+  }
+
+  // Nothing is tagged: a flat list, rather than inventing subheadings nobody asked for.
+  if (byTag.size === 0) return axioms.map(line)
+
+  const lines: string[] = []
+  for (const tag of [...byTag.keys()].sort()) lines.push(`### ${tag}`, "", ...byTag.get(tag)!.map(line), "")
+  if (untagged.length > 0) lines.push("### Untagged", "", ...untagged.map(line), "")
+  return lines.slice(0, -1)
+}
+
 function standingLines(entries: Entry[]): string[] {
   const goals = entries.filter((e) => e.ref.letter === "G" && status(e) === "active")
+  const axioms = entries.filter((e) => e.ref.letter === "A" && status(e) !== undefined && !NOT_HOLDING.has(status(e)!))
   const rules = entries.filter((e) => e.ref.letter === "R" && status(e) !== undefined && !NOT_HOLDING.has(status(e)!))
   const kindOf = (rule: Entry) => rule.fields.get("Kind")?.value
 
@@ -63,6 +97,8 @@ function standingLines(entries: Entry[]): string[] {
   return [
     ...section("## Goals", goals.map((g) => `- \`${g.key}\`: ${g.title}`)),
     "",
+    ...section("## Axioms", axiomLines(axioms)),
+    "",
     ...section("## Rules", decided.map((r) => line(r, true))),
     "",
     ...section("## Current limits", limits.map((r) => line(r, false))),
@@ -70,7 +106,14 @@ function standingLines(entries: Entry[]): string[] {
 }
 
 export function renderStanding(ledger: Ledger): string {
-  return [GENERATED_NOTE, "", `# Standing goals and rules: ${ledger.system}`, "", ...standingLines(uniqueEntries(ledger)), ""].join("\n")
+  return [
+    GENERATED_NOTE,
+    "",
+    `# Standing goals, axioms and rules: ${ledger.system}`,
+    "",
+    ...standingLines(uniqueEntries(ledger)),
+    "",
+  ].join("\n")
 }
 
 /** Every label, for taking the next number in a scope and for looking up a label's file. */
