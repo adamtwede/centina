@@ -53,7 +53,7 @@ async function main() {
   let level = process.argv[2]
   if (!level) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    level = (await ask(rl, "major, minor, or hotfix? (ctrl+c to skip)")).trim().toLowerCase()
+    level = (await ask(rl, "major, minor, or hotfix? (ctrl+c to skip): ")).trim().toLowerCase()
     rl.close()
   }
 
