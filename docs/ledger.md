@@ -83,7 +83,14 @@ Body text. Never rewritten once written.
    comma-separated.
 3. **Body:** append-only. Headers are the only part you edit later.
 4. **Parts:** when an entry has more than one decidable part, letter them
-   `(a)`, `(b)` as you write it. Never add letters afterwards.
+   `(a)`, `(b)` as you write it. Never add letters afterwards. Addressing
+   goes one level deep: `Updates`/`Updated-by`/`Premises` can cite a part
+   (`sz:A17(a)`) but not a numbered item inside one's prose (there's no
+   `sz:A17(a)2`). If a later entry only narrows one item of an enumerated
+   part, cite the whole part and say which item in your own body text —
+   or, if items need to be citable on their own going forward, give them
+   their own letters when you write them, rather than nesting numbers
+   under a letter after the fact.
 5. **Session:** the full session ID. Each skill states the current ID in its
    setup section (in Claude Code, from `${CLAUDE_SESSION_ID}`). On a harness
    without one, ask the human for a session identifier and use it
@@ -102,6 +109,27 @@ Inside a `<scope>.centina.ts` file's comments, a bare label (`P12`) means that
 file's scope. Everywhere else, including this ledger and ARCHITECTURE.md,
 always write the qualified label. Cite another system's label as
 `<system>/<scope>:<label>`.
+
+A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`
+only at `error` when its letter and number match a real entry somewhere in
+this system, under whatever scope — almost certainly a citation that lost
+its scope prefix. One that matches nothing anywhere is reported at
+`warning`: coincidental prose (a test name, a grade, a model number) that
+just happens to be letter-then-digits, which every new letter makes more
+likely. This matters because ledger bodies are append-only (see "Entry
+format"): an old line can't be edited to satisfy a check that starts firing
+on it later, so that case can never block.
+
+A match is dropped entirely — no finding, not even a `warning` — when every
+matching entry is `Date`d after the entry containing the token: a citation
+can't name something that didn't exist yet when it was written, so that's
+not just probably prose, it's provably prose, and a permanently-true
+`warning` on a line that can never be edited is pure noise once it's
+proven. (Loose lines outside any entry, and citations in files other than
+the ledger, have no containing `Date` to compare against, so they keep the
+existence-only rule above.) Same-day counts as "could have existed" and
+stays an `error`; a missing or malformed `Date` on either side does too,
+rather than guessing.
 
 ### Letters and statuses
 
@@ -126,7 +154,7 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 | `Session` | any | Session ID that recorded it |
 | `Phase` | any | The phase work item, e.g. `task-matcher:W1` |
 | `Status` | any | Required |
-| `Kind` | `W`, `R` | Required on those letters |
+| `Kind` | `W`, `R` | Required on those letters; not re-validated once an entry is no longer holding (see rule 8) |
 | `Depends-on` | `W` | Labels that must be resolved first; required when `blocked` |
 | `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
 | `Constraints` | phase `W` | `R` labels that bear on the phase |
@@ -165,6 +193,15 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
    open items to the phase that will own it, drop the `Phase` field if
    nobody does yet, or resolve/withdraw/defer the item itself — never leave
    one for "the index" to catch.
+8. **A vocabulary change (a `Kind` retired, renamed, or split) is not
+   retroactive.** The checker only validates `Kind` on entries that still
+   hold; an entry already `superseded`/`retired`/etc. keeps whatever `Kind`
+   it was written with, even if that value no longer appears in the current
+   list. If existing entries are using a value you're retiring, supersede
+   them into the replacement shape (new entries, `Obsoletes`/`Obsoleted-by`
+   both ways) rather than rewriting or renumbering them in place — labels
+   are never reused or renumbered (rule 2) even when the vocabulary under
+   them moves.
 
 ## When a status changes
 
@@ -384,9 +421,11 @@ apart:
 
 - **Provenance runs the opposite way from a rule's.** A rule's authority is
   "we decided" (see above). An axiom's authority comes from outside the
-  project — real-world science, source material, whatever ground truth the
-  work answers to — chosen from within a sourced plausible range, not
-  derived and not decided from scratch.
+  project's own decisions — real-world science and source material, but
+  also an authored engineering given bounded by a plausible external range
+  (a hull length bounded by what fits through the ice, a sensing length
+  bounded by what's physically deliverable) — chosen from within that
+  range, not derived and not decided from scratch.
 - **A rule is categorical; an axiom is a value picked from a range.** There's
   no "why this number and not a nearby one" for a rule beyond a design
   tradeoff. For an axiom there always is: record the range and its source in

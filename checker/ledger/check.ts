@@ -121,6 +121,39 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: Build
   }
   const resolve = (ref: LabelRef) => byKey.get(labelKey(ref))
 
+  // A bare token whose letter+number matches nothing anywhere in this system
+  // is almost certainly ordinary prose (a test name, a grade, a model
+  // number) that happens to be shaped like a label — a growing letter
+  // alphabet only makes that collision more likely over time, and ledger
+  // body text is append-only, so warn rather than error: an error here could
+  // never be fixed once the line is history. One that does match is usually
+  // a citation missing its scope, so that stays an error, UNLESS every
+  // matching entry is dated after the text containing the token — a
+  // citation can't name something that didn't exist yet. That's not a soft
+  // signal, it's proof there's no citation here, so report nothing at all
+  // (undefined): a permanently-true "warning" on an append-only line is pure
+  // noise with no remaining diagnostic value. The date comparison only fires
+  // when both dates are well-formed; a missing or malformed `Date` stays
+  // conservative (kept as an error) rather than guessing.
+  const byLetterNumber = new Map<string, (string | undefined)[]>()
+  for (const entry of ledger.entries) {
+    const key = `${entry.ref.letter}${entry.ref.number}`
+    const dates = byLetterNumber.get(key) ?? []
+    dates.push(entry.fields.get("Date")?.value)
+    byLetterNumber.set(key, dates)
+  }
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+  const bareLabelSeverity = (ref: LabelRef, containingDate?: string): Finding["severity"] | undefined => {
+    const dates = byLetterNumber.get(`${ref.letter}${ref.number}`)
+    if (!dates) return "warning"
+    if (!containingDate || !ISO_DATE.test(containingDate)) return "error"
+    const couldPredate = dates.some((date) => !date || !ISO_DATE.test(date) || date <= containingDate)
+    return couldPredate ? "error" : undefined
+  }
+  // A bare ref carries no scope by definition; showing it via `formatRef`
+  // would print a bare, confusing `:A2`.
+  const formatBare = (ref: LabelRef) => `${ref.letter}${ref.number}${ref.part ? `(${ref.part})` : ""}`
+
   const checkResolved = (ref: LabelRef, file: string, line: number) => {
     if (ref.system) return
     const target = resolve(ref)
@@ -136,19 +169,28 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: Build
   }
   checkReciprocity(ledger.entries, error, resolve)
 
-  const checkLedgerLines = (file: string, lines: SourceLine[]) => {
+  const checkLedgerLines = (file: string, lines: SourceLine[], containingDate?: string) => {
     for (const sourceLine of lines) {
       if (sourceLine.code) continue
       for (const { ref, bare } of refsInText(sourceLine.text)) {
         if (bare) {
-          error("ledger-bare-label", file, sourceLine.line, `bare label ${formatRef(ref)}; qualify it with its scope`)
+          const severity = bareLabelSeverity(ref, containingDate)
+          if (severity) {
+            error(
+              "ledger-bare-label",
+              file,
+              sourceLine.line,
+              `bare label ${formatBare(ref)}; qualify it with its scope`,
+              severity,
+            )
+          }
         } else {
           checkResolved(ref, file, sourceLine.line)
         }
       }
     }
   }
-  for (const entry of ledger.entries) checkLedgerLines(entry.file, entry.body)
+  for (const entry of ledger.entries) checkLedgerLines(entry.file, entry.body, entry.fields.get("Date")?.value)
   for (const { file, lines } of ledger.looseLines) checkLedgerLines(file, lines)
 
   const allScanned = [...scanned, ...build.map((buildFile) => ({ file: buildFile.file, lines: buildFile.comments }))]
@@ -172,12 +214,16 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: Build
       const refs = refsInText(sourceLine.text).flatMap(({ ref, bare }) => {
         if (!bare) return [ref]
         if (scannedFile.bareScope) return [{ ...ref, scope: scannedFile.bareScope }]
-        error(
-          "ledger-bare-label",
-          scannedFile.file,
-          sourceLine.line,
-          `bare label ${formatRef(ref)} outside a component spec; qualify it with its scope`,
-        )
+        const severity = bareLabelSeverity(ref)
+        if (severity) {
+          error(
+            "ledger-bare-label",
+            scannedFile.file,
+            sourceLine.line,
+            `bare label ${formatBare(ref)} outside a component spec; qualify it with its scope`,
+            severity,
+          )
+        }
         return []
       })
       const keysOnLine = new Set(refs.filter((ref) => !ref.system).map(labelKey))
@@ -384,15 +430,21 @@ function checkHeader(
 
   const kinds = KINDS[letter]
   const kind = entry.fields.get("Kind")
-  if (kinds && !kind) {
-    error("ledger-invalid-kind", entry.file, entry.line, `${entry.key} has no Kind`)
-  } else if (kinds && kind && !kinds.includes(kind.value)) {
-    error(
-      "ledger-invalid-kind",
-      entry.file,
-      kind.line,
-      `"${kind.value}" is not a valid Kind for ${letter} entries; expected one of: ${kinds.join(", ")}`,
-    )
+  // A dead entry's Kind is frozen history: it was valid when written, and a
+  // later vocabulary change (a Kind retired, renamed, or split) shouldn't
+  // turn old, no-longer-holding entries permanently red. Same principle as
+  // checkStale not re-validating a superseded entry's content.
+  if (!(statusValue && NOT_HOLDING.has(statusValue))) {
+    if (kinds && !kind) {
+      error("ledger-invalid-kind", entry.file, entry.line, `${entry.key} has no Kind`)
+    } else if (kinds && kind && !kinds.includes(kind.value)) {
+      error(
+        "ledger-invalid-kind",
+        entry.file,
+        kind.line,
+        `"${kind.value}" is not a valid Kind for ${letter} entries; expected one of: ${kinds.join(", ")}`,
+      )
+    }
   }
 
   const requires = (condition: boolean, field: string, message: string) => {

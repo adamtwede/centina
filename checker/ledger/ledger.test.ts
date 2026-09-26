@@ -92,6 +92,13 @@ describe("ledger check", () => {
     assert.ok(found.includes("ledger-field-not-applicable"))
   })
 
+  it("does not re-validate Kind on an entry that no longer holds", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: retired rule with a retired Kind\n- Kind: premise\n- Status: superseded\n- Obsoleted-by: sz:A1\n\n### sz:A1: replacement axiom\n- Status: ratified\n- Obsoletes: sz:R1\n`,
+    })
+    assert.ok(!found.includes("ledger-invalid-kind"))
+  })
+
   it("accepts an A entry, with Tags and no Kind", () => {
     assert.deepEqual(
       check({
@@ -190,9 +197,41 @@ describe("ledger check", () => {
       "matcher.centina.ts": `// Decided by W2.\nconst W9 = 1\n`,
     })
     assert.deepEqual(
-      found.map((f) => [f.rule, path.basename(f.file)]),
-      [["ledger-bare-label", "ARCHITECTURE.md"]],
+      found.map((f) => [f.rule, path.basename(f.file), f.severity]),
+      [["ledger-bare-label", "ARCHITECTURE.md", "error"]],
     )
+    assert.match(found[0].message, /bare label P2 /)
+    assert.doesNotMatch(found[0].message, /:P2/)
+  })
+
+  it("warns instead of erroring on a bare-looking token that matches no entry in this system", () => {
+    const found = check({
+      "LEDGER.md": VALID,
+      "ARCHITECTURE.md": `Its A2 block passed.\n`,
+    })
+    assert.deepEqual(
+      found.map((f) => [f.rule, f.severity]),
+      [["ledger-bare-label", "warning"]],
+    )
+  })
+
+  it("reports nothing at all when every matching entry postdates the citing text: proven, not just probable, prose", () => {
+    const found = check({
+      "LEDGER.md": `### sz:F1: early note\n- Date: 2026-01-01\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom added later\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(found, [])
+  })
+
+  it("keeps a bare match as an error when the matching entry could already have existed, or dates are missing", () => {
+    const sameDay = check({
+      "LEDGER.md": `### sz:F1: same-day note\n- Date: 2026-09-24\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom same day\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(sameDay.map((f) => [f.rule, f.severity]), [["ledger-bare-label", "error"]])
+
+    const noDate = check({
+      "LEDGER.md": `### sz:F1: undated note\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom, dated\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(noDate.map((f) => [f.rule, f.severity]), [["ledger-bare-label", "error"]])
   })
 
   it("reports a bare label that resolves to an undefined entry in a spec comment", () => {
