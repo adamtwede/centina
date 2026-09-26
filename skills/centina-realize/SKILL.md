@@ -113,13 +113,20 @@ Status is `planned` until the human confirms the plan, then the phase becomes
 ## Working a step
 
 1. Set the step `active`.
-2. Build steps: write code against spec types (below). Spikes: write the
+2. Read only what this step needs: the contracts module, the fill file(s)
+   this step touches, their existing conformance assertions, and the
+   closing test. Do not read the wider implementation tree to "see what's
+   already built" — the run frame and the phase's ledger view already say
+   that. Use search (grep, or a code-navigation tool if one is available)
+   to locate a specific cross-reference named in the plan; that is a
+   targeted lookup, not a re-orientation read.
+3. Build steps: write code against spec types (below). Spikes: write the
    measurement plan first and get it confirmed.
-3. Run the closing test. It must print. Record findings as they appear.
-4. Close the step: `done`, with the evidence in the body or in `F` entries.
+4. Run the closing test. It must print. Record findings as they appear.
+5. Close the step: `done`, with the evidence in the body or in `F` entries.
    Run the `--contracts` check and the conformance-coverage check
    ("Contract changes").
-5. **Review the remaining plan with the human** before starting the next
+6. **Review the remaining plan with the human** before starting the next
    step:
    - does anything this step found change a later step, a premise, or the
      definition of done;
