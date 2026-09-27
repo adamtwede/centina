@@ -92,6 +92,54 @@ describe("ledger check", () => {
     assert.ok(found.includes("ledger-field-not-applicable"))
   })
 
+  it("does not re-validate Kind on an entry that no longer holds", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: retired rule with a retired Kind\n- Kind: premise\n- Status: superseded\n- Obsoleted-by: sz:A1\n\n### sz:A1: replacement axiom\n- Status: ratified\n- Obsoletes: sz:R1\n`,
+    })
+    assert.ok(!found.includes("ledger-invalid-kind"))
+  })
+
+  it("accepts an A entry, with Tags and no Kind", () => {
+    assert.deepEqual(
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness is 3 km\n- Status: ratified\n- Tags: world, terrain\n`,
+      }),
+      [],
+    )
+  })
+
+  it("rejects Tags on a non-A entry", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: a rule\n- Kind: structural\n- Status: ratified\n- Tags: world\n`,
+    })
+    assert.ok(found.includes("ledger-field-not-applicable"))
+  })
+
+  it("lets any letter cite Premises, not only W", () => {
+    assert.deepEqual(
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n\n### sz:R1: a rule consistent with the axiom\n- Kind: design\n- Status: ratified\n- Premises: sz:A1\n`,
+      }),
+      [],
+    )
+  })
+
+  it("locks axiom dependency direction: an A's Premises must resolve to other A entries", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:R1: a rule\n- Kind: design\n- Status: ratified\n\n### sz:A1: an axiom depending on a rule\n- Status: ratified\n- Premises: sz:R1\n`,
+    })
+    assert.ok(found.includes("ledger-malformed"))
+  })
+
+  it("lets one axiom depend on another", () => {
+    assert.deepEqual(
+      check({
+        "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n\n### sz:A2: ocean depth, chosen given the shell\n- Status: ratified\n- Premises: sz:A1\n`,
+      }),
+      [],
+    )
+  })
+
   it("reports one-way supersession and a status mismatch", () => {
     const found = rules({
       "LEDGER.md": `### sz:P1: old\n- Status: superseded\n\n### sz:P2: new\n- Status: ratified\n- Obsoletes: sz:P1\n`,
@@ -104,6 +152,27 @@ describe("ledger check", () => {
       "LEDGER.md": `### sz:P1: old\n- Status: ratified\n\n(a) part\n\n### sz:P2: amends\n- Status: ratified\n- Updates: sz:P1(a)\n`,
     })
     assert.ok(found.includes("ledger-supersession"))
+  })
+
+  it("reports an open item whose Phase points at a closed phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+    })
+    assert.ok(found.includes("ledger-phase-closed"))
+  })
+
+  it("does not flag a dispositioned item under a closed phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: answered before close\n- Phase: sz:W1\n- Status: answered\n`,
+    })
+    assert.ok(!found.includes("ledger-phase-closed"))
+  })
+
+  it("does not flag an open item under a still-open phase", () => {
+    const found = rules({
+      "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: active\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+    })
+    assert.ok(!found.includes("ledger-phase-closed"))
   })
 
   it("requires Evidence, Depends-on and Review where they apply", () => {
@@ -128,9 +197,41 @@ describe("ledger check", () => {
       "matcher.centina.ts": `// Decided by W2.\nconst W9 = 1\n`,
     })
     assert.deepEqual(
-      found.map((f) => [f.rule, path.basename(f.file)]),
-      [["ledger-bare-label", "ARCHITECTURE.md"]],
+      found.map((f) => [f.rule, path.basename(f.file), f.severity]),
+      [["ledger-bare-label", "ARCHITECTURE.md", "error"]],
     )
+    assert.match(found[0].message, /bare label P2 /)
+    assert.doesNotMatch(found[0].message, /:P2/)
+  })
+
+  it("warns instead of erroring on a bare-looking token that matches no entry in this system", () => {
+    const found = check({
+      "LEDGER.md": VALID,
+      "ARCHITECTURE.md": `Its A2 block passed.\n`,
+    })
+    assert.deepEqual(
+      found.map((f) => [f.rule, f.severity]),
+      [["ledger-bare-label", "warning"]],
+    )
+  })
+
+  it("reports nothing at all when every matching entry postdates the citing text: proven, not just probable, prose", () => {
+    const found = check({
+      "LEDGER.md": `### sz:F1: early note\n- Date: 2026-01-01\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom added later\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(found, [])
+  })
+
+  it("keeps a bare match as an error when the matching entry could already have existed, or dates are missing", () => {
+    const sameDay = check({
+      "LEDGER.md": `### sz:F1: same-day note\n- Date: 2026-09-24\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom same day\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(sameDay.map((f) => [f.rule, f.severity]), [["ledger-bare-label", "error"]])
+
+    const noDate = check({
+      "LEDGER.md": `### sz:F1: undated note\n- Status: hypothesis\n\nIts A2 block passed.\n\n### sz:A2: axiom, dated\n- Date: 2026-09-24\n- Status: ratified\n`,
+    })
+    assert.deepEqual(noDate.map((f) => [f.rule, f.severity]), [["ledger-bare-label", "error"]])
   })
 
   it("reports a bare label that resolves to an undefined entry in a spec comment", () => {
@@ -227,10 +328,46 @@ describe("ledger generation", () => {
     assert.match(standing, /- `sz:R1` \(structural\): Only the simulation touches content generation/)
   })
 
+  it("lists axioms flat when none are tagged, and excludes retired/superseded ones", () => {
+    const standing = renderStanding(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:A1: ice-shell thickness is 3 km\n- Status: ratified\n\n### sz:A2: an old value\n- Status: superseded\n- Obsoleted-by: sz:A1\n`,
+        }),
+      ),
+    )
+    assert.match(standing, /## Axioms\n\n- `sz:A1`: ice-shell thickness is 3 km/)
+    assert.doesNotMatch(standing, /sz:A2/)
+  })
+
+  it("groups tagged axioms into subsections, with untagged ones last", () => {
+    const standing = renderStanding(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:A1: ice-shell thickness\n- Status: ratified\n- Tags: world\n\n### sz:A2: hull mass\n- Status: provisional\n- Tags: vessel\n\n### sz:A3: unsorted value\n- Status: ratified\n`,
+        }),
+      ),
+    )
+    assert.match(standing, /### vessel\n\n- `sz:A2` \(provisional\): hull mass/)
+    assert.match(standing, /### world\n\n- `sz:A1`: ice-shell thickness/)
+    assert.match(standing, /### Untagged\n\n- `sz:A3`: unsorted value/)
+  })
+
   it("groups open items by phase and lists settled items with successors", () => {
     const index = renderIndex(readLedger(system({ "LEDGER.md": VALID })))
     assert.match(index, /## Phase matcher:W1\n\n\| Label \| Kind \| Status \| Title \|/)
     assert.match(index, /\| sz:P1 \| superseded \| cap escalation depth at 3 attempts \| sz:P2 \|/)
+  })
+
+  it("flags a closed phase's leftover open items in the index instead of blending them into a live section", () => {
+    const index = renderIndex(
+      readLedger(
+        system({
+          "LEDGER.md": `### sz:W1: phase 1\n- Kind: phase\n- Status: done\n\n### sz:Q1: still open\n- Phase: sz:W1\n- Status: open\n`,
+        }),
+      ),
+    )
+    assert.match(index, /## Phase sz:W1 \(phase closed: orphaned\)\n\n\| Label \| Kind \| Status \| Title \|/)
   })
 
   it("points from the index to LEDGER-LABELS.md instead of listing labels inline", () => {

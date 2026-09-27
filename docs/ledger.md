@@ -83,7 +83,14 @@ Body text. Never rewritten once written.
    comma-separated.
 3. **Body:** append-only. Headers are the only part you edit later.
 4. **Parts:** when an entry has more than one decidable part, letter them
-   `(a)`, `(b)` as you write it. Never add letters afterwards.
+   `(a)`, `(b)` as you write it. Never add letters afterwards. Addressing
+   goes one level deep: `Updates`/`Updated-by`/`Premises` can cite a part
+   (`sz:A17(a)`) but not a numbered item inside one's prose (there's no
+   `sz:A17(a)2`). If a later entry only narrows one item of an enumerated
+   part, cite the whole part and say which item in your own body text —
+   or, if items need to be citable on their own going forward, give them
+   their own letters when you write them, rather than nesting numbers
+   under a letter after the fact.
 5. **Session:** the full session ID. Each skill states the current ID in its
    setup section (in Claude Code, from `${CLAUDE_SESSION_ID}`). On a harness
    without one, ask the human for a session identifier and use it
@@ -103,10 +110,32 @@ file's scope. Everywhere else, including this ledger and ARCHITECTURE.md,
 always write the qualified label. Cite another system's label as
 `<system>/<scope>:<label>`.
 
+A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`
+only at `error` when its letter and number match a real entry somewhere in
+this system, under whatever scope — almost certainly a citation that lost
+its scope prefix. One that matches nothing anywhere is reported at
+`warning`: coincidental prose (a test name, a grade, a model number) that
+just happens to be letter-then-digits, which every new letter makes more
+likely. This matters because ledger bodies are append-only (see "Entry
+format"): an old line can't be edited to satisfy a check that starts firing
+on it later, so that case can never block.
+
+A match is dropped entirely — no finding, not even a `warning` — when every
+matching entry is `Date`d after the entry containing the token: a citation
+can't name something that didn't exist yet when it was written, so that's
+not just probably prose, it's provably prose, and a permanently-true
+`warning` on a line that can never be edited is pure noise once it's
+proven. (Loose lines outside any entry, and citations in files other than
+the ledger, have no containing `Date` to compare against, so they keep the
+existence-only rule above.) Same-day counts as "could have existed" and
+stays an `error`; a missing or malformed `Date` on either side does too,
+rather than guessing.
+
 ### Letters and statuses
 
 | Letter | For | Statuses |
 |---|---|---|
+| `A` | axiom: an authored, external-provenance given (see "Axioms") | `provisional`, `ratified`, `retired` |
 | `P` | proposal | `open`, `ratified`, `rejected`, `withdrawn` |
 | `Q` | question | `open`, `answered`, `withdrawn` |
 | `F` | finding | `hypothesis`, `predicted`, `measured`, `measured-false`, `withdrawn` |
@@ -125,13 +154,14 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 | `Session` | any | Session ID that recorded it |
 | `Phase` | any | The phase work item, e.g. `task-matcher:W1` |
 | `Status` | any | Required |
-| `Kind` | `W`, `R` | Required on those letters |
+| `Kind` | `W`, `R` | Required on those letters; not re-validated once an entry is no longer holding (see rule 8) |
 | `Depends-on` | `W` | Labels that must be resolved first; required when `blocked` |
-| `Premises` | `W` | Labels assumed true |
+| `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
 | `Constraints` | phase `W` | `R` labels that bear on the phase |
 | `Review` | `R` | When a `provisional` rule is reconsidered; required when `provisional` |
 | `Enforced-by` | `R` | The type or test enforcing the rule |
 | `Evidence` | `F` | Harness, command, commit; required when `measured` or `measured-false` |
+| `Tags` | `A` | Free-text, comma-separated categories for grouping (e.g. `world, vessel`) |
 | `Obsoletes` / `Obsoleted-by` | any | Full replacement, recorded on both entries |
 | `Updates` / `Updated-by` | any | Partial change (usually a part), recorded on both entries |
 | `Renumbered-from` | any | Old label after fixing a duplicate |
@@ -154,6 +184,24 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
    and state files cite labels; the index shows status.
 6. **Cite labels from what depends on them:** spec comments, ARCHITECTURE.md
    rows, PLAN.md steps.
+7. **Disposition every open item still on a phase before that phase closes.**
+   `Phase` marks a work item as belonging to that phase's scope, not just
+   where it happened to surface; a still-open entry whose `Phase` points at a
+   phase that has gone `done`, `withdrawn` or `superseded` is a checker error
+   (`ledger-phase-closed`), because nothing else re-reads a closed phase's
+   scope afterward. Before setting the phase `done`, move each of its still-
+   open items to the phase that will own it, drop the `Phase` field if
+   nobody does yet, or resolve/withdraw/defer the item itself — never leave
+   one for "the index" to catch.
+8. **A vocabulary change (a `Kind` retired, renamed, or split) is not
+   retroactive.** The checker only validates `Kind` on entries that still
+   hold; an entry already `superseded`/`retired`/etc. keeps whatever `Kind`
+   it was written with, even if that value no longer appears in the current
+   list. If existing entries are using a value you're retiring, supersede
+   them into the replacement shape (new entries, `Obsoletes`/`Obsoleted-by`
+   both ways) rather than rewriting or renumbering them in place — labels
+   are never reused or renumbered (rule 2) even when the vocabulary under
+   them moves.
 
 ## When a status changes
 
@@ -174,6 +222,12 @@ measured false, done, retired.
    naming a status that is neither resolved nor stale reads "still blocked
    on" the rest, so it does not send you looking for an unblock that can't
    happen yet.
+6. The checker only confirms a citation *resolves*, not that it still says
+   what the citing text claims — a valid label pointing at the wrong entry
+   (mis-cited, not stale) passes every check. When you re-examine a premise
+   or decision, open the entry any code comment or spec cites for it and
+   confirm the entry actually says what's claimed, rather than trusting the
+   label alone.
 
 ## Sweeps
 
@@ -331,6 +385,14 @@ every status change, at every gate, and before every derived-doc write.
   guard refusing a capability, an unsupported case, a hard-coded
   simplification. It is the one Kind whose ordinary end is `retired`, once
   somebody builds the thing. The other four record decisions meant to last.
+- **Ratify an `R` against what it must stay consistent with, not in
+  isolation.** The standard for a rule is "we decided, consistent with
+  existing rules and axioms" — cite the `R` and `A` entries it must hold
+  alongside in `Premises` (any letter can carry `Premises`; see "Axioms" for
+  why an `A` can show up there). The citation can't verify the reasoning
+  itself, but it means the existing stale-citation check catches it
+  automatically the moment one of those cited entries is later superseded —
+  the rule's claimed context stops being silently taken for granted.
 - **A guard in build code cites an `R`. Whatever settled the rule may sit
   beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
   all mean the entry finished, not that the ruling stopped holding, so a
@@ -349,6 +411,68 @@ every status change, at every gate, and before every derived-doc write.
 - `STANDING.md` lists active goals and current rules. Offer once per project
   to import it from the host project's CLAUDE.md (or AGENTS.md) with an
   `@<path to STANDING.md>` line, so the rules load in every session.
+
+## Axioms
+
+An `A` records an authored, quantitative given about the thing being
+specified — an ice-shell thickness, an ambient noise floor, a power-scaling
+law — not a rule about how the project must behave. What tells the two
+apart:
+
+- **Provenance runs the opposite way from a rule's.** A rule's authority is
+  "we decided" (see above). An axiom's authority comes from outside the
+  project's own decisions — real-world science and source material, but
+  also an authored engineering given bounded by a plausible external range
+  (a hull length bounded by what fits through the ice, a sensing length
+  bounded by what's physically deliverable) — chosen from within that
+  range, not derived and not decided from scratch.
+- **A rule is categorical; an axiom is a value picked from a range.** There's
+  no "why this number and not a nearby one" for a rule beyond a design
+  tradeoff. For an axiom there always is: record the range and its source in
+  the body (as lettered parts), and whether the value was selected
+  deliberately or only inherited from an earlier axiom — later axioms are
+  constrained by ones already chosen, unless there's a strong
+  project-goal-level reason otherwise.
+- **A rule is `Enforced-by` a guard; an axiom is instantiated, not
+  enforced.** Code reads an axiom's value; nothing refuses a violation of
+  it. A guard that keeps some *derived* value inside an axiom's range is
+  itself an `R`, layered on top — the axiom being right isn't something code
+  checks.
+- **A value that's derived from an axiom, not authored, is not itself an
+  axiom** — even if it's quantitative (a detection range, a speed penalty).
+  Record it as an `F` (`predicted`/`measured`, with `Evidence`) that cites
+  the axiom it derives from via `Premises`, so it's findable the same way
+  any other dependent is when the axiom moves.
+
+Statuses: `provisional` (not yet sourced — the placeholder case that used to
+get misfiled as `Kind: limit` on an `R`), `ratified` (a sourced value in
+effect), `superseded` when the authored value changes. `retired` is for the
+rare case where the axiom stops applying at all (the thing it described was
+cut), not for a value that changed — ending at `retired` is not an axiom's
+ordinary outcome the way it is for `Kind: limit`; an axiom normally keeps
+getting superseded as the authored value moves.
+
+**Dependency direction is locked one way, mechanically.** An axiom's
+`Premises` may only cite other axioms — the checker rejects any other letter
+there (`ledger-malformed`). Everything else cites `Premises` freely,
+including axioms (see the `R` bullet above). This is deliberate: letting an
+axiom cite a rule would let authored ground truth start quietly depending on
+an internal decision, the reverse of what an axiom is for.
+
+**"Depended on by" is a computed view, not a field.** Nothing hand-maintains
+a reverse pointer on the axiom itself — that would reintroduce the
+one-copy-amended drift "Why this format" exists to close, just on a new
+field, since it'd be added to incrementally by different entries at
+different times rather than written once by whoever supersedes something.
+What depends on an axiom is found by scanning for `Premises` citations that
+resolve to it, the same way `LEDGER-INDEX.md`'s "Affected work items" is
+generated from `Depends-on`/`Premises` today.
+
+**`Tags`** groups axioms into project-defined categories (e.g. `world`,
+`vessel`) for `STANDING.md` and human readability: free text,
+comma-separated, `A`-only, no fixed vocabulary, and an axiom can carry more
+than one. If a project wants axioms restricted to a single tag, record that
+as the project's own `R`; the checker doesn't enforce it.
 
 ## Transcripts
 

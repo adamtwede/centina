@@ -4,7 +4,7 @@ import { ts } from "ts-morph"
 
 // Ledger format: docs/ledger.md.
 
-export const LETTERS = ["P", "Q", "F", "O", "W", "G", "R"] as const
+export const LETTERS = ["A", "P", "Q", "F", "O", "W", "G", "R"] as const
 export type Letter = (typeof LETTERS)[number]
 
 export const LEDGER_INDEX = "LEDGER-INDEX.md"
@@ -75,13 +75,13 @@ export function formatRef(ref: LabelRef): string {
 }
 
 const SCOPE = "[a-z][a-z0-9-]*"
-const LABEL = "([PQFOWGR])([1-9]\\d*)(?:\\(([a-z])\\))?"
+const LABEL = "([PQFOWGRA])([1-9]\\d*)(?:\\(([a-z])\\))?"
 const QUALIFIED = `(?:(${SCOPE})/)?(${SCOPE}):${LABEL}`
 const QUALIFIED_IN_TEXT = new RegExp(`(?<![\\w/:.-])${QUALIFIED}(?!\\w)`, "g")
 const BARE_IN_TEXT = new RegExp(`(?<![\\w/:.-])${LABEL}(?!\\w)`, "g")
 const QUALIFIED_EXACT = new RegExp(`^${QUALIFIED}$`)
 
-const HEADING = new RegExp(`^### (${SCOPE}):([PQFOWGR])([1-9]\\d*): (\\S.*)$`)
+const HEADING = new RegExp(`^### (${SCOPE}):([PQFOWGRA])([1-9]\\d*): (\\S.*)$`)
 const FIELD_LINE = /^- ([A-Z][A-Za-z-]*): (.*)$/
 const PART_LINE = /^\(([a-z])\)\s/
 const SECTION_HEADING = /^#{1,2} /

@@ -113,13 +113,20 @@ Status is `planned` until the human confirms the plan, then the phase becomes
 ## Working a step
 
 1. Set the step `active`.
-2. Build steps: write code against spec types (below). Spikes: write the
+2. Read only what this step needs: the contracts module, the fill file(s)
+   this step touches, their existing conformance assertions, and the
+   closing test. Do not read the wider implementation tree to "see what's
+   already built" — the run frame and the phase's ledger view already say
+   that. Use search (grep, or a code-navigation tool if one is available)
+   to locate a specific cross-reference named in the plan; that is a
+   targeted lookup, not a re-orientation read.
+3. Build steps: write code against spec types (below). Spikes: write the
    measurement plan first and get it confirmed.
-3. Run the closing test. It must print. Record findings as they appear.
-4. Close the step: `done`, with the evidence in the body or in `F` entries.
+4. Run the closing test. It must print. Record findings as they appear.
+5. Close the step: `done`, with the evidence in the body or in `F` entries.
    Run the `--contracts` check and the conformance-coverage check
    ("Contract changes").
-5. **Review the remaining plan with the human** before starting the next
+6. **Review the remaining plan with the human** before starting the next
    step:
    - does anything this step found change a later step, a premise, or the
      definition of done;
@@ -392,15 +399,30 @@ such. Recording one as fact is not.
    checks the build tree's ownership citations), the `--contracts` check, and
    the conformance-coverage check.
 2. Run the definition-of-done test.
-3. Record the close as an `F` entry, `Status: measured`, with the
+3. **Disposition every open item still carrying this phase's `Phase:`
+   field** — read this phase's group in `LEDGER-INDEX.md`'s open items (or
+   `--phase <label>`). For each one, raise it with the human and, per their
+   call: move it forward (edit its `Phase` field to a phase that will own
+   it), drop the field if nobody owns it yet, or resolve/withdraw/defer the
+   item itself. Do not leave one open under this phase on the assumption
+   that a future phase or the index will pick it up — pointing at the index
+   in the close record (step 4) is for someone reading the close later, not
+   a substitute for this. Nothing else sweeps a closing phase's own
+   backlog: an item raised here but owned elsewhere still needs its `Phase`
+   moved, even though it was never really this phase's to finish. The
+   checker enforces this (`ledger-phase-closed`): it refuses an open item
+   whose `Phase` points at a `done`/`withdrawn`/`superseded` phase, so step 5
+   will fail if this step is skipped.
+4. Record the close as an `F` entry, `Status: measured`, with the
    definition-of-done run as `Evidence`. Its body states:
    - what the slice proves;
    - each boundary's status: specced, planned, mocked, or implemented. This
      is read off the unbuilt members and their owners, so it is only as good
      as step 1: a close record is what gets trusted later, when nobody
      remembers;
-   - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them).
-4. Set the phase `W` entry `done`.
+   - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them) — by now
+     none should still carry this phase.
+5. Set the phase `W` entry `done`.
 
 ## Implementation plans (provisional)
 
