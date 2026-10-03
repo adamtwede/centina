@@ -361,8 +361,36 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   both holes found in these checks so far came from a deliberate
   falsification, neither from reading output.
 
+- **Ledger-citation band** (`hooks/register.tsx`, `hooks/ledger-cite.ts`,
+  `hooks/types/index.d.ts`; `checker/ledger/generate.ts` `renderJson`) — a
+  Claude Code mod, shipped in the plugin, that lists the ledger entries cited
+  in the current turn's replies above the prompt (terminal and desktop), with
+  status, successor, park condition, a flag on a label or part that resolves
+  nowhere, and an Open button that opens the entry's heading in VS Code. It
+  reads the new generated `LEDGER.json` (`centina-check ledger` now writes it
+  beside the index), because the mod's sandbox has no Node and cannot import
+  `parse.ts`; the citation regex is therefore duplicated in
+  `hooks/ledger-cite.ts` and must follow `QUALIFIED_IN_TEXT`. Open tries
+  `code -g`, then the `vscode://` URL via `open` (macOS), since `code` is
+  often not on PATH. Verified: `claude plugin validate`, `tsc` against the
+  engine types, pure-logic tests, a headless run that produced the right rows
+  from a real reply, and the band tree mounted and pressed on both surfaces
+  in a scratch copy with seeded state. Seen live in a terminal (the user's
+  session). Each row also has an **ELI5** button: `$.model.complete` asks
+  Haiku, with no session history and nothing written to the transcript, to
+  explain the entry from its markdown section (cut at the next heading, plus
+  the titles of the entries it cites), answered in a pane. It refuses when the
+  heading is no longer at the line `LEDGER.json` recorded, caches by prompt,
+  and a newer press supersedes an older one. Mocked-model test in
+  `hooks/eli5.test.tsx`; not yet tried against the real model.
+
 ## Open / under discussion
 
+- `claude plugin test` run at the plugin root sweeps every `*.test.ts`,
+  including `checker/ledger/ledger.test.ts`, which imports Node and so
+  reports a load failure there; `npm test` is unaffected. The band's own
+  tests pass; a UI test of the band needs seeded state, which the test kit's
+  `$` cannot give the real module, so it lives only as a scratch check.
 - Whether the ledger hook should fire on writes under `buildRoots`. It finds
   a system by walking up from the written file for a `LEDGER.md`, which finds
   nothing from build code, so a newly written owner label waits for the next

@@ -17,7 +17,13 @@ centina-plugin/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── hooks/
-│   └── hooks.json
+│   ├── hooks.json
+│   ├── register.tsx
+│   ├── ledger-cite.ts
+│   ├── ledger-cite.test.ts
+│   ├── eli5.test.tsx
+│   └── types/
+│       └── index.d.ts
 ├── skills/
 │   ├── centina-session-zero/
 │   │   └── SKILL.md

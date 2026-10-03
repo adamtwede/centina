@@ -9,6 +9,7 @@ export type Letter = (typeof LETTERS)[number]
 
 export const LEDGER_INDEX = "LEDGER-INDEX.md"
 export const LEDGER_LABELS = "LEDGER-LABELS.md"
+export const LEDGER_JSON = "LEDGER.json"
 export const STANDING = "STANDING.md"
 
 export interface LabelRef {

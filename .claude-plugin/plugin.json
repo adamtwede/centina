@@ -3,5 +3,6 @@
   "displayName": "Centina",
   "version": "0.7.0",
   "description": "Spec-flavored TypeScript: type-checked falsework for coding tasks.",
-  "license": "ISC"
+  "license": "ISC",
+  "types": "./hooks/types/index.d.ts"
 }

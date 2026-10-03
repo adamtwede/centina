@@ -123,6 +123,30 @@ export function renderStanding(ledger: Ledger): string {
   ].join("\n")
 }
 
+/**
+ * Machine-readable view of every label, for tooling that can't import the
+ * checker (the plugin's Claude Code mod reads this to annotate cited labels).
+ * `file` is relative to the system directory, so the file is machine-independent.
+ */
+export function renderJson(ledger: Ledger): string {
+  const parkedCondition = (e: Entry) => {
+    const parked = e.fields.get("Parked")?.value
+    return parked && PARKED_FORMAT.test(parked) ? parked.replace(/^[^,]*,\s*until\s+/, "") : undefined
+  }
+  const entries = uniqueEntries(ledger).map((e) => ({
+    key: e.key,
+    title: e.title,
+    status: status(e),
+    kind: e.fields.get("Kind")?.value,
+    file: path.relative(ledger.dir, e.file),
+    line: e.line,
+    parts: [...e.parts].sort(),
+    parkedUntil: parkedCondition(e),
+    obsoletedBy: fieldRefs(e, "Obsoleted-by").refs.map(formatRef),
+  }))
+  return `${JSON.stringify({ generated: "by `centina-check ledger`; do not edit", system: ledger.system, entries }, null, 2)}\n`
+}
+
 /** Every label, for taking the next number in a scope and for looking up a label's file. */
 export function renderLabels(ledger: Ledger): string {
   const entries = uniqueEntries(ledger)

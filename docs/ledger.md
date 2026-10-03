@@ -10,8 +10,10 @@ One ledger per system, in `<artifactsRoot>/specs/<system>/`:
 
 - `LEDGER.md`, plus `LEDGER-<part>.md` partitions once it grows (see
   `output-management.md`).
-- `LEDGER-INDEX.md`, `LEDGER-LABELS.md` and `STANDING.md`: generated. Never
-  edit them.
+- `LEDGER-INDEX.md`, `LEDGER-LABELS.md`, `LEDGER.json` and `STANDING.md`:
+  generated. Never edit them. `LEDGER.json` is the machine-readable view
+  (label, title, status, file and heading line, parts, park condition,
+  successor); the plugin's Claude Code mod reads it to show cited entries.
 - `transcripts/`: session transcript copies. See "Transcripts".
 
 The ledger records decisions, questions, findings, options, work items, goals

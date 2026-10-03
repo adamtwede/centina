@@ -4,10 +4,11 @@ import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
 import { buildRootsFor, findConfig, systemKey } from "./config"
-import { renderIndex, renderLabels, renderPhaseView, renderStanding } from "./generate"
+import { renderIndex, renderJson, renderLabels, renderPhaseView, renderStanding } from "./generate"
 import {
   BuildFile,
   LEDGER_INDEX,
+  LEDGER_JSON,
   LEDGER_LABELS,
   STANDING,
   commentLines,
@@ -59,7 +60,7 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
 /**
  * `centina-check ledger <system-dir>...`: validates each system's ledger and
  * the label citations in its files, then writes LEDGER-INDEX.md,
- * LEDGER-LABELS.md and STANDING.md. With `--check`, reports out-of-date
+ * LEDGER-LABELS.md, LEDGER.json and STANDING.md. With `--check`, reports out-of-date
  * generated files instead of writing them. `--contracts <file>` (one system
  * only) also enumerates the `@proposal` overrides in a centina-realize
  * contracts module. `--phase <label>` (one system only) prints a
@@ -140,6 +141,7 @@ export function runLedgerCommand(argv: string[]): number {
     const generated: [string, string][] = [
       [LEDGER_INDEX, renderIndex(ledger)],
       [LEDGER_LABELS, renderLabels(ledger)],
+      [LEDGER_JSON, renderJson(ledger)],
       [STANDING, renderStanding(ledger)],
     ]
     for (const [name, content] of generated) {
