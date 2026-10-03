@@ -159,6 +159,7 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 | `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
 | `Constraints` | phase `W` | `R` labels that bear on the phase |
 | `Review` | `R` | When a `provisional` rule is reconsidered; required when `provisional` |
+| `Parked` | `Q`, `P` | `YYYY-MM-DD, until <condition>`; set aside but still open. Only on `open` items; the condition is required free text. The index shows it beside the title |
 | `Enforced-by` | `R` | The type or test enforcing the rule |
 | `Evidence` | `F` | Harness, command, commit; required when `measured` or `measured-false` |
 | `Tags` | `A` | Free-text, comma-separated categories for grouping (e.g. `world, vessel`) |

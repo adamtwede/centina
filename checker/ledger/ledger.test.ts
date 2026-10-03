@@ -182,6 +182,34 @@ describe("ledger check", () => {
     assert.equal(found.length, 3)
   })
 
+  it("accepts Parked on an open Q or P and rejects it elsewhere or without a condition", () => {
+    const found = check({
+      "LEDGER.md": [
+        `### sz:Q1: ok\n- Status: open\n- Parked: 2026-09-30, until a conclusion needs sz:R1\n`,
+        `### sz:Q2: closed\n- Status: answered\n- Parked: 2026-09-30, until later\n`,
+        `### sz:P1: no condition\n- Status: open\n- Parked: 2026-09-30\n`,
+        `### sz:P2: empty condition\n- Status: open\n- Parked: 2026-09-30, until \n`,
+        `### sz:F1: wrong letter\n- Status: hypothesis\n- Parked: 2026-09-30, until later\n`,
+      ].join("\n"),
+    }).filter((f) => f.rule === "ledger-field-not-applicable" || f.rule === "ledger-malformed")
+    assert.deepEqual(
+      found.map((f) => [f.rule, f.message.match(/sz:\w+/)?.[0]]),
+      [
+        ["ledger-field-not-applicable", "sz:Q2"],
+        ["ledger-malformed", "sz:P1"],
+        ["ledger-malformed", "sz:P2"],
+        ["ledger-field-not-applicable", "sz:F1"],
+      ],
+    )
+  })
+
+  it("shows a park condition on the index row", () => {
+    const index = renderIndex(
+      readLedger(system({ "LEDGER.md": `### sz:Q1: which door\n- Status: open\n- Parked: 2026-09-30, until a conclusion needs sz:R1\n` })),
+    )
+    assert.match(index, /\| sz:Q1 \| {2}\| open \| which door \(parked until a conclusion needs sz:R1\) \|/)
+  })
+
   it("reports undefined labels and parts in headers, bodies and other files", () => {
     const found = check({
       "LEDGER.md": `### sz:P1: cites things\n- Status: open\n- Updates: sz:P9\n\nSee sz:P8 and sz:P1(z).\n`,

@@ -1,5 +1,5 @@
 import path from "node:path"
-import { CLOSED_PHASE, NOT_HOLDING } from "./check"
+import { CLOSED_PHASE, NOT_HOLDING, PARKED_FORMAT } from "./check"
 import { Entry, LETTERS, Ledger, fieldRefs, formatRef, labelKey, status } from "./parse"
 
 const GENERATED_NOTE =
@@ -15,6 +15,13 @@ function compareEntries(a: Entry, b: Entry): number {
     LETTERS.indexOf(a.ref.letter) - LETTERS.indexOf(b.ref.letter) ||
     a.ref.number - b.ref.number
   )
+}
+
+/** A title with its park condition appended, so a header scan sees it. */
+function titleOf(e: Entry): string {
+  const parked = e.fields.get("Parked")?.value
+  const condition = parked && PARKED_FORMAT.test(parked) ? parked.replace(/^[^,]*,\s*until\s+/, "") : undefined
+  return condition ? `${e.title} (parked until ${condition})` : e.title
 }
 
 function sorted(entries: Entry[]): Entry[] {
@@ -261,14 +268,14 @@ export function renderPhaseView(ledger: Ledger, phaseKey: string): { ok: true; t
     "",
     ...table(
       ["Label", "Kind", "Status", "Title"],
-      phaseItems.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", e.title]),
+      phaseItems.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", titleOf(e)]),
     ),
     "",
     "## Pulled in via Depends-on / Premises / Constraints",
     "",
     ...table(
       ["Label", "Status", "Title"],
-      otherPulledIn.map((e) => [e.key, status(e) ?? "", e.title]),
+      otherPulledIn.map((e) => [e.key, status(e) ?? "", titleOf(e)]),
     ),
     "",
   ]
@@ -328,7 +335,7 @@ export function renderIndex(ledger: Ledger): string {
       "",
       ...table(
         ["Label", "Kind", "Status", "Title"],
-        phaseGroups.get(group)!.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", e.title]),
+        phaseGroups.get(group)!.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", titleOf(e)]),
       ),
       "",
     )
