@@ -21,11 +21,15 @@ export type Row = {
   problem?: 'no-label' | 'no-part'
 }
 
-/** The ELI5 pane's content: one entry's explanation, asked for, arrived, or failed. */
+/**
+ * The explanation pane's content, asked for, arrived, or failed: one entry's ELI5
+ * (`cite` is its citation) or the TLDR of the latest reply (`cite` is a heading).
+ */
 export type Eli5 = { cite: string; status: 'asking' | 'answered' | 'failed'; text: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null }
+    /** `reply` is the text of the latest main-agent reply, for TLDR THIS. */
+    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string }
   }
 }

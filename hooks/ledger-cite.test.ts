@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { eli5Prompt, extractCites, references, resolve, sectionAt } from './ledger-cite'
+import { bearings, eli5Prompt, extractCites, references, resolve, sectionAt, tldrPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -78,4 +78,48 @@ test('builds the ELI5 prompt from the entry, its references and the cited part',
   expect(prompt).toContain('- sz:P2: second')
   expect(prompt).toContain('part (b)')
   expect(eli5Prompt('x', [])).not.toContain('Related entries')
+})
+
+test('finds the active phase and active goals, and no others', () => {
+  const system: System = {
+    dir: '/w',
+    json: {
+      system: 'alpha',
+      entries: [
+        entry('sz:W1', { kind: 'phase', status: 'active' }),
+        entry('sz:W2', { kind: 'phase', status: 'done' }),
+        entry('sz:W3', { kind: 'step', status: 'active' }),
+        entry('sz:G1', { status: 'active' }),
+        entry('sz:G2', { status: 'retired' }),
+        entry('sz:P1', { status: 'active' }),
+      ],
+    },
+  }
+  const found = bearings([system])
+  expect(found.phase.map(e => e.key)).toEqual(['sz:W1'])
+  expect(found.goals.map(e => e.key)).toEqual(['sz:G1'])
+})
+
+test('builds the TLDR prompt from the reply, phase, goals and cited entries', () => {
+  const prompt = tldrPrompt(
+    'Pick A or B (sz:Q1).',
+    [{ key: 'sz:Q1', title: 'which one', status: 'open', text: '### sz:Q1: which one\nbody' }],
+    [{ key: 'sz:W1', title: 'phase one', status: 'active' }],
+    [],
+  )
+  expect(prompt).toContain('Latest reply:\nPick A or B')
+  expect(prompt).toContain('### sz:Q1: which one\nbody')
+  expect(prompt).toContain('- sz:W1 (active): phase one')
+  expect(prompt).not.toContain('Active goals')
+  expect(prompt.indexOf('Active phase')).toBeLessThan(prompt.indexOf('Ledger entries the reply cites'))
+})
+
+test('TLDR spends entry text on cited entries first and lists the rest by title', () => {
+  const big = (key: string) => ({ key, title: `t ${key}`, status: 'open', text: `### ${key}: t\n${'x'.repeat(2_900)}` })
+  const cited = ['sz:Q1', 'sz:Q2', 'sz:Q3', 'sz:Q4', 'sz:Q5', 'sz:Q6', 'sz:Q7', 'sz:Q8'].map(big)
+  const prompt = tldrPrompt('r', cited, [{ key: 'sz:W1', title: 'phase one', status: 'active', text: '### sz:W1: phase one\nfull' }], [])
+  expect(prompt).toContain('- sz:Q8 (open): t sz:Q8')
+  expect(prompt).toContain('- sz:W1 (active): phase one')
+  expect(prompt).not.toContain('\nfull')
+  expect(prompt.length).toBeLessThan(30_000)
 })

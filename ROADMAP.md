@@ -383,6 +383,17 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   heading is no longer at the line `LEDGER.json` recorded, caches by prompt,
   and a newer press supersedes an older one. Mocked-model test in
   `hooks/eli5.test.tsx`; not yet tried against the real model.
+  The band's header also has a **TLDR THIS** button, for the latest main-agent
+  reply as a whole (kept in the `reply` state atom): same Haiku call, same pane,
+  but the prompt is the reply plus the active phase (`Kind: phase`, `active`),
+  the active goals (`G`, `active`) and the entries the reply cites, each in full
+  while a 20k-character budget lasts (cited first, then phase, then goals) and
+  by title after that. It asks for a plain summary and, where the reply offers
+  options, each option's meaning, benefits, tradeoffs and risks against the
+  phase and the project goals. "Full text if necessary" is the budget, not a
+  model decision: one call cannot fetch mid-answer. The band now also shows,
+  with just this button, for a reply that cites nothing, once a `LEDGER.json`
+  has been found. Mocked-model tests only; not yet tried against the real model.
 
 ## Open / under discussion
 
