@@ -2,7 +2,9 @@
 // the current turn's replies cite, with status, an "open in VS Code" button and an
 // "ELI5" button (a one-off Haiku explanation, outside the session, in a pane). A
 // "TLDR THIS" button does the same for the latest reply as a whole, weighing any
-// options in it against the active phase and the project's goals.
+// options in it against the active phase and the project's goals. While a ledger
+// phase is active, a "Phase progress ($$$)" button has Sonnet report on how far
+// the phase has got and which of its open items matter most.
 // Reads each system's generated LEDGER.json (`centina-check ledger`); never the
 // markdown ledger. Display only: nothing here is load-bearing for the skills.
 
@@ -11,26 +13,37 @@ import type { EngineInterface, Register } from "claude-code"
 
 import {
   ELI5_SYSTEM,
+  PROGRESS_SYSTEM,
   TLDR_SYSTEM,
+  activePhases,
   bearings,
   eli5Prompt,
   extractCites,
+  progressPrompt,
   references,
   resolve,
   sectionAt,
   tldrPrompt,
 } from "./ledger-cite"
-import type { Cite, Context, LedgerEntry, System } from "./ledger-cite"
+import type {
+  Cite,
+  Context,
+  LedgerEntry,
+  PhaseContext,
+  System,
+} from "./ledger-cite"
 import type { Eli5, Row } from "./types"
 
 const cited = atom({ plugin: "centina", key: "cited" } as const, [])
 const isHidden = atom({ plugin: "centina", key: "isHidden" } as const, false)
 const eli5 = atom({ plugin: "centina", key: "eli5" } as const, null)
 const latestReply = atom({ plugin: "centina", key: "reply" } as const, "")
+const hasPhase = atom({ plugin: "centina", key: "hasPhase" } as const, false)
 
 const ELI5_PANE = "centina-eli5"
 const ELI5_TIMEOUT_MS = 20_000
 const TLDR_TIMEOUT_MS = 45_000
+const PROGRESS_TIMEOUT_MS = 90_000
 
 const LEDGER_JSON = "LEDGER.json"
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
@@ -108,6 +121,14 @@ async function rowsFor($: EngineInterface): Promise<Row[]> {
   return rows
 }
 
+/** Whether some system has an active phase, which is what makes Phase progress worth asking. */
+async function refreshPhase($: EngineInterface): Promise<void> {
+  const systems = await readSystems($)
+  await update($, hasPhase, () =>
+    systems.some((s) => activePhases(s).length > 0),
+  )
+}
+
 /** Folds one reply's text into the turn's citations and refreshes the band's rows. */
 async function trackReply($: EngineInterface, text: string): Promise<void> {
   if (text === "") return
@@ -122,12 +143,13 @@ async function trackReply($: EngineInterface, text: string): Promise<void> {
   const rows = await rowsFor($)
   await update($, cited, () => rows)
   await update($, latestReply, () => text)
+  await refreshPhase($)
 }
 
 type Question = { prompt: string } | { failure: string }
 
 /**
- * Asks Haiku, with no session history and nothing written to the transcript, one
+ * Asks a model, with no session history and nothing written to the transcript, one
  * question and shows the answer in the explanation pane. `build` makes the
  * question, or says why it can't. A newer press supersedes an older one.
  */
@@ -136,6 +158,8 @@ async function ask(
   o: {
     title: string
     heading: string
+    model: "haiku" | "sonnet"
+    effort: "low" | "medium"
     system: string
     maxTokens: number
     timeoutMs: number
@@ -156,14 +180,15 @@ async function ask(
     const question = await o.build()
     if ("failure" in question) return show("failed", question.failure)
     const { prompt } = question
-    const cached = answers.get(prompt)
+    const key = `${o.model}\n${prompt}`
+    const cached = answers.get(key)
     if (cached !== undefined) return show("answered", cached)
     const reply = await $.model.complete(
       {
-        model: "haiku",
+        model: o.model,
         system: o.system,
         prompt,
-        effort: "low",
+        effort: o.effort,
         maxTokens: o.maxTokens,
         timeoutMs: o.timeoutMs,
       },
@@ -174,10 +199,10 @@ async function ask(
         "failed",
         reply.reason === "aborted"
           ? "Timed out."
-          : `The Haiku call failed (${reply.reason}).`,
+          : `The ${o.model} call failed (${reply.reason}).`,
       )
     }
-    answers.set(prompt, reply.text)
+    answers.set(key, reply.text)
     return show("answered", reply.text)
   } catch {
     return show("failed", o.unreadable)
@@ -196,6 +221,8 @@ async function explain($: EngineInterface, row: Row): Promise<void> {
   await ask($, {
     title: "ELI5",
     heading: row.cite,
+    model: "haiku",
+    effort: "low",
     system: ELI5_SYSTEM,
     maxTokens: 400,
     timeoutMs: ELI5_TIMEOUT_MS,
@@ -217,6 +244,36 @@ async function explain($: EngineInterface, row: Row): Promise<void> {
 }
 
 /**
+ * Reads ledger entries as context: title and status always, the entry's text
+ * when its file can be read and still has the entry at that line. Each file is
+ * read once per reader.
+ */
+function entryReader(
+  $: EngineInterface,
+): (dir: string, entry: LedgerEntry, hasText?: boolean) => Promise<Context> {
+  const files = new Map<string, Promise<string>>()
+  return async (dir, entry, hasText = true) => {
+    const context: Context = {
+      key: entry.key,
+      title: entry.title,
+      status: entry.status,
+    }
+    if (!hasText) return context
+    const path = `${dir}/${entry.file}`
+    if (!files.has(path)) files.set(path, $.fs.read(path))
+    // A stale or unreadable ledger costs the entry its text, not the answer its title.
+    return {
+      ...context,
+      text: sectionAt(
+        await files.get(path)!.catch(() => ""),
+        entry.line,
+        entry.key,
+      ),
+    }
+  }
+}
+
+/**
  * TLDR of the latest reply. Haiku gets the reply, the active phase and goals, and
  * the entries the reply cites, each by title and, while there is room, in full:
  * one call can't fetch more mid-answer, so "full text if necessary" is decided
@@ -226,6 +283,8 @@ async function tldr($: EngineInterface): Promise<void> {
   await ask($, {
     title: "TLDR",
     heading: "TLDR of the latest reply",
+    model: "haiku",
+    effort: "low",
     system: TLDR_SYSTEM,
     maxTokens: 1_200,
     timeoutMs: TLDR_TIMEOUT_MS,
@@ -242,29 +301,7 @@ async function tldr($: EngineInterface): Promise<void> {
         rows.length > 0
           ? systems.filter((s) => rows.some((row) => row.dir === s.dir))
           : systems
-      const files = new Map<string, Promise<string>>()
-      const textOf = async (
-        dir: string,
-        entry: LedgerEntry,
-      ): Promise<string | undefined> => {
-        const path = `${dir}/${entry.file}`
-        if (!files.has(path)) files.set(path, $.fs.read(path))
-        // A stale or unreadable ledger costs the entry its text, not the answer its title.
-        return sectionAt(
-          await files.get(path)!.catch(() => ""),
-          entry.line,
-          entry.key,
-        )
-      }
-      const contextOf = async (
-        system: System,
-        entry: LedgerEntry,
-      ): Promise<Context> => ({
-        key: entry.key,
-        title: entry.title,
-        status: entry.status,
-        text: await textOf(system.dir, entry),
-      })
+      const contextOf = entryReader($)
       const seen = new Set<string>()
       const fresh = (system: System, entry: LedgerEntry) => {
         const id = `${system.dir}/${entry.key}`
@@ -275,7 +312,7 @@ async function tldr($: EngineInterface): Promise<void> {
         const system = systems.find((s) => s.dir === row.dir)
         const entry = system?.json.entries.find((e) => e.key === row.key)
         if (system && entry && fresh(system, entry))
-          cites.push(await contextOf(system, entry))
+          cites.push(await contextOf(system.dir, entry))
       }
       const phase: Context[] = []
       const goals: Context[] = []
@@ -283,12 +320,64 @@ async function tldr($: EngineInterface): Promise<void> {
         const active = bearings([system])
         for (const entry of active.phase)
           if (fresh(system, entry))
-            phase.push(await contextOf(system, entry))
+            phase.push(await contextOf(system.dir, entry))
         for (const entry of active.goals)
           if (fresh(system, entry))
-            goals.push(await contextOf(system, entry))
+            goals.push(await contextOf(system.dir, entry))
       }
       return { prompt: tldrPrompt(reply, cites, phase, goals) }
+    },
+  })
+}
+
+/**
+ * Phase progress: Sonnet gets each active phase's own entry (goal, definition of
+ * done, scope), its open items in full while there is room, its closed items by
+ * title, and the active goals, and says how far the phase has got, what is left
+ * and which of that matters most. Costlier than the Haiku buttons, hence the
+ * bigger budget and the guard against paying for an empty answer.
+ */
+async function progress($: EngineInterface): Promise<void> {
+  await ask($, {
+    title: "Phase progress",
+    heading: "Phase progress",
+    model: "sonnet",
+    effort: "medium",
+    system: PROGRESS_SYSTEM,
+    maxTokens: 2_000,
+    timeoutMs: PROGRESS_TIMEOUT_MS,
+    unreadable: "Could not read the ledger.",
+    build: async () => {
+      const systems = await readSystems($)
+      const contextOf = entryReader($)
+      const phases: PhaseContext[] = []
+      const goals: Context[] = []
+      let items = 0
+      for (const system of systems) {
+        const active = activePhases(system)
+        if (active.length === 0) continue
+        for (const { phase, open, closed } of active) {
+          items += open.length + closed.length
+          phases.push({
+            phase: await contextOf(system.dir, phase),
+            open: await Promise.all(open.map((e) => contextOf(system.dir, e))),
+            closed: await Promise.all(
+              closed.map((e) => contextOf(system.dir, e, false)),
+            ),
+          })
+        }
+        for (const entry of bearings([system]).goals)
+          goals.push(await contextOf(system.dir, entry))
+      }
+      if (phases.length === 0)
+        return { failure: "No phase is active in the ledger." }
+      if (items === 0) {
+        return {
+          failure:
+            "No items point at the active phase. If some do, re-run `centina-check ledger` to refresh LEDGER.json.",
+        }
+      }
+      return { prompt: progressPrompt(phases, goals) }
     },
   })
 }
@@ -303,6 +392,7 @@ async function clear($: EngineInterface): Promise<void> {
 export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
     await walk($)
+    await refreshPhase($)
     return next(e)
   })
 
@@ -335,13 +425,13 @@ export const register: Register = (on) => {
     if (state === null)
       return (
         <Text dimColor>
-          Press ELI5 on a ledger entry, or TLDR THIS.
+          Press ELI5 on a ledger entry, TLDR THIS, or Phase progress.
         </Text>
       )
     return (
       <Box flexDirection="column">
         <Text bold>{state.cite}</Text>
-        {state.status === "asking" && <Text dimColor>Asking Haiku...</Text>}
+        {state.status === "asking" && <Text dimColor>Asking...</Text>}
         {state.status === "failed" && <Text color="red">{state.text}</Text>}
         {state.status === "answered" && <Text>{state.text}</Text>}
       </Box>
@@ -353,13 +443,27 @@ export const register: Register = (on) => {
     // TLDR THIS needs a reply to explain and a ledger to weigh it against, so the
     // band also shows, with just that button, for a reply that cites nothing.
     const isExplainable = dirs.length > 0 && (await read($, latestReply)) !== ""
-    if (e.props.hasSurvey || (rows.length === 0 && !isExplainable))
+    // Phase progress needs an active phase in the ledger, whatever the reply cites.
+    const isPhaseActive = await read($, hasPhase)
+    if (
+      e.props.hasSurvey ||
+      (rows.length === 0 && !isExplainable && !isPhaseActive)
+    )
       return next(e)
 
     const { Box, Text, Button } = $.ui.resolve(e)
-    const tldrButton = (
-      <Button key="tldr" label="TLDR THIS" onPress={() => tldr($)} />
-    )
+    const buttons = [
+      isExplainable && (
+        <Button key="tldr" label="TLDR THIS" onPress={() => tldr($)} />
+      ),
+      isPhaseActive && (
+        <Button
+          key="progress"
+          label="Phase progress ($$$)"
+          onPress={() => progress($)}
+        />
+      ),
+    ]
 
     // Hide folds the band to one line rather than removing it, so it can be
     // brought back; the next reply unfolds it again.
@@ -372,7 +476,7 @@ export const register: Register = (on) => {
             label="Show"
             onPress={() => update($, isHidden, () => false)}
           />
-          {tldrButton}
+          {buttons}
         </Box>
       )
     }
@@ -398,14 +502,16 @@ export const register: Register = (on) => {
           <Text dimColor>
             {rows.length > 0
               ? "Ledger entries cited this turn "
-              : "Latest reply cites no ledger entries "}
+              : isExplainable
+                ? "Latest reply cites no ledger entries "
+                : "Ledger "}
           </Text>
           <Button
             key="hide"
             label="Hide"
             onPress={() => update($, isHidden, () => true)}
           />
-          {tldrButton}
+          {buttons}
         </Box>
         {shown.map((row) => (
           <Box key={`${row.system ?? ""}/${row.cite}`}>

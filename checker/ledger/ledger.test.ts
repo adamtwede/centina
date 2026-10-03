@@ -422,6 +422,20 @@ describe("ledger generation", () => {
     assert.equal(typeof p1.line, "number")
   })
 
+  it("emits the phase an item belongs to in the JSON", () => {
+    const json = JSON.parse(
+      renderJson(
+        readLedger(
+          system({
+            "LEDGER.md": `### sz:W1: the phase\n- Kind: phase\n- Status: active\n\n### sz:W2: step\n- Kind: step\n- Status: planned\n- Phase: sz:W1\n`,
+          }),
+        ),
+      ),
+    )
+    const phaseOf = (key: string) => json.entries.find((e: { key: string }) => e.key === key).phase
+    assert.deepEqual([phaseOf("sz:W1"), phaseOf("sz:W2")], [undefined, "sz:W1"])
+  })
+
   it("lists work items whose premises no longer hold", () => {
     const ledger = readLedger(
       system({

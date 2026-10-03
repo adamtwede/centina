@@ -23,13 +23,17 @@ export type Row = {
 
 /**
  * The explanation pane's content, asked for, arrived, or failed: one entry's ELI5
- * (`cite` is its citation) or the TLDR of the latest reply (`cite` is a heading).
+ * (`cite` is its citation), or the TLDR of the latest reply or the phase's
+ * progress (`cite` is a heading).
  */
 export type Eli5 = { cite: string; status: 'asking' | 'answered' | 'failed'; text: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    /** `reply` is the text of the latest main-agent reply, for TLDR THIS. */
-    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string }
+    /**
+     * `reply` is the text of the latest main-agent reply, for TLDR THIS. `hasPhase`
+     * is whether a ledger has an active phase, which is what Phase progress needs.
+     */
+    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; hasPhase: boolean }
   }
 }

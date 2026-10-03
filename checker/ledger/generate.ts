@@ -133,11 +133,16 @@ export function renderJson(ledger: Ledger): string {
     const parked = e.fields.get("Parked")?.value
     return parked && PARKED_FORMAT.test(parked) ? parked.replace(/^[^,]*,\s*until\s+/, "") : undefined
   }
+  const phaseOf = (e: Entry) => {
+    const ref = fieldRefs(e, "Phase").refs[0]
+    return ref ? labelKey(ref) : undefined
+  }
   const entries = uniqueEntries(ledger).map((e) => ({
     key: e.key,
     title: e.title,
     status: status(e),
     kind: e.fields.get("Kind")?.value,
+    phase: phaseOf(e),
     file: path.relative(ledger.dir, e.file),
     line: e.line,
     parts: [...e.parts].sort(),

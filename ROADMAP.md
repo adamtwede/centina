@@ -394,6 +394,21 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   model decision: one call cannot fetch mid-answer. The band now also shows,
   with just this button, for a reply that cites nothing, once a `LEDGER.json`
   has been found. Mocked-model tests only; not yet tried against the real model.
+  A third button, **Phase progress ($$$)**, asks **Sonnet** (medium effort, 2k
+  tokens, 90s) how far the active phase has got: a progress summary of at most
+  300 words, the remaining work, and which open items are still critical against
+  the phase's goal and definition of done and the project goals. It shows
+  whenever some system's `LEDGER.json` has a phase (`Kind: phase`) with status
+  `active` (the `hasPhase` atom, refreshed at session start and after each
+  reply), not when `centina-realize` was loaded: the skill's loading leaves no
+  trace after a resume, and a skill loaded while planning has no `active` phase
+  yet. `LEDGER.json` entries gained a `phase` field (the `Phase` header) so the
+  mod can find a phase's items without parsing markdown; a `LEDGER.json` older
+  than the field must be regenerated with `centina-check ledger`, and the button
+  refuses (no model call) when the active phase has no items. Open items
+  (`open`, `hypothesis`, `predicted`, `planned`, `blocked`, `active`,
+  `deferred`) get their full text while the 20k budget lasts; closed ones are
+  titles only. Mocked-model tests only; not yet tried against the real model.
 
 ## Open / under discussion
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { bearings, eli5Prompt, extractCites, references, resolve, sectionAt, tldrPrompt } from './ledger-cite'
+import { activePhases, bearings, eli5Prompt, extractCites, progressPrompt, references, resolve, sectionAt, tldrPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -122,4 +122,41 @@ test('TLDR spends entry text on cited entries first and lists the rest by title'
   expect(prompt).toContain('- sz:W1 (active): phase one')
   expect(prompt).not.toContain('\nfull')
   expect(prompt.length).toBeLessThan(30_000)
+})
+
+test('splits an active phase\'s items into remaining work and the rest, and ignores other phases', () => {
+  const system: System = {
+    dir: '/w/s',
+    json: {
+      system: 's',
+      entries: [
+        entry('sz:W1', { kind: 'phase', status: 'active' }),
+        entry('sz:W2', { kind: 'step', status: 'done', phase: 'sz:W1' }),
+        entry('sz:W3', { kind: 'step', status: 'blocked', phase: 'sz:W1' }),
+        entry('sz:Q1', { status: 'open', phase: 'sz:W1' }),
+        entry('sz:Q2', { status: 'answered', phase: 'sz:W1' }),
+        entry('sz:W4', { kind: 'phase', status: 'done' }),
+        entry('sz:W5', { kind: 'step', status: 'planned', phase: 'sz:W4' }),
+      ],
+    },
+  }
+  const [only, ...rest] = activePhases(system)
+  expect(rest).toEqual([])
+  expect(only.phase.key).toBe('sz:W1')
+  expect(only.open.map(e => e.key)).toEqual(['sz:W3', 'sz:Q1'])
+  expect(only.closed.map(e => e.key)).toEqual(['sz:W2', 'sz:Q2'])
+  expect(activePhases({ dir: '/w/s', json: { system: 's', entries: [entry('sz:W9', { kind: 'phase', status: 'planned' })] } })).toEqual([])
+})
+
+test('phase progress prompt gives open items their text and closed items only a title', () => {
+  const phase = { key: 'sz:W1', title: 'phase one', status: 'active', text: '### sz:W1: phase one\nthe definition of done' }
+  const open = [{ key: 'sz:W3', title: 'wire it', status: 'blocked', text: '### sz:W3: wire it\nwaiting on the harness' }]
+  const closed = [{ key: 'sz:W2', title: 'spike it', status: 'done' }]
+  const prompt = progressPrompt([{ phase, open, closed }], [{ key: 'sz:G1', title: 'the goal', status: 'active', text: '### sz:G1: the goal\ngoal body' }])
+  expect(prompt).toContain('the definition of done')
+  expect(prompt).toContain('waiting on the harness')
+  expect(prompt).toContain('- sz:W2 (done): spike it')
+  expect(prompt).toContain('goal body')
+  expect(prompt.indexOf('the definition of done')).toBeLessThan(prompt.indexOf('waiting on the harness'))
+  expect(prompt.trimEnd().endsWith("Report on the phase's progress.")).toBe(true)
 })
