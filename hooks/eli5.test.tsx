@@ -32,3 +32,18 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(await pane.findAll({ type: 'Text' })).toHaveLength(2)
   })
 }
+
+test('Hide folds the band to one line and Show brings it back', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/cited', [row]]])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  const mount = () => $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  await (await mount()).press({ key: 'hide' })
+  expect(store.get('centina/isHidden')).toBe(true)
+  // The mocked state does not invalidate the first drawing, so draw again.
+  const folded = await mount()
+  expect(await folded.find({ key: 'eli5:/sz:P1' })).toBeUndefined()
+  await folded.press({ key: 'show' })
+  expect(store.get('centina/isHidden')).toBe(false)
+  expect(await (await mount()).find({ key: 'eli5:/sz:P1' })).toBeDefined()
+})

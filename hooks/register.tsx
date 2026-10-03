@@ -185,9 +185,20 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const rows = await read($, cited)
-    if (e.props.hasSurvey || rows.length === 0 || (await read($, isHidden))) return next(e)
+    if (e.props.hasSurvey || rows.length === 0) return next(e)
 
     const { Box, Text, Button } = $.ui.resolve(e)
+
+    // Hide folds the band to one line rather than removing it, so it can be
+    // brought back; the next reply unfolds it again.
+    if (await read($, isHidden)) {
+      return (
+        <Box>
+          <Text dimColor>Ledger entries cited this turn ({rows.length}) </Text>
+          <Button key="show" label="Show" onPress={() => update($, isHidden, () => false)} />
+        </Box>
+      )
+    }
     const shown = rows.slice(0, MAX_ROWS)
 
     // `code` is often not on PATH (macOS needs "Install 'code' command" first);
