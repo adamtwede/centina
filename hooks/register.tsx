@@ -221,7 +221,10 @@ export const register: Register = on => {
         </Box>
         {shown.map(row => (
           <Box key={`${row.system ?? ''}/${row.cite}`}>
-            <Text bold>{row.system ? `${row.system}/${row.cite}` : row.cite} </Text>
+            {/* Never shrinks: when the row is narrow only the title is cut, not the citation. */}
+            <Box flexShrink={0}>
+              <Text bold>{row.system ? `${row.system}/${row.cite}` : row.cite} </Text>
+            </Box>
             {row.problem === 'no-label' ? (
               <Text color="red">not in any ledger</Text>
             ) : (

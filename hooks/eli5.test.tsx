@@ -47,3 +47,11 @@ test('Hide folds the band to one line and Show brings it back', async ($, on) =>
   expect(store.get('centina/isHidden')).toBe(false)
   expect(await (await mount()).find({ key: 'eli5:/sz:P1' })).toBeDefined()
 })
+
+test('the citation never shrinks, so a narrow row cuts the title and not the label', async ($, on) => {
+  on('state.get', async (_$, e) => ({ value: { value: e.key === 'cited' ? [row] : false, version: 1 } }))
+  const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  const shielded = await ui.findAll({ type: 'Box', text: /sz:P1/ })
+  expect(JSON.stringify(await ui.drawn())).toContain('"flexShrink":0')
+  expect(shielded.length).toBeGreaterThan(0)
+})
