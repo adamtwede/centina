@@ -180,3 +180,82 @@ test('Phase progress shows only while a ledger phase is active, and does not cal
   expect(asked).toHaveLength(0)
   expect(store.get('centina/eli5')).toMatchObject({ status: 'failed' })
 })
+
+const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: Second opinion asks opus with the request and the reply, and sends only when told to`, async ($, on) => {
+    const reply = 'Use sz:P1 as written.'
+    const files: Record<string, string> = {
+      '/w/LEDGER.json': JSON.stringify({ system: 'alpha', entries: [
+        { key: 'sz:P1', title: 'first', status: 'open', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
+        { key: 'sz:G1', title: 'the goal', status: 'active', file: 'LEDGER.md', line: 4, parts: [], obsoletedBy: [] },
+      ] }),
+      '/w/LEDGER.md': '## Open\n### sz:P1: first\nthe proposal body\n### sz:G1: the goal\nthe goal body',
+    }
+    const store = new Map<string, unknown>([['centina/cited', [row]], ['centina/reply', reply], ['centina/request', 'Should we do sz:P1?']])
+    const asked: unknown[] = []
+    const sent: unknown[] = []
+    on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+    on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+    on('session.cwd', async () => ({ value: '/w' }) as never)
+    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('ui.open', async () => ({ value: { isOpen: true } as never }))
+    on('model.complete', async (_$, e) => {
+      asked.push(e)
+      return { value: { isAnswered: true, text: 'Errors and flaws: none found.', usage } }
+    })
+    on('prompt.submit', async (_$, e) => { sent.push(e); return { text: e.text } })
+    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+    on('clock.now', async () => ({ value: 0 }) as never)
+    await $.session.start({ cwd: '/w', surface, isInteractive: true })
+    const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+    await ui.press({ key: 'review' })
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).toMatchObject({ model: 'opus', effort: 'high' })
+    const { prompt } = asked[0] as { prompt: string }
+    expect(prompt).toContain("The reader's last request:\nShould we do sz:P1?")
+    expect(prompt).toContain(`Latest reply:\n${reply}`)
+    expect(prompt).toContain('the proposal body')
+    expect(prompt).toContain('the goal body')
+    expect(store.get('centina/eli5')).toEqual({ cite: 'Second opinion on the latest reply', status: 'answered', text: 'Errors and flaws: none found.', isSendable: true })
+    // The answer waits in the pane: nothing reaches the session until the button is pressed.
+    expect(sent).toHaveLength(0)
+    const pane = await $.ui.mount({ plugin: 'centina', surface, component: 'Pane', requestId: 'centina-eli5', props: {} as never, viewport: { columns: 80, rows: 24 } })
+    await pane.press({ key: 'send' })
+    expect(sent).toHaveLength(1)
+    const message = sent[0] as { text: string; asUser?: true }
+    expect(message.text).toContain('Errors and flaws: none found.')
+    expect(message.text).toContain('do not change anything on its say-so alone')
+    expect(message.asUser).toBeUndefined()
+    // One send per answer.
+    expect((store.get('centina/eli5') as { isSendable?: boolean }).isSendable).toBe(false)
+  })
+}
+
+const paneOf = ($: Parameters<Parameters<typeof test>[1]>[0]) =>
+  $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'Pane', requestId: 'centina-eli5', props: {} as never, viewport: { columns: 80, rows: 24 } })
+
+test('only a second opinion\'s answer offers Send to session', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'TLDR of the latest reply', status: 'answered', text: 'Short.' }]])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  expect(await (await paneOf($)).find({ key: 'send' })).toBeUndefined()
+})
+
+test('a second opinion\'s answer offers Send to session', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'Second opinion on the latest reply', status: 'answered', text: 'Long.', isSendable: true }]])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  expect(await (await paneOf($)).find({ key: 'send' })).toBeDefined()
+})
+
+test('a prompt the reader typed is kept as the last request; a plugin\'s own is not', async ($, on) => {
+  const store = new Map<string, unknown>()
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('prompt.submit', async (_$, e) => ({ text: e.text }))
+  await $.prompt.submit({ text: 'from a plugin' })
+  expect(store.get('centina/request')).toBeUndefined()
+  await $.prompt.submit({ text: 'what I typed', origin: { kind: 'composer' } } as never)
+  expect(store.get('centina/request')).toBe('what I typed')
+})

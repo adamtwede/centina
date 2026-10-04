@@ -23,17 +23,20 @@ export type Row = {
 
 /**
  * The explanation pane's content, asked for, arrived, or failed: one entry's ELI5
- * (`cite` is its citation), or the TLDR of the latest reply or the phase's
- * progress (`cite` is a heading).
+ * (`cite` is its citation), or the TLDR of the latest reply, the phase's
+ * progress or a second opinion on the reply (`cite` is a heading). `isSendable`
+ * is set on an answer the pane offers to send on to the main session.
  */
-export type Eli5 = { cite: string; status: 'asking' | 'answered' | 'failed'; text: string }
+export type Eli5 = { cite: string; status: 'asking' | 'answered' | 'failed'; text: string; isSendable?: boolean }
 
 declare module 'claude-code' {
   interface PluginState {
     /**
-     * `reply` is the text of the latest main-agent reply, for TLDR THIS. `hasPhase`
-     * is whether a ledger has an active phase, which is what Phase progress needs.
+     * `reply` is the text of the latest main-agent reply, for TLDR THIS and Second
+     * opinion; `request` is the reader's last typed prompt, for Second opinion.
+     * `hasPhase` is whether a ledger has an active phase, which is what Phase
+     * progress needs.
      */
-    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; hasPhase: boolean }
+    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; request: string; hasPhase: boolean }
   }
 }

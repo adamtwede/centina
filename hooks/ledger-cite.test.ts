@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activePhases, bearings, eli5Prompt, extractCites, progressPrompt, references, resolve, sectionAt, tldrPrompt } from './ledger-cite'
+import { activePhases, bearings, eli5Prompt, extractCites, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -159,4 +159,14 @@ test('phase progress prompt gives open items their text and closed items only a 
   expect(prompt).toContain('goal body')
   expect(prompt.indexOf('the definition of done')).toBeLessThan(prompt.indexOf('waiting on the harness'))
   expect(prompt.trimEnd().endsWith("Report on the phase's progress.")).toBe(true)
+})
+
+test('the review prompt leads with the reader\'s request, cut when long, and TLDR\'s has none', () => {
+  const cited = [{ key: 'sz:Q1', title: 'which one', status: 'open', text: '### sz:Q1: which one\nbody' }]
+  const prompt = reviewPrompt('Should we?', 'Yes, sz:Q1.', cited, [], [])
+  expect(prompt.startsWith("The reader's last request:\nShould we?\n\nLatest reply:\nYes, sz:Q1.")).toBe(true)
+  expect(prompt).toContain('### sz:Q1: which one\nbody')
+  expect(prompt.trimEnd().endsWith('Review the latest reply.')).toBe(true)
+  expect(reviewPrompt('x'.repeat(10_000), 'r', [], [], []).length).toBeLessThan(4_200)
+  expect(tldrPrompt('r', [], [], [])).not.toContain("last request")
 })

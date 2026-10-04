@@ -409,6 +409,22 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   (`open`, `hypothesis`, `predicted`, `planned`, `blocked`, `active`,
   `deferred`) get their full text while the 20k budget lasts; closed ones are
   titles only. Mocked-model tests only; not yet tried against the real model.
+  A fourth button, **Second opinion ($$$$)**, asks **Opus** (high effort, 8k
+  tokens, 180s) to review the latest reply for errors and flaws, gaps and
+  risks, and improvements. Its prompt is TLDR's (reply, phase, goals, cited
+  entries, same budget) plus the reader's last typed prompt (the `request`
+  atom, kept by the mod's own `prompt.submit` hook for `composer` and `bridge`
+  origins only, so a plugin's, a peer's or a scheduled prompt never replaces
+  it). The call has no tools and no session history, so it can review the
+  reasoning and the ledger fit but cannot check the reply against the code; the
+  system prompt tells it to say what would have to be checked instead of
+  asserting. The answer stays in the pane: it is never sent on its own. A
+  **Send to session** button under it calls `$.prompt.submit` (not `asUser`, so
+  the session reads it as a message from the plugin) with a lead line saying
+  where it came from and that it is to be weighed, not adopted, and the button
+  goes once pressed so one answer is sent once. Mocked-model tests only; not
+  yet tried against the real model, and the `opus` alias is subject to the
+  org's model allowlist.
 
 ## Open / under discussion
 

@@ -4,7 +4,10 @@
 // "TLDR THIS" button does the same for the latest reply as a whole, weighing any
 // options in it against the active phase and the project's goals. While a ledger
 // phase is active, a "Phase progress ($$$)" button has Sonnet report on how far
-// the phase has got and which of its open items matter most.
+// the phase has got and which of its open items matter most. A "Second opinion
+// ($$$$)" button has Opus review the latest reply against the reader's last
+// request and the ledger; its answer waits in the pane until a "Send to session"
+// button there hands it to the main session.
 // Reads each system's generated LEDGER.json (`centina-check ledger`); never the
 // markdown ledger. Display only: nothing here is load-bearing for the skills.
 
@@ -14,6 +17,7 @@ import type { EngineInterface, Register } from "claude-code"
 import {
   ELI5_SYSTEM,
   PROGRESS_SYSTEM,
+  REVIEW_SYSTEM,
   TLDR_SYSTEM,
   activePhases,
   bearings,
@@ -22,6 +26,7 @@ import {
   progressPrompt,
   references,
   resolve,
+  reviewPrompt,
   sectionAt,
   tldrPrompt,
 } from "./ledger-cite"
@@ -39,11 +44,13 @@ const isHidden = atom({ plugin: "centina", key: "isHidden" } as const, false)
 const eli5 = atom({ plugin: "centina", key: "eli5" } as const, null)
 const latestReply = atom({ plugin: "centina", key: "reply" } as const, "")
 const hasPhase = atom({ plugin: "centina", key: "hasPhase" } as const, false)
+const latestRequest = atom({ plugin: "centina", key: "request" } as const, "")
 
 const ELI5_PANE = "centina-eli5"
 const ELI5_TIMEOUT_MS = 20_000
 const TLDR_TIMEOUT_MS = 45_000
 const PROGRESS_TIMEOUT_MS = 90_000
+const REVIEW_TIMEOUT_MS = 180_000
 
 const LEDGER_JSON = "LEDGER.json"
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
@@ -158,12 +165,14 @@ async function ask(
   o: {
     title: string
     heading: string
-    model: "haiku" | "sonnet"
-    effort: "low" | "medium"
+    model: "haiku" | "sonnet" | "opus"
+    effort: "low" | "medium" | "high"
     system: string
     maxTokens: number
     timeoutMs: number
     unreadable: string
+    /** Whether the pane offers to send an answer on to the main session. */
+    isSendable?: boolean
     build: () => Promise<Question>
   },
 ): Promise<void> {
@@ -172,7 +181,12 @@ async function ask(
   stop = new AbortController()
   const show = async (status: Eli5["status"], text: string) => {
     if (mine === asking)
-      await update($, eli5, () => ({ cite: o.heading, status, text }))
+      await update($, eli5, () => ({
+        cite: o.heading,
+        status,
+        text,
+        ...(o.isSendable && status === "answered" ? { isSendable: true } : {}),
+      }))
   }
   await $.ui.open({ id: ELI5_PANE, title: o.title })
   await show("asking", "")
@@ -274,11 +288,55 @@ function entryReader(
 }
 
 /**
- * TLDR of the latest reply. Haiku gets the reply, the active phase and goals, and
- * the entries the reply cites, each by title and, while there is room, in full:
- * one call can't fetch more mid-answer, so "full text if necessary" is decided
- * by the budget in `tldrPrompt`, not by the model.
+ * The latest reply with the ledger context around it: the entries it cites, each
+ * by title and, while there is room, in full (one call can't fetch more
+ * mid-answer, so "full text if necessary" is decided by the budget in
+ * `replyPrompt`, not by the model), the active phase and the active goals of the
+ * systems the reply is about. Undefined when there is no reply yet.
  */
+async function replyContext(
+  $: EngineInterface,
+): Promise<
+  | { reply: string; cites: Context[]; phase: Context[]; goals: Context[] }
+  | undefined
+> {
+  const reply = await read($, latestReply)
+  if (reply === "") return undefined
+  const systems = await readSystems($)
+  const rows = resolve(extractCites(reply), systems).filter(
+    (row) => row.path !== undefined,
+  )
+  // Weigh against the systems the reply is about; with no citations, all of them.
+  const scope =
+    rows.length > 0
+      ? systems.filter((s) => rows.some((row) => row.dir === s.dir))
+      : systems
+  const contextOf = entryReader($)
+  const seen = new Set<string>()
+  const fresh = (system: System, entry: LedgerEntry) => {
+    const id = `${system.dir}/${entry.key}`
+    return seen.has(id) ? false : (seen.add(id), true)
+  }
+  const cites: Context[] = []
+  for (const row of rows) {
+    const system = systems.find((s) => s.dir === row.dir)
+    const entry = system?.json.entries.find((e) => e.key === row.key)
+    if (system && entry && fresh(system, entry))
+      cites.push(await contextOf(system.dir, entry))
+  }
+  const phase: Context[] = []
+  const goals: Context[] = []
+  for (const system of scope) {
+    const active = bearings([system])
+    for (const entry of active.phase)
+      if (fresh(system, entry)) phase.push(await contextOf(system.dir, entry))
+    for (const entry of active.goals)
+      if (fresh(system, entry)) goals.push(await contextOf(system.dir, entry))
+  }
+  return { reply, cites, phase, goals }
+}
+
+/** TLDR of the latest reply, by Haiku. */
 async function tldr($: EngineInterface): Promise<void> {
   await ask($, {
     title: "TLDR",
@@ -290,44 +348,66 @@ async function tldr($: EngineInterface): Promise<void> {
     timeoutMs: TLDR_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     build: async () => {
-      const reply = await read($, latestReply)
-      if (reply === "") return { failure: "There is no reply to explain yet." }
-      const systems = await readSystems($)
-      const rows = resolve(extractCites(reply), systems).filter(
-        (row) => row.path !== undefined,
-      )
-      // Weigh against the systems the reply is about; with no citations, all of them.
-      const scope =
-        rows.length > 0
-          ? systems.filter((s) => rows.some((row) => row.dir === s.dir))
-          : systems
-      const contextOf = entryReader($)
-      const seen = new Set<string>()
-      const fresh = (system: System, entry: LedgerEntry) => {
-        const id = `${system.dir}/${entry.key}`
-        return seen.has(id) ? false : (seen.add(id), true)
-      }
-      const cites: Context[] = []
-      for (const row of rows) {
-        const system = systems.find((s) => s.dir === row.dir)
-        const entry = system?.json.entries.find((e) => e.key === row.key)
-        if (system && entry && fresh(system, entry))
-          cites.push(await contextOf(system.dir, entry))
-      }
-      const phase: Context[] = []
-      const goals: Context[] = []
-      for (const system of scope) {
-        const active = bearings([system])
-        for (const entry of active.phase)
-          if (fresh(system, entry))
-            phase.push(await contextOf(system.dir, entry))
-        for (const entry of active.goals)
-          if (fresh(system, entry))
-            goals.push(await contextOf(system.dir, entry))
-      }
+      const context = await replyContext($)
+      if (context === undefined)
+        return { failure: "There is no reply to explain yet." }
+      const { reply, cites, phase, goals } = context
       return { prompt: tldrPrompt(reply, cites, phase, goals) }
     },
   })
+}
+
+/**
+ * Second opinion: Opus gets the reader's last request, the latest reply and the
+ * same ledger context as TLDR, and reviews the reply for errors, gaps and
+ * improvements. It has no tools, so it reasons about what it is shown and can't
+ * check the reply against the code. The answer is shown, not sent: the pane's
+ * "Send to session" button does that, so the reader decides what the main
+ * session acts on. Costliest of the buttons, hence high effort and a long timeout.
+ */
+async function secondOpinion($: EngineInterface): Promise<void> {
+  await ask($, {
+    title: "Second opinion",
+    heading: "Second opinion on the latest reply",
+    model: "opus",
+    effort: "high",
+    system: REVIEW_SYSTEM,
+    // Thinking at high effort counts against the cap as well as the 400 words.
+    maxTokens: 8_000,
+    timeoutMs: REVIEW_TIMEOUT_MS,
+    unreadable: "Could not read the ledger.",
+    isSendable: true,
+    build: async () => {
+      const context = await replyContext($)
+      if (context === undefined)
+        return { failure: "There is no reply to review yet." }
+      const { reply, cites, phase, goals } = context
+      const request = await read($, latestRequest)
+      return { prompt: reviewPrompt(request, reply, cites, phase, goals) }
+    },
+  })
+}
+
+/**
+ * Hands the pane's answer to the main session as a message from this plugin
+ * (not as the reader's own words), with a line saying where it came from and
+ * that it is to be weighed, not adopted.
+ */
+async function sendToSession($: EngineInterface): Promise<void> {
+  const state = await read($, eli5)
+  if (state === null || state.status !== "answered" || !state.isSendable) return
+  await update($, eli5, (current) =>
+    current === null ? current : { ...current, isSendable: false },
+  )
+  await $.prompt.submit({
+    text: [
+      "Second opinion on your latest reply, from a one-off Opus review that saw only the reader's last request, your reply and the ledger context, not the code.",
+      "Weigh it against what you know and say where you disagree; do not change anything on its say-so alone.",
+      "",
+      state.text,
+    ].join("\n"),
+  })
+  $.ui.toast("Sent to the session")
 }
 
 /**
@@ -387,6 +467,7 @@ async function clear($: EngineInterface): Promise<void> {
   isNewTurn = true
   await update($, cited, () => [])
   await update($, latestReply, () => "")
+  await update($, latestRequest, () => "")
 }
 
 export const register: Register = (on) => {
@@ -403,6 +484,10 @@ export const register: Register = (on) => {
 
   on("prompt.submit", async ($, e, next) => {
     isNewTurn = true
+    // What the reader typed, for Second opinion; not a notification, a peer's
+    // message or a scheduled prompt. A plugin's own submit skips this hook.
+    if (e.origin.kind === "composer" || e.origin.kind === "bridge")
+      await update($, latestRequest, () => e.text)
     return next(e)
   })
 
@@ -420,12 +505,13 @@ export const register: Register = (on) => {
   })
 
   on("ui.render", { component: "Pane", requestId: ELI5_PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
     const state = await read($, eli5)
     if (state === null)
       return (
         <Text dimColor>
-          Press ELI5 on a ledger entry, TLDR THIS, or Phase progress.
+          Press ELI5 on a ledger entry, TLDR THIS, Second opinion or Phase
+          progress.
         </Text>
       )
     return (
@@ -434,6 +520,13 @@ export const register: Register = (on) => {
         {state.status === "asking" && <Text dimColor>Asking...</Text>}
         {state.status === "failed" && <Text color="red">{state.text}</Text>}
         {state.status === "answered" && <Text>{state.text}</Text>}
+        {state.status === "answered" && state.isSendable && (
+          <Button
+            key="send"
+            label="Send to session"
+            onPress={() => sendToSession($)}
+          />
+        )}
       </Box>
     )
   })
@@ -455,6 +548,13 @@ export const register: Register = (on) => {
     const buttons = [
       isExplainable && (
         <Button key="tldr" label="TLDR THIS" onPress={() => tldr($)} />
+      ),
+      isExplainable && (
+        <Button
+          key="review"
+          label="Second opinion ($$$$)"
+          onPress={() => secondOpinion($)}
+        />
       ),
       isPhaseActive && (
         <Button
