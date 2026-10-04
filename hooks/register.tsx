@@ -3,9 +3,9 @@
 // "ELI5" button (a one-off Haiku explanation, outside the session, in a pane). A
 // "TLDR THIS" button does the same for the latest reply as a whole, weighing any
 // options in it against the active phase and the project's goals. While a ledger
-// phase is active, a "Phase progress ($$$)" button has Sonnet report on how far
+// phase is active, a "Phase progress ($)" button has Sonnet report on how far
 // the phase has got and which of its open items matter most. A "Second opinion
-// ($$$$)" button has Opus review the latest reply against the reader's last
+// ($$$)" button has Opus review the latest reply against the reader's last
 // request and the ledger; its answer waits in the pane until a "Send to session"
 // button there hands it to the main session.
 // Reads each system's generated LEDGER.json (`centina-check ledger`); never the
@@ -552,14 +552,14 @@ export const register: Register = (on) => {
       isExplainable && (
         <Button
           key="review"
-          label="Second opinion ($$$$)"
+          label="Second opinion ($$$)"
           onPress={() => secondOpinion($)}
         />
       ),
       isPhaseActive && (
         <Button
           key="progress"
-          label="Phase progress ($$$)"
+          label="Phase progress ($)"
           onPress={() => progress($)}
         />
       ),

@@ -394,7 +394,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   model decision: one call cannot fetch mid-answer. The band now also shows,
   with just this button, for a reply that cites nothing, once a `LEDGER.json`
   has been found. Mocked-model tests only; not yet tried against the real model.
-  A third button, **Phase progress ($$$)**, asks **Sonnet** (medium effort, 2k
+  A third button, **Phase progress ($)**, asks **Sonnet** (medium effort, 2k
   tokens, 90s) how far the active phase has got: a progress summary of at most
   300 words, the remaining work, and which open items are still critical against
   the phase's goal and definition of done and the project goals. It shows
@@ -409,7 +409,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   (`open`, `hypothesis`, `predicted`, `planned`, `blocked`, `active`,
   `deferred`) get their full text while the 20k budget lasts; closed ones are
   titles only. Mocked-model tests only; not yet tried against the real model.
-  A fourth button, **Second opinion ($$$$)**, asks **Opus** (high effort, 8k
+  A fourth button, **Second opinion ($$$)**, asks **Opus** (high effort, 8k
   tokens, 180s) to review the latest reply for errors and flaws, gaps and
   risks, and improvements. Its prompt is TLDR's (reply, phase, goals, cited
   entries, same budget) plus the reader's last typed prompt (the `request`
