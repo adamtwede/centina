@@ -280,12 +280,48 @@ Centina ships as a self-contained Claude Code plugin. There is nothing to instal
    tracked link.
 
    `bin/centina-check` (the checker's CLI) ends up at
-   `~/.claude/skills/centina/bin/centina-check`, but installing doesn't put
-   it on your `PATH`. That's fine for normal use — Claude Code skills
-   invoke it directly via `${CLAUDE_PLUGIN_ROOT}`, nothing to configure
-   there — but if you ever want to run it yourself from a terminal, either
-   add that `bin/` directory to your `PATH` or call it by full path
-   (`install.sh` prints the exact path to use at the end of the install).
+   `~/.claude/skills/centina/bin/centina-check`. That's fine for normal
+   use — Claude Code skills invoke it directly via `${CLAUDE_PLUGIN_ROOT}`,
+   nothing to configure there.
+
+   **Running it yourself from a terminal.** Putting `bin/` on your `PATH`
+   isn't enough. `centina-check` expects two environment variables that
+   only Claude Code sets, and fails without them:
+
+   | Variable | Value | What it is |
+   |---|---|---|
+   | `CLAUDE_PLUGIN_ROOT` | `~/.claude/skills/centina` | The installed plugin source. |
+   | `CLAUDE_PLUGIN_DATA` | `~/.claude/plugins/data/centina-skills-dir` | The writable copy of the checker, with its `node_modules`, that the `SessionStart` hook maintains. The wrapper runs the checker from here, never from `ROOT`. |
+
+   Set them for the one invocation, not with `export`: variables exported
+   in your shell are inherited by every Claude Code session you start from
+   it. A function in `~/.zshrc` (or `~/.bashrc`) does that, and needs no
+   `PATH` change:
+
+   ```sh
+   centina-check() {
+     CLAUDE_PLUGIN_ROOT="$HOME/.claude/skills/centina" \
+     CLAUDE_PLUGIN_DATA="$HOME/.claude/plugins/data/centina-skills-dir" \
+     "$HOME/.claude/skills/centina/bin/centina-check" "$@"
+   }
+   ```
+
+   Then, from anywhere (relative paths resolve against where you ran it):
+
+   ```console
+   centina-check --project ./tsconfig.json path/to/spec.centina.ts
+   centina-check ledger --check path/to/specs/<system>
+   ```
+
+   Two caveats. The `DATA` directory name is chosen by Claude Code, not by
+   Centina; if the function reports `checker dependencies aren't
+   installed`, check `ls ~/.claude/plugins/data/` for the real name. And
+   `DATA` only exists, with dependencies installed, after a Claude Code
+   session has started at least once with the plugin loaded — the same
+   session start is what reinstalls them after an update that changes
+   `checker/package.json`, and until then the wrapper refuses to run
+   rather than report a result from stale dependencies. See
+   [docs/plugin-checker-install.md](docs/plugin-checker-install.md).
 
    Prefer a one-off session against a specific checkout instead (no
    install, no lasting change)? `claude --plugin-dir /path/to/centina`
