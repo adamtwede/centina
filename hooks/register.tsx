@@ -109,7 +109,9 @@ async function visit(
 
 async function walk($: EngineInterface): Promise<void> {
   const found: string[] = []
-  await visit($, await $.session.cwd(), 0, found)
+  // The project root, not `cwd()`: that follows a shell `cd`, and a walk from a
+  // subfolder finds no ledger and would empty `dirs` for the rest of the session.
+  await visit($, await $.session.root(), 0, found)
   dirs = found
   walkedAt = await $.clock.now()
 }
@@ -238,7 +240,7 @@ async function explain($: EngineInterface, row: Row): Promise<void> {
     model: "haiku",
     effort: "low",
     system: ELI5_SYSTEM,
-    maxTokens: 400,
+    maxTokens: 800,
     timeoutMs: ELI5_TIMEOUT_MS,
     unreadable: `Could not read ${row.cite} from the ledger.`,
     build: async () => {
@@ -342,7 +344,7 @@ async function tldr($: EngineInterface): Promise<void> {
     title: "TLDR",
     heading: "TLDR of the latest reply",
     model: "haiku",
-    effort: "low",
+    effort: "medium",
     system: TLDR_SYSTEM,
     maxTokens: 1_200,
     timeoutMs: TLDR_TIMEOUT_MS,
@@ -373,7 +375,7 @@ async function secondOpinion($: EngineInterface): Promise<void> {
     effort: "high",
     system: REVIEW_SYSTEM,
     // Thinking at high effort counts against the cap as well as the 400 words.
-    maxTokens: 8_000,
+    maxTokens: 16_000,
     timeoutMs: REVIEW_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     isSendable: true,
@@ -401,8 +403,8 @@ async function sendToSession($: EngineInterface): Promise<void> {
   )
   await $.prompt.submit({
     text: [
-      "Second opinion on your latest reply, from a one-off Opus review that saw only the reader's last request, your reply and the ledger context, not the code.",
-      "Weigh it against what you know and say where you disagree; do not change anything on its say-so alone.",
+      "Second opinion on your latest reply with partial context from a one-off agent review that saw only the reader's last request, your reply and the currently-cited ledger entries, not the code.",
+      "Please note that the reviewer does not have as much context as you do, so weigh it against what you know and say where you disagree; do not change anything on its say-so alone.",
       "",
       state.text,
     ].join("\n"),
@@ -414,7 +416,7 @@ async function sendToSession($: EngineInterface): Promise<void> {
  * Phase progress: Sonnet gets each active phase's own entry (goal, definition of
  * done, scope), its open items in full while there is room, its closed items by
  * title, and the active goals, and says how far the phase has got, what is left
- * and which of that matters most. Costlier than the Haiku buttons, hence the
+ * and which of that matters most. Costlier than the ELI5 and TLDR buttons, hence the
  * bigger budget and the guard against paying for an empty answer.
  */
 async function progress($: EngineInterface): Promise<void> {
@@ -422,9 +424,9 @@ async function progress($: EngineInterface): Promise<void> {
     title: "Phase progress",
     heading: "Phase progress",
     model: "sonnet",
-    effort: "medium",
+    effort: "high",
     system: PROGRESS_SYSTEM,
-    maxTokens: 2_000,
+    maxTokens: 8_000,
     timeoutMs: PROGRESS_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     build: async () => {
@@ -535,7 +537,10 @@ export const register: Register = (on) => {
     const rows = await read($, cited)
     // TLDR THIS needs a reply to explain and a ledger to weigh it against, so the
     // band also shows, with just that button, for a reply that cites nothing.
-    const isExplainable = dirs.length > 0 && (await read($, latestReply)) !== ""
+    const reply = await read($, latestReply)
+    const secondOpinionWorthy = reply.split(/\s+/).length > 50
+    const tldrWorthy = reply.split(/\s+/).length > 150
+    const isExplainable = dirs.length > 0 && reply !== ""
     // Phase progress needs an active phase in the ledger, whatever the reply cites.
     const isPhaseActive = await read($, hasPhase)
     if (
@@ -546,21 +551,21 @@ export const register: Register = (on) => {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const buttons = [
-      isExplainable && (
-        <Button key="tldr" label="TLDR THIS" onPress={() => tldr($)} />
-      ),
-      isExplainable && (
-        <Button
-          key="review"
-          label="Second opinion ($$$)"
-          onPress={() => secondOpinion($)}
-        />
+      isExplainable && tldrWorthy && (
+        <Button key="tldr" label="TLDR THIS ($)" onPress={() => tldr($)} />
       ),
       isPhaseActive && (
         <Button
           key="progress"
-          label="Phase progress ($)"
+          label="Phase progress ($$)"
           onPress={() => progress($)}
+        />
+      ),
+      isExplainable && secondOpinionWorthy && (
+        <Button
+          key="review"
+          label="Second opinion ($$$)"
+          onPress={() => secondOpinion($)}
         />
       ),
     ]

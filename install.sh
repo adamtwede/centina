@@ -22,6 +22,7 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 cp -R "$SRC/.claude-plugin" "$DEST/"
+rm -rf "$DEST/.claude-plugin/types" # engine-laid dev types for tsconfig.hooks.json, not part of the bundle
 cp -R "$SRC/hooks" "$DEST/"
 cp -R "$SRC/skills" "$DEST/"
 cp -R "$SRC/bin" "$DEST/"

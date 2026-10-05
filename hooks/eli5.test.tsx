@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 
 const ledger = '## Open\n### sz:P1: first\ncites sz:P2\n### sz:P2: second\nbody'
 const json = JSON.stringify({ system: 'alpha', entries: [
@@ -49,7 +50,7 @@ test('Hide folds the band to one line and Show brings it back', async ($, on) =>
 })
 
 test('the citation never shrinks, so a narrow row cuts the title and not the label', async ($, on) => {
-  on('state.get', async (_$, e) => ({ value: { value: e.key === 'cited' ? [row] : false, version: 1 } }))
+  on('state.get', async (_$, e) => ({ value: { value: e.key === 'cited' ? [row] : e.key === 'reply' ? '' : false, version: 1 } }))
   const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
   const shielded = await ui.findAll({ type: 'Box', text: /sz:P1/ })
   expect(JSON.stringify(await ui.drawn())).toContain('"flexShrink":0')
@@ -58,7 +59,8 @@ test('the citation never shrinks, so a narrow row cuts the title and not the lab
 
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`${surface}: TLDR THIS asks haiku with the reply, the goals and the cited entry's text`, async ($, on) => {
-    const reply = 'Choose A or B for sz:P1.'
+    // TLDR THIS only shows for a reply of over 150 words.
+    const reply = `Choose A or B for sz:P1. ${'It holds up against the goal. '.repeat(30)}`
     const files: Record<string, string> = {
       '/w/LEDGER.json': JSON.stringify({ system: 'alpha', entries: [
         { key: 'sz:P1', title: 'first', status: 'open', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
@@ -71,7 +73,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const asked: unknown[] = []
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
-    on('session.cwd', async () => ({ value: '/w' }) as never)
+    on('session.root', async () => ({ value: '/w' }) as never)
     on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
@@ -94,16 +96,40 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
+test('a shell cd into a subfolder does not hide the ledger', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/reply', 'Pick A or B.']])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  // The shell has moved into a folder under the project; the project root has not.
+  on('session.cwd', async () => ({ value: '/w/sub' }) as never)
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: JSON.stringify({ system: 'alpha', entries: [
+    { key: 'sz:W1', title: 'phase one', status: 'active', kind: 'phase', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
+  ] }) }))
+  await $.session.start({ cwd: '/w/sub', surface: 'terminal', isInteractive: true })
+  expect(store.get('centina/hasPhase')).toBe(true)
+})
+
 test('a reply that cites nothing still gets a band with TLDR THIS, once a ledger is known', async ($, on) => {
-  const store = new Map<string, unknown>([['centina/cited', []], ['centina/reply', 'Pick A or B.']])
+  const store = new Map<string, unknown>([['centina/cited', []], ['centina/reply', `Pick A or B. ${'It holds up against the goal. '.repeat(30)}`]])
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
-  on('session.cwd', async () => ({ value: '/w' }) as never)
+  on('session.root', async () => ({ value: '/w' }) as never)
   on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   const mount = () => $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
   await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
-  expect(await (await mount()).find({ key: 'tldr' })).toBeDefined()
+  const ui = await mount()
+  expect(await ui.find({ key: 'tldr' })).toBeDefined()
+  expect(await ui.find({ key: 'review' })).toBeDefined()
+  // A short reply is worth neither.
+  store.set('centina/reply', 'Pick A or B.')
+  const short = await mount()
+  expect(await short.find({ key: 'tldr' })).toBeUndefined()
+  expect(await short.find({ key: 'review' })).toBeUndefined()
 })
 
 const phaseJson = JSON.stringify({ system: 'alpha', entries: [
@@ -121,7 +147,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const asked: unknown[] = []
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
-    on('session.cwd', async () => ({ value: '/w' }) as never)
+    on('session.root', async () => ({ value: '/w' }) as never)
     on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
@@ -160,7 +186,7 @@ test('Phase progress shows only while a ledger phase is active, and does not cal
   ] })
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
-  on('session.cwd', async () => ({ value: '/w' }) as never)
+  on('session.root', async () => ({ value: '/w' }) as never)
   on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: json }))
   on('ui.open', async () => ({ value: { isOpen: true } as never }))
@@ -185,7 +211,8 @@ const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 
 
 for (const surface of ['terminal', 'desktop'] as const) {
   test(`${surface}: Second opinion asks opus with the request and the reply, and sends only when told to`, async ($, on) => {
-    const reply = 'Use sz:P1 as written.'
+    // Second opinion only shows for a reply of over 50 words.
+    const reply = `Use sz:P1 as written. ${'It holds up against the goal. '.repeat(12)}`
     const files: Record<string, string> = {
       '/w/LEDGER.json': JSON.stringify({ system: 'alpha', entries: [
         { key: 'sz:P1', title: 'first', status: 'open', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
@@ -198,7 +225,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const sent: unknown[] = []
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
-    on('session.cwd', async () => ({ value: '/w' }) as never)
+    on('session.root', async () => ({ value: '/w' }) as never)
     on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
@@ -234,7 +261,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
-const paneOf = ($: Parameters<Parameters<typeof test>[1]>[0]) =>
+const paneOf = ($: Engine) =>
   $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'Pane', requestId: 'centina-eli5', props: {} as never, viewport: { columns: 80, rows: 24 } })
 
 test('only a second opinion\'s answer offers Send to session', async ($, on) => {
@@ -254,7 +281,7 @@ test('a prompt the reader typed is kept as the last request; a plugin\'s own is 
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('prompt.submit', async (_$, e) => ({ text: e.text }))
-  await $.prompt.submit({ text: 'from a plugin' })
+  await $.prompt.submit({ text: 'from a plugin' } as never)
   expect(store.get('centina/request')).toBeUndefined()
   await $.prompt.submit({ text: 'what I typed', origin: { kind: 'composer' } } as never)
   expect(store.get('centina/request')).toBe('what I typed')

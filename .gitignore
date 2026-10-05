@@ -28,3 +28,6 @@ harness-config.json
 # Harness / token-optimization state (not project content)
 .claude/.headroom_wrap_marker.json
 
+
+# Engine-written claude-code API types for the hooks/ mod (see tsconfig.hooks.json)
+/.claude-plugin/types/
