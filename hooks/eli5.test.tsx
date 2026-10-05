@@ -207,6 +207,91 @@ test('Phase progress shows only while a ledger phase is active, and does not cal
   expect(store.get('centina/eli5')).toMatchObject({ status: 'failed' })
 })
 
+const itemJson = JSON.stringify({ system: 'alpha', entries: [
+  { key: 'sz:W1', title: 'phase one', status: 'active', kind: 'phase', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
+  { key: 'sz:W2', title: 'earlier spike', status: 'done', kind: 'spike', phase: 'sz:W1', file: 'LEDGER.md', line: 4, parts: [], obsoletedBy: [] },
+  { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', phase: 'sz:W1', dependsOn: ['sz:W2'], file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
+  { key: 'sz:F1', title: 'it fails at birth', status: 'measured-false', phase: 'sz:W1', premises: ['sz:W3'], file: 'LEDGER.md', line: 8, parts: [], obsoletedBy: [] },
+] })
+const itemLedger = '## Work\n### sz:W1: phase one\nthe definition of done\n### sz:W2: earlier spike\nold\n### sz:W3: the spike\n(a) QUESTION the original question\nRESULT the latest word\n### sz:F1: it fails at birth\nfinding body'
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: Item progress asks sonnet about the active work item and its findings, and shows from the ledger alone`, async ($, on) => {
+    const store = new Map<string, unknown>([['centina/cited', []]])
+    const asked: unknown[] = []
+    on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+    on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+    on('session.root', async () => ({ value: '/w' }) as never)
+    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? itemJson : itemLedger }))
+    on('ui.open', async () => ({ value: { isOpen: true } as never }))
+    on('model.complete', async (_$, e) => {
+      asked.push(e)
+      return { value: { isAnswered: true, text: 'Going nowhere.', usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } } }
+    })
+    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+    on('clock.now', async () => ({ value: 0 }) as never)
+    await $.session.start({ cwd: '/w', surface, isInteractive: true })
+    expect(store.get('centina/hasItem')).toBe(true)
+    const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+    await ui.press({ key: 'item-progress' })
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).toMatchObject({ model: 'sonnet' })
+    const { prompt } = asked[0] as { prompt: string }
+    expect(prompt).toContain('(a) QUESTION the original question')
+    expect(prompt).toContain('RESULT the latest word')
+    expect(prompt).toContain('- sz:F1 (measured-false): it fails at birth')
+    expect(prompt).toContain('- sz:W2 (done): earlier spike')
+    expect(prompt).toContain('the definition of done')
+    expect(prompt).not.toContain('finding body')
+    expect(store.get('centina/eli5')).toEqual({ cite: 'Item progress', status: 'answered', text: 'Going nowhere.' })
+  })
+}
+
+test('the band flags a long-running item against the closed items of its kind, and Item progress is told the size', async ($, on) => {
+  const closed = [8_000, 9_000, 10_000].map((size, i) => ({ key: `sz:W${i + 10}`, title: `closed ${i}`, status: 'done', kind: 'spike', size, file: 'LEDGER.md', line: 20 + i, parts: [], obsoletedBy: [] }))
+  const json = JSON.stringify({ system: 'alpha', entries: [
+    ...closed,
+    { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', size: 275_000, date: '1970-01-01', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
+  ] })
+  const store = new Map<string, unknown>([['centina/cited', []]])
+  const asked: unknown[] = []
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? json : itemLedger }))
+  on('ui.open', async () => ({ value: { isOpen: true } as never }))
+  on('model.complete', async (_$, e) => { asked.push(e); return { value: { isAnswered: true, text: 'ok', usage } as never } })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 3 * 86_400_000 }) as never)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  expect(store.get('centina/drift')).toMatchObject({ key: 'sz:W3', size: 275_000, level: 'high', days: 3 })
+  const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  expect(JSON.stringify(await ui.drawn())).toContain('Long-running ')
+  expect(JSON.stringify(await ui.drawn())).toContain('275k chars')
+  await ui.press({ key: 'item-progress' })
+  expect((asked[0] as { prompt: string }).prompt).toContain('Size, from the ledger and not a verdict')
+  expect((asked[0] as { prompt: string }).prompt).toContain('sz:W3: 275k chars')
+})
+
+test('Item progress is not offered when no work item is active', async ($, on) => {
+  const json = JSON.stringify({ system: 'alpha', entries: [
+    { key: 'sz:W1', title: 'phase one', status: 'planned', kind: 'phase', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
+    { key: 'sz:W2', title: 'spike', status: 'done', kind: 'spike', file: 'LEDGER.md', line: 4, parts: [], obsoletedBy: [] },
+  ] })
+  const store = new Map<string, unknown>([['centina/cited', []]])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: json }))
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  expect(store.get('centina/hasItem')).toBe(false)
+})
+
 const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
 for (const surface of ['terminal', 'desktop'] as const) {

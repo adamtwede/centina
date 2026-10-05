@@ -3,8 +3,11 @@
 // "ELI5" button (a one-off Haiku explanation, outside the session, in a pane). A
 // "TLDR THIS" button does the same for the latest reply as a whole, weighing any
 // options in it against the active phase and the project's goals. While a ledger
-// phase is active, a "Phase progress ($)" button has Sonnet report on how far
-// the phase has got and which of its open items matter most. A "Second opinion
+// phase is active, a "Phase progress ($$)" button has Sonnet report on how far
+// the phase has got and which of its open items matter most; while a work item
+// is active, an "Item progress ($$)" button does the same for that one line of
+// inquiry: what it set out to settle, what has been tried, and whether it is
+// getting closer. A "Second opinion
 // ($$$)" button has Opus review the latest reply against the reader's last
 // request and the ledger; its answer waits in the pane until a "Send to session"
 // button there hands it to the main session.
@@ -16,13 +19,19 @@ import type { EngineInterface, Register } from "claude-code"
 
 import {
   ELI5_SYSTEM,
+  ITEM_PROGRESS_SYSTEM,
   PROGRESS_SYSTEM,
   REVIEW_SYSTEM,
   TLDR_SYSTEM,
   activePhases,
   bearings,
+  currentItem,
+  driftLine,
   eli5Prompt,
   extractCites,
+  findingsOf,
+  itemDrift,
+  itemProgressPrompt,
   progressPrompt,
   references,
   resolve,
@@ -44,6 +53,8 @@ const isHidden = atom({ plugin: "centina", key: "isHidden" } as const, false)
 const eli5 = atom({ plugin: "centina", key: "eli5" } as const, null)
 const latestReply = atom({ plugin: "centina", key: "reply" } as const, "")
 const hasPhase = atom({ plugin: "centina", key: "hasPhase" } as const, false)
+const hasItem = atom({ plugin: "centina", key: "hasItem" } as const, false)
+const drift = atom({ plugin: "centina", key: "drift" } as const, null)
 const latestRequest = atom({ plugin: "centina", key: "request" } as const, "")
 
 const ELI5_PANE = "centina-eli5"
@@ -130,11 +141,25 @@ async function rowsFor($: EngineInterface): Promise<Row[]> {
   return rows
 }
 
-/** Whether some system has an active phase, which is what makes Phase progress worth asking. */
+/**
+ * Whether some system has an active phase and whether some work item is active,
+ * which is what makes Phase progress and Item progress worth asking, and how
+ * long-running that item is (the band's drift line).
+ */
 async function refreshPhase($: EngineInterface): Promise<void> {
   const systems = await readSystems($)
   await update($, hasPhase, () =>
     systems.some((s) => activePhases(s).length > 0),
+  )
+  const reply = await read($, latestReply)
+  const found = currentItem(
+    systems,
+    extractCites(reply).map((c) => c.key),
+  )
+  await update($, hasItem, () => found !== undefined)
+  const now = await $.clock.now()
+  await update($, drift, () =>
+    found ? itemDrift(found.system, found.entry, now) : null,
   )
 }
 
@@ -464,6 +489,62 @@ async function progress($: EngineInterface): Promise<void> {
   })
 }
 
+/**
+ * Item progress: Sonnet gets the work item the reply is about (or else the one
+ * the active spike chain has reached): its start, an outline of everything
+ * between and its end in full, the titles of the entries that rest on it, its
+ * phase and the active goals. It says what the line set out to settle, what has
+ * been tried, whether it is getting closer and what the options are. The
+ * counterpart of Phase progress for a line of inquiry too long for the phase's
+ * budget to show.
+ */
+async function itemProgress($: EngineInterface): Promise<void> {
+  await ask($, {
+    title: "Item progress",
+    heading: "Item progress",
+    model: "sonnet",
+    effort: "high",
+    system: ITEM_PROGRESS_SYSTEM,
+    maxTokens: 8_000,
+    timeoutMs: PROGRESS_TIMEOUT_MS,
+    unreadable: "Could not read the ledger.",
+    build: async () => {
+      const systems = await readSystems($)
+      const reply = await read($, latestReply)
+      const found = currentItem(
+        systems,
+        extractCites(reply).map((c) => c.key),
+      )
+      if (found === undefined)
+        return { failure: "No work item is active in the ledger." }
+      const { system, entry } = found
+      const contextOf = entryReader($)
+      const byKey = (key: string) =>
+        system.json.entries.find((e) => e.key === key)
+      const phase = entry.phase ? byKey(entry.phase) : undefined
+      const depends = (entry.dependsOn ?? []).flatMap((k) => byKey(k) ?? [])
+      return {
+        prompt: itemProgressPrompt({
+          item: await contextOf(system.dir, entry),
+          findings: await Promise.all(
+            findingsOf(system, entry.key).map((e) =>
+              contextOf(system.dir, e, false),
+            ),
+          ),
+          phase: phase && (await contextOf(system.dir, phase)),
+          depends: await Promise.all(
+            depends.map((e) => contextOf(system.dir, e, false)),
+          ),
+          drift: itemDrift(system, entry, await $.clock.now()),
+          goals: await Promise.all(
+            bearings([system]).goals.map((e) => contextOf(system.dir, e)),
+          ),
+        }),
+      }
+    },
+  })
+}
+
 async function clear($: EngineInterface): Promise<void> {
   turnCites = []
   isNewTurn = true
@@ -512,8 +593,8 @@ export const register: Register = (on) => {
     if (state === null)
       return (
         <Text dimColor>
-          Press ELI5 on a ledger entry, TLDR THIS, Second opinion or Phase
-          progress.
+          Press ELI5 on a ledger entry, TLDR THIS, Second opinion, Phase
+          progress or Item progress.
         </Text>
       )
     return (
@@ -543,9 +624,14 @@ export const register: Register = (on) => {
     const isExplainable = dirs.length > 0 && reply !== ""
     // Phase progress needs an active phase in the ledger, whatever the reply cites.
     const isPhaseActive = await read($, hasPhase)
+    const isItemActive = await read($, hasItem)
+    const longRunning = await read($, drift)
     if (
       e.props.hasSurvey ||
-      (rows.length === 0 && !isExplainable && !isPhaseActive)
+      (rows.length === 0 &&
+        !isExplainable &&
+        !isPhaseActive &&
+        !isItemActive)
     )
       return next(e)
 
@@ -559,6 +645,13 @@ export const register: Register = (on) => {
           key="progress"
           label="Phase progress ($$)"
           onPress={() => progress($)}
+        />
+      ),
+      isItemActive && (
+        <Button
+          key="item-progress"
+          label="Item progress ($$)"
+          onPress={() => itemProgress($)}
         />
       ),
       isExplainable && secondOpinionWorthy && (
@@ -618,6 +711,24 @@ export const register: Register = (on) => {
           />
           {buttons}
         </Box>
+        {longRunning && (
+          <Text
+            wrap="truncate-end"
+            color={
+              longRunning.level === "high"
+                ? "red"
+                : longRunning.level === "warn"
+                  ? "yellow"
+                  : undefined
+            }
+            dimColor={longRunning.level === "ok" || longRunning.level === "unknown"}
+          >
+            {longRunning.level === "high" || longRunning.level === "warn"
+              ? "Long-running "
+              : "Item "}
+            {driftLine(longRunning)}
+          </Text>
+        )}
         {shown.map((row) => (
           <Box key={`${row.system ?? ""}/${row.cite}`}>
             {/* Never shrinks: when the row is narrow only the title is cut, not the citation. */}

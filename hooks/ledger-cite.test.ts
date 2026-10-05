@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activePhases, bearings, eli5Prompt, extractCites, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
+import { activePhases, bearings, currentItem, driftLine, eli5Prompt, extractCites, findingsOf, headOutlineTail, itemDrift, itemProgressPrompt, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -169,4 +169,124 @@ test('the review prompt leads with the reader\'s request, cut when long, and TLD
   expect(prompt.trimEnd().endsWith('Review the latest reply.')).toBe(true)
   expect(reviewPrompt('x'.repeat(10_000), 'r', [], [], []).length).toBeLessThan(4_200)
   expect(tldrPrompt('r', [], [], [])).not.toContain("last request")
+})
+
+const chain: System = {
+  dir: '/w/s',
+  json: {
+    system: 's',
+    entries: [
+      entry('sz:W1', { kind: 'phase', status: 'active', line: 1 }),
+      entry('sz:W2', { kind: 'spike', status: 'active', line: 20, dependsOn: ['sz:W1'], phase: 'sz:W1' }),
+      entry('sz:W3', { kind: 'spike', status: 'active', line: 40, dependsOn: ['sz:W2'], phase: 'sz:W1' }),
+      entry('sz:W4', { kind: 'spike', status: 'done', line: 60, dependsOn: ['sz:W3'], phase: 'sz:W1' }),
+      entry('sz:F1', { status: 'measured', line: 70, premises: ['sz:W3', 'sz:A1'] }),
+      entry('sz:F2', { status: 'measured', line: 80, premises: ['sz:W2'] }),
+    ],
+  },
+}
+
+test('the current item is the cited active work item, else the end of the active chain, never a phase or a finished item', () => {
+  expect(currentItem([chain])?.entry.key).toBe('sz:W3')
+  expect(currentItem([chain], ['sz:W1', 'sz:F1', 'sz:W2'])?.entry.key).toBe('sz:W2')
+  const only = { dir: '/w/s', json: { system: 's', entries: [entry('sz:W1', { kind: 'phase', status: 'active' }), entry('sz:W4', { kind: 'spike', status: 'done' })] } }
+  expect(currentItem([only])).toBeUndefined()
+})
+
+test('of several chain ends the one furthest down its file is current', () => {
+  const two = { dir: '/w/s', json: { system: 's', entries: [entry('sz:W2', { kind: 'spike', status: 'active', line: 5 }), entry('sz:W3', { kind: 'other', status: 'active', line: 9 })] } }
+  expect(currentItem([two])?.entry.key).toBe('sz:W3')
+})
+
+test('an item\'s findings are the entries that name it in Premises', () => {
+  expect(findingsOf(chain, 'sz:W3').map(e => e.key)).toEqual(['sz:F1'])
+  expect(findingsOf(chain, 'sz:W9')).toEqual([])
+})
+
+test('a short entry is shown whole; a long one keeps its start, one line per middle paragraph and its end in full', () => {
+  expect(headOutlineTail('short entry')).toBe('short entry')
+  const paragraphs = Array.from({ length: 200 }, (_, i) => `STEP ${i} ${'detail '.repeat(100)}`)
+  const long = ['(a) QUESTION the original question', ...paragraphs, 'RESULT the latest word'].join('\n')
+  const shaped = headOutlineTail(long)
+  expect(shaped).toContain('(a) QUESTION the original question')
+  expect(shaped.endsWith('RESULT the latest word')).toBe(true)
+  expect(shaped).toContain('STEP 30 ')
+  expect(shaped).toContain('STEP 150 ')
+  expect(shaped).not.toContain(paragraphs[100])
+  expect(shaped.length).toBeLessThan(24_000)
+  expect(shaped.length).toBeLessThan(long.length / 5)
+})
+
+test('a very long entry keeps a line for every middle paragraph, each cut shorter, rather than dropping the newest', () => {
+  const paragraphs = Array.from({ length: 400 }, (_, i) => `STEP ${i} ${'x'.repeat(300)}`)
+  const shaped = headOutlineTail(['head '.repeat(1000), ...paragraphs, 'end'].join('\n'))
+  expect(shaped).toContain('STEP 100 ')
+  expect(shaped).toContain('STEP 390 ')
+  // The floor on a line's length lets an extreme entry run past the usual size.
+  expect(shaped.length).toBeLessThan(27_000)
+})
+
+test('the item progress prompt shapes the item, lists its findings and ends with the ask', () => {
+  const body = ['(a) QUESTION the original question', ...Array.from({ length: 100 }, (_, i) => `STEP ${i} ${'detail '.repeat(100)}`), 'RESULT the latest word'].join('\n')
+  const prompt = itemProgressPrompt({
+    item: { key: 'sz:W3', title: 'the spike', status: 'active', text: body },
+    findings: [{ key: 'sz:F1', title: 'it fails', status: 'measured-false' }],
+    phase: { key: 'sz:W1', title: 'phase one', status: 'active', text: '### sz:W1: phase one\nthe definition of done' },
+    depends: [{ key: 'sz:W2', title: 'the earlier spike', status: 'active' }],
+    goals: [{ key: 'sz:G1', title: 'the goal', status: 'active', text: '### sz:G1: the goal\ngoal body' }],
+  })
+  expect(prompt).toContain('(a) QUESTION the original question')
+  expect(prompt).toContain('RESULT the latest word')
+  expect(prompt).toContain('- sz:F1 (measured-false): it fails')
+  expect(prompt).toContain('- sz:W2 (active): the earlier spike')
+  expect(prompt).toContain('the definition of done')
+  expect(prompt).toContain('goal body')
+  expect(prompt.trimEnd().endsWith("Report on this work item's progress.")).toBe(true)
+})
+
+const sized = (sizes: number[], extra = {}): System => ({
+  dir: '/w/s',
+  json: {
+    system: 's',
+    entries: sizes.map((size, i) => entry(`sz:W${i + 1}`, { kind: 'spike', status: 'done', size, date: '2026-10-01', ...extra })),
+  },
+})
+
+test('an item is compared with the closed items of its kind by text size', () => {
+  const sys = sized([8_000, 9_000, 10_000, 60_000])
+  const item = (size: number, extra = {}) => entry('sz:W9', { kind: 'spike', status: 'active', size, date: '2026-10-01', ...extra })
+  const drift = (size: number) => itemDrift({ dir: sys.dir, json: { ...sys.json, entries: [...sys.json.entries, item(size)] } }, item(size), Date.parse('2026-10-04'))
+  expect(drift(12_000).level).toBe('ok')
+  expect(drift(40_000).level).toBe('warn')
+  expect(drift(275_000).level).toBe('high')
+  expect(drift(275_000)).toMatchObject({ size: 275_000, findings: 0, days: 3, typical: { count: 4, median: 9_500, largest: 60_000 } })
+})
+
+test('an item with fewer than three closed items to compare with, or no size, gets facts and no level', () => {
+  const few = sized([8_000, 9_000])
+  const item = entry('sz:W9', { kind: 'spike', status: 'active', size: 275_000 })
+  expect(itemDrift({ dir: few.dir, json: { ...few.json, entries: [...few.json.entries, item] } }, item).level).toBe('unknown')
+  const many = sized([8_000, 9_000, 10_000])
+  const old = entry('sz:W9', { kind: 'spike', status: 'active' })
+  expect(itemDrift({ dir: many.dir, json: { ...many.json, entries: [...many.json.entries, old] } }, old)).toMatchObject({ level: 'unknown', size: 0 })
+})
+
+test('only done items of the same kind are the baseline, and findings are the entries that name the item', () => {
+  const sys: System = { dir: '/w/s', json: { system: 's', entries: [
+    entry('sz:W1', { kind: 'spike', status: 'done', size: 1_000 }),
+    entry('sz:W2', { kind: 'spike', status: 'done', size: 1_000 }),
+    entry('sz:W3', { kind: 'spike', status: 'done', size: 1_000 }),
+    entry('sz:W4', { kind: 'spike', status: 'deferred', size: 900_000 }),
+    entry('sz:W5', { kind: 'build', status: 'done', size: 900_000 }),
+    entry('sz:W9', { kind: 'spike', status: 'active', size: 5_000 }),
+    entry('sz:F1', { status: 'measured', premises: ['sz:W9'] }),
+  ] } }
+  const drift = itemDrift(sys, sys.json.entries.find(e => e.key === 'sz:W9')!)
+  expect(drift).toMatchObject({ level: 'high', findings: 1, typical: { count: 3, largest: 1_000 } })
+})
+
+test('the drift line gives the item\'s numbers and the closed items\' to compare', () => {
+  expect(driftLine({ key: 'sz:W9', size: 275_000, findings: 20, days: 3, level: 'high', typical: { count: 25, median: 9_000, largest: 60_000, findingsMedian: 3 } }))
+    .toBe('sz:W9: 275k chars, 20 findings, 3 days; closed 25 of its kind: median 9k chars and 3 findings, largest 60k')
+  expect(driftLine({ key: 'sz:W9', size: 800, findings: 0, level: 'unknown' })).toBe('sz:W9: 800 chars, 0 findings')
 })

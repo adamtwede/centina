@@ -425,8 +425,65 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   goes once pressed so one answer is sent once. Mocked-model tests only; not
   yet tried against the real model, and the `opus` alias is subject to the
   org's model allowlist.
+  A fifth button, **Item progress ($$)**, is Phase progress for one line of
+  inquiry: the phase button's 20k budget and 3k-per-entry cut show a long
+  spike its oldest 3,000 characters, which on `terrain:W43` (about 275 KB of
+  appended steps) is the original plan and none of the work since. It shows
+  while any work item (`W`, not a phase) is `active` (the `hasItem` atom). The
+  item is the first active one the latest reply cites, else the end of the
+  active `Depends-on` chain (an active item no other active item depends on;
+  the one furthest down its file if several). Sonnet (high effort, 8k tokens,
+  90s) gets the item's start, one cut-off line per paragraph in between (every
+  paragraph keeps a line, shortened to fit, so no stage of the work is
+  dropped) and its end in full; the titles and statuses of the entries that
+  name it in `Premises`; what it depends on, by title; its phase and the active
+  goals. It reports the original question and closing test (and says when the
+  item states none), the path so far with each step marked as on-question or
+  a side question, whether the line is closer, level or further against the
+  item's own numbers, and the options (continue, back out to a named point,
+  park). `LEDGER.json` entries gained `date`, `dependsOn` and `premises` (keys,
+  parts dropped, omitted when empty; about 20% larger on the Underworld ledger,
+  197 KB to 240 KB); a `LEDGER.json` older than the fields shows no findings and
+  no chain, so regenerate it with `centina-check ledger`. Checked against the
+  real Underworld ledger without writing to it: resolves `terrain:W43`, finds
+  its 20 findings (`F46` to `F65`), builds a 27k-character prompt. Mocked-model
+  tests only; not yet tried against the real model.
+  **The drift line**, step 2 of the work-item progress tracking. While a work
+  item is active the band's unfolded header is followed by one line for the
+  current item (the same one Item progress reports on): its size in characters,
+  the entries naming it in `Premises`, its age in days, and the median and
+  largest size and median finding count of the `done` items of the same `Kind`
+  in the system. It is yellow ("Long-running") past 3 times the median size and
+  red past the largest closed item, dim otherwise, and shows facts without a
+  level when fewer than 3 closed items exist to compare with. Size is the
+  signal because the Underworld numbers say so: a closed spike's median is 8k
+  characters and the largest 59k (`terrain:W7`, 24 findings), while
+  `terrain:W43` is 275k, 4.6 times the largest; its finding count (20) and line
+  count (270) sit inside the range of `W7` and `W17`, so neither tells a runaway
+  item from a big one that closed. It is a flag for attention, not a verdict (a
+  long item can still be producing), and Item progress is given the same line as
+  plain facts. `LEDGER.json` gained `size` (the entry's text length, heading
+  and header excluded); with step 1's fields it is 251 KB against 197 KB on
+  Underworld. Free: no model call, no file read beyond `LEDGER.json`. Still
+  absent until `centina-realize` declares them: a step budget and a closing
+  test to measure against, so "steps beyond the plan" cannot be shown yet.
 
 ## Open / under discussion
+
+- **Ledger folder refactor.** A system directory such as
+  `chrysalis/centina/specs/underworld/` now holds ~25 files beside its specs
+  (`LEDGER*.md` partitions, the four generated views, `ITERATE-STATE.md`,
+  `REALIZE-STATE.md`, `transcripts/`, `archive/`). Wanted: the ledger material
+  in its own subfolder. Not yet scoped; what moving it touches: `file` paths in
+  `LEDGER.json` (relative to the system directory), the mod's walk (finds the
+  system by `LEDGER.json`, skips `archive`/`transcripts`), `readLedger` and
+  `scanSystemFiles` in `checker/ledger/parse.ts`, the ledger hook's walk up from
+  a written file to find `LEDGER.md`, the skills' and `output-management.md`'s
+  paths, and the labels existing ledgers cite each other by file name. Decide
+  first which files move (ledger and generated views, state files,
+  transcripts) and which stay beside the specs, and how existing systems
+  migrate. Also constrains where the trail file (step 3 of the tracking work)
+  lives.
 
 - `claude plugin test` run at the plugin root sweeps every `*.test.ts`,
   including `checker/ledger/ledger.test.ts`, which imports Node and so

@@ -436,6 +436,37 @@ describe("ledger generation", () => {
     assert.deepEqual([phaseOf("sz:W1"), phaseOf("sz:W2")], [undefined, "sz:W1"])
   })
 
+  it("emits an entry's date, dependencies and premises as keys, and nothing for an entry without them", () => {
+    const json = JSON.parse(
+      renderJson(
+        readLedger(
+          system({
+            "LEDGER.md": `### sz:F1: premise\n- Date: 2026-10-01\n- Status: measured\n- Evidence: verify.ts\n\n### sz:W1: first\n- Kind: step\n- Status: done\n\n### sz:W2: step\n- Date: 2026-10-02\n- Kind: step\n- Status: planned\n- Depends-on: sz:W1\n- Premises: sz:F1(a), sz:F1, sz:W1\n`,
+          }),
+        ),
+      ),
+    )
+    const get = (key: string) => json.entries.find((e: { key: string }) => e.key === key)
+    assert.deepEqual(
+      { date: get("sz:W2").date, dependsOn: get("sz:W2").dependsOn, premises: get("sz:W2").premises },
+      { date: "2026-10-02", dependsOn: ["sz:W1"], premises: ["sz:F1", "sz:W1"] },
+    )
+    assert.equal("dependsOn" in get("sz:W1") || "premises" in get("sz:W1"), false)
+    assert.ok(get("sz:W2").size >= 0 && typeof get("sz:W2").size === "number")
+  })
+
+  it("emits an entry's size as the length of its text, so a long-running item stands out", () => {
+    const body = "x".repeat(99)
+    const json = JSON.parse(
+      renderJson(
+        readLedger(system({ "LEDGER.md": `### sz:W1: short\n- Kind: step\n- Status: done\n\nshort\n\n### sz:W2: long\n- Kind: step\n- Status: active\n\n${body}\n` })),
+      ),
+    )
+    const size = (key: string) => json.entries.find((e: { key: string }) => e.key === key).size
+    assert.ok(size("sz:W2") > size("sz:W1"))
+    assert.ok(size("sz:W2") >= body.length)
+  })
+
   it("lists work items whose premises no longer hold", () => {
     const ledger = readLedger(
       system({

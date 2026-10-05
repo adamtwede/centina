@@ -137,12 +137,22 @@ export function renderJson(ledger: Ledger): string {
     const ref = fieldRefs(e, "Phase").refs[0]
     return ref ? labelKey(ref) : undefined
   }
+  // Distinct keys, parts dropped; absent when the field is empty, so entries
+  // that cite nothing add nothing to the file.
+  const keysOf = (e: Entry, field: string) => {
+    const keys = [...new Set(fieldRefs(e, field).refs.map(labelKey))]
+    return keys.length > 0 ? keys : undefined
+  }
   const entries = uniqueEntries(ledger).map((e) => ({
     key: e.key,
     title: e.title,
     status: status(e),
     kind: e.fields.get("Kind")?.value,
     phase: phaseOf(e),
+    date: e.fields.get("Date")?.value,
+    size: e.body.reduce((n, l) => n + l.text.length + 1, 0),
+    dependsOn: keysOf(e, "Depends-on"),
+    premises: keysOf(e, "Premises"),
     file: path.relative(ledger.dir, e.file),
     line: e.line,
     parts: [...e.parts].sort(),
