@@ -72,7 +72,7 @@ At `artifactsRoot`:
   unread.
 
 No docs are copied. The bundle's docs — `ledger.md`,
-`output-management.md`, `measurement-methodology.md` and this file — are
+`output-management.md`, `measurement-methodology.md`, `realize-conformance.md` and this file — are
 read from `${CLAUDE_PLUGIN_ROOT}/docs/` by whichever skill needs them.
 Centina's design reference (`boundaries.md`, `fit-validation.md`,
 `plan-organization.md`) is not bundled at all; a human who wants it reads it

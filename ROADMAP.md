@@ -470,6 +470,14 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
 
 ## Open / under discussion
 
+- **Trail file and tracker** (steps 3 to 5 of the work-item progress
+  tracking; steps 1 and 2 are the Item progress button and the drift line,
+  above). `docs/trail.md` is the draft schema for step 3: an append-only
+  `TRAIL.jsonl` per system of `decision`, `choice`, `mark`, `gate` and
+  `reading` records, citing ledger labels, with weights derived from the
+  session transcripts. Unratified; step 4 (`centina-realize` writes it, and
+  declares a closing test, step budget and back-out point per spike) and step
+  5 (an HTML tree generated from it) wait on the author's review of the draft.
 - **Ledger folder refactor.** A system directory such as
   `chrysalis/centina/specs/underworld/` now holds ~25 files beside its specs
   (`LEDGER*.md` partitions, the four generated views, `ITERATE-STATE.md`,

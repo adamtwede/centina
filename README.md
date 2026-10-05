@@ -826,7 +826,8 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log that drove the pivot.
 - `docs/ledger.md`, `docs/measurement-methodology.md`,
-  `docs/output-management.md` — shared working rules the skills load.
+  `docs/output-management.md`, `docs/realize-conformance.md` — shared working
+  rules the skills load (the last on demand, from `centina-realize`).
 - `skills/` — `centina-session-zero`, `centina-iterate` and
   `centina-realize`, the current toolchain, packaged for plugin
   auto-discovery.
