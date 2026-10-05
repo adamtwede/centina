@@ -2,13 +2,34 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { printFindings } from "../report"
 import { readLedger } from "../ledger/parse"
-import { analyze } from "./check"
+import { Waivable, analyze } from "./check"
 import { buildModel } from "./model"
 import { TRAIL_FILE, readTrail } from "./parse"
 import { renderTracker } from "./render"
 import { loadTicks } from "./weights"
 
 export const TRACKER_FILE = "TRACKER.html"
+
+const WAIVE_EXAMPLES = 5
+
+/**
+ * How to rule a warning out, with a record to copy for each warning that can
+ * be (docs/trail.md, `waive`). The quote is the human's, so it is left to them.
+ */
+function waiveGuidance(file: string, waivable: Waivable[]): string[] {
+  const at = new Date().toISOString().replace(/\.\d+Z$/, "Z")
+  const lines = [
+    "",
+    `To rule a warning out, append a line like one of these to ${file}.`,
+    `"quote" is your own words (without it the waiver is an error); "why" says what you decided. Only warnings can be waived, and`,
+    "only for work you have decided not to bring under the trail: otherwise fix the record.",
+  ]
+  for (const { rule, subject } of waivable.slice(0, WAIVE_EXAMPLES)) {
+    lines.push(`  ${JSON.stringify({ type: "waive", rule, subject, why: "<what you decided>", quote: "<your words>", at })}`)
+  }
+  if (waivable.length > WAIVE_EXAMPLES) lines.push(`  ... and ${waivable.length - WAIVE_EXAMPLES} more (same shape, other rule and subject)`)
+  return lines
+}
 
 const USAGE = "usage: centina-check trail [--check] [--item <label>] [--out <file>] <system-dir>"
 
@@ -60,10 +81,11 @@ export function runTrailCommand(argv: string[]): number {
   }
 
   const ledger = existsSync(path.join(systemDir, "LEDGER.md")) ? readLedger(systemDir) : undefined
-  const { findings, waived } = analyze(trail, ledger)
+  const { findings, waived, waivable } = analyze(trail, ledger)
   const hasErrors = findings.some((f) => f.severity === "error")
   if (findings.length > 0) printFindings(findings)
-  else console.log(`trail: clean (${path.basename(systemDir)})`)
+  if (waivable.length > 0) for (const line of waiveGuidance(trail.file, waivable)) console.log(line)
+  if (findings.length === 0) console.log(`trail: clean (${path.basename(systemDir)})`)
   if (waived.length > 0) {
     console.log(`\n${waived.length} waived (the human ruled these not to be raised):`)
     for (const { finding, waiver } of waived) console.log(`  ${finding.rule} for ${waiver.subject}: ${waiver.why}`)

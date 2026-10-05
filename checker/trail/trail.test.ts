@@ -266,6 +266,22 @@ describe("waivers", () => {
 })
 
 describe("centina-check trail", () => {
+  it("shows a waive line to copy for each warning that can be waived, and none for one that is fixed or already waived", () => {
+    const noClose = line({ type: "decision", id: "demo/d1", at: "2026-10-01T10:00:00Z", question: "q", options: [{ n: 1, label: "go", kind: "refine" }] })
+    const printed = (trail: string[]) => {
+      const lines: string[] = []
+      const log = console.log
+      console.log = (...a: unknown[]) => void lines.push(a.join(" "))
+      try { runTrailCommand(["--check", system(trail)]) } finally { console.log = log }
+      return lines.join("\n")
+    }
+    const out = printed([HEADER, noClose, choice(1, [1])])
+    assert.match(out, /To rule a warning out/)
+    assert.match(out, /\{"type":"waive","rule":"trail-no-close","subject":"demo\/d1","why":"<what you decided>","quote":"<your words>","at":"\d{4}-[^"]+Z"\}/)
+    assert.doesNotMatch(printed([HEADER, decision(1), choice(1, [1])]), /"rule":"trail-no-close"/)
+    assert.doesNotMatch(printed([HEADER, noClose, choice(1, [1]), waive({ rule: "trail-no-close", subject: "demo/d1" })]), /"rule":"trail-no-close"/)
+  })
+
   it("writes TRACKER.html with the model embedded, and not again when nothing changed", () => {
     const dir = system([HEADER, decision(1), choice(1, [1])])
     assert.equal(runTrailCommand([dir]), 0)

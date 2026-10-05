@@ -155,6 +155,8 @@ spike that starts later is checked in full.
   errors are faults in the file; the fix is to correct them.
 - The human rules it, like a gate: no `quote` is an error (`trail-waive`), and
   the warning stands.
+- When warnings stand that could be waived, the command prints a record to copy
+  for each (up to five), with your words and reason left to fill in.
 - It is not hidden. The command prints "N waived" with each reason, and the
   page lists them in a collapsed panel with the human's words.
 - A waiver that matches no warning now (the item closed, or the fault was

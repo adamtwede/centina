@@ -51,6 +51,12 @@ export interface Waived {
   waiver: Waive
 }
 
+/** A standing warning a `waive` record could rule out: its rule and the subject it is about. */
+export interface Waivable {
+  rule: string
+  subject: string
+}
+
 /** The findings that stand; see `analyze` for the waived ones. */
 export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
   return analyze(trail, ledger).findings
@@ -63,7 +69,7 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
  * be waived. A waiver with no ruling quote is an error, and one that matches
  * nothing is a warning, so a stale waiver is not forgotten.
  */
-export function analyze(trail: Trail, ledger?: Ledger): { findings: Finding[]; waived: Waived[] } {
+export function analyze(trail: Trail, ledger?: Ledger): { findings: Finding[]; waived: Waived[]; waivable: Waivable[] } {
   const raised: Finding[] = [...trail.problems]
   const subjects = new Map<Finding, string>()
   const add = (rule: string, severity: Finding["severity"], line: number, message: string, subject?: string) => {
@@ -185,6 +191,7 @@ export function analyze(trail: Trail, ledger?: Ledger): { findings: Finding[]; w
   // Waivers.
   const findings: Finding[] = []
   const waived: Waived[] = []
+  const waivable = new Map<string, Waivable>()
   const used = new Set<string>()
   const addWaiveFinding = (severity: Finding["severity"], line: number, message: string) =>
     findings.push({ rule: "trail-waive", severity, file: trail.file, line, message })
@@ -195,12 +202,15 @@ export function analyze(trail: Trail, ledger?: Ledger): { findings: Finding[]; w
     if (waiver && key && waiver.quote) {
       used.add(key)
       waived.push({ finding: f, waiver })
-    } else findings.push(f)
+    } else {
+      findings.push(f)
+      if (subject !== undefined && f.severity === "warning") waivable.set(waiverKey(f.rule, subject), { rule: f.rule, subject })
+    }
   }
   for (const [key, w] of state.waivers) {
     if (!w.quote) addWaiveFinding("error", w.line, `the waiver of ${w.rule} for ${w.subject} has no "quote": the human rules a waiver, the agent only records it`)
     else if (!used.has(key)) addWaiveFinding("warning", w.line, `the waiver of ${w.rule} for ${w.subject} matches no warning now; lift it with a record carrying "lifted":true`)
   }
-  return { findings: findings.sort((a, b) => a.line - b.line), waived: waived.sort((a, b) => a.finding.line - b.finding.line) }
+  return { findings: findings.sort((a, b) => a.line - b.line), waived: waived.sort((a, b) => a.finding.line - b.finding.line), waivable: [...waivable.values()] }
 }
 
