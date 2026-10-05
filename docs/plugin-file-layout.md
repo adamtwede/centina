@@ -64,7 +64,11 @@ centina-plugin/
     ├── output-management.md
     ├── ledger.md
     ├── measurement-methodology.md
-    └── realize-conformance.md
+    ├── realize-conformance.md
+    ├── trail.md
+    ├── session-zero-routing.md
+    ├── session-zero-reference.md
+    └── iterate-reference.md
 ```
 
 This tree is exactly what `install.sh` (at the checkout's own root,

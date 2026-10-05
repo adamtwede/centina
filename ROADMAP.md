@@ -513,13 +513,21 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   Measured on the W43 transcript: the skill was loaded once and re-injected
   34 times, so the failure was the skill's silence on long spikes, not its
   absence from context.
-- **Skills over the post-compaction cap.** Claude Code re-injects an invoked
-  skill after each compaction cut at 20,000 characters, losing the end of the
-  file. `centina-realize` (now 18.5k) and `centina-spike` (13k) are held under
-  it by `scripts/bundle.test.mjs`; `centina-session-zero` (35k) and
-  `centina-iterate` (27k) are not, so a long session of either loses their
-  tails (their "What NOT to do" lists, among others) after the first
-  compaction. Not yet fixed.
+- **Skills over the post-compaction cap** (fixed). Claude Code re-injects an
+  invoked skill after each compaction cut at 20,000 characters, losing the end
+  of the file. All four skills are now held under it by
+  `scripts/bundle.test.mjs`: `centina-realize` 18.5k, `centina-spike` 13.6k,
+  `centina-session-zero` 19.4k (was 35k) and `centina-iterate` 18.6k (was 27k).
+  The cold detail moved verbatim into docs the skills read on demand:
+  `session-zero-routing.md` (the routing lens, read before classifying nodes),
+  `session-zero-reference.md` (background, the full cross-cutting practices, the
+  ARCHITECTURE.md handoff, the Lessons from use) and `iterate-reference.md`
+  (boundary extraction, fresh-skeleton starting points, reconciling, the plan,
+  Lessons from use). Each skill keeps a short form of what it moved, and its
+  guardrails ("What NOT to do") now sit inside the cap. New lessons go in the
+  reference docs. Not verified in a live session: whether an agent reads the
+  on-demand docs at the right moment (the routing doc especially); watch the
+  next `centina-session-zero` run for node classification without it.
 - **Ledger folder refactor.** A system directory such as
   `chrysalis/centina/specs/underworld/` now holds ~25 files beside its specs
   (`LEDGER*.md` partitions, the four generated views, `ITERATE-STATE.md`,

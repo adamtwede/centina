@@ -65,9 +65,8 @@ describe("plugin bundle", () => {
   // Claude Code re-injects an invoked skill after each compaction, cut at 20,000
   // characters, and the cut loses the end of the file (the "What NOT to do" list
   // and the last steps of a close). A skill a long session depends on has to fit.
-  // centina-session-zero and centina-iterate are over it and not yet held to it.
-  it("keeps centina-realize and centina-spike inside the 20,000 characters kept after compaction", () => {
-    for (const skill of ["centina-realize", "centina-spike"]) {
+  it("keeps every skill inside the 20,000 characters kept after compaction", () => {
+    for (const skill of ["centina-session-zero", "centina-iterate", "centina-realize", "centina-spike"]) {
       const length = read(`skills/${skill}/SKILL.md`).length
       assert.ok(length <= 20_000, `${skill} is ${length} characters; move detail into a doc read on demand`)
     }

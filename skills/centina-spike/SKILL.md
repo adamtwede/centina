@@ -103,8 +103,9 @@ checkpoint and when closing the spike: it reports what is malformed, unresolved,
 unanswered or missing (a close option, a ruled gate) and writes `TRACKER.html`
 beside the trail, the picture the human reads. Fix its errors, and tell the
 human where the page is. When the human decides a warning on older work is
-not worth chasing, record it as a `waive` (`docs/trail.md`) with their words;
-never write one on your own.
+not worth chasing, record it, with their words, as
+`{"type":"waive","rule":"trail-spike-no-gate","subject":"terrain:W43","why":"…","quote":"…","at":"…"}`
+(`${CLAUDE_PLUGIN_ROOT}/docs/trail.md`, "waive"); never write one on your own.
 
 **When you end a turn offering the human two or more options that lead to
 different work, record it first.** A plain confirmation of one plan is not a

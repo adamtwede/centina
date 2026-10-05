@@ -21,25 +21,14 @@ in batches. This session's ID, for the `Session` header, is
 before starting.
 
 This skill runs at the very **front of the funnel**, before there is any spec
-to iterate. `centina-iterate` refines _one_ spec toward clean; session zero
-sits upstream of it: the human has a _system_ in their head — several
-components that talk to each other — and needs it turned into a **component
-DAG** with frozen seams before any one component is worth filling in. Sorting
-those nodes — which earn a filled-in spec, which route away as terminals,
-Skills, or held holes — is part of the work here (see "Which nodes earn a
-spec" below).
-
-The lineage it feeds: **ARCHITECTURE.md + skeleton spec set** (session zero) →
+to iterate: the human has a _system_ in mind and needs it turned into a
+**component DAG** with frozen seams before any one component is worth filling
+in. The lineage: **ARCHITECTURE.md + skeleton spec set** (here) →
 **`<component>.centina.ts`** filled in (`centina-iterate`) → **PLAN.md** per
-boundary-set (the implementation). Session zero's whole job is to make the
-_shape_ right early, so the later fill-and-iterate work is isolated by
-dependency direction instead of rippling backward.
-
-Why it exists: writing one component fully, _then_ discovering its boundaries,
-forces rework on the component when the boundaries turn out to be shaped
-differently than imagined. The cheaper path is to resolve the seam contracts
-first — the skeleton everything else hangs on — and this skill is that
-resolution, formalized into a gated process with an output artifact.
+boundary-set. The job is to make the _shape_ right early, by resolving the
+seam contracts first. Why, in full:
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Why session zero
+exists".
 
 ## The one sanctioned write, and its single governing rule
 
@@ -57,15 +46,14 @@ The governing rule for that write, and for the whole session:
 > in this session. Anything that doesn't trace becomes a marked hole.**
 
 The failure mode this rule exists to stop is not agent incompetence — it's
-agent **over-competence**. An agent handed a scattered description will
-happily produce a clean, plausible, well-shaped architecture, and the
-cleanliness _disguises_ which parts are the human's conviction and which are
-the agent's confabulation. The human then ratifies a coherent-looking picture
-half of which they never actually decided. The entire skill is built to keep
-"decided" and "guessed" separated, continuously, so that by the skeleton write
-there is nothing left for the agent to invent. **The agent is a scribe here,
-not an architect.** Bias toward holes: an over-complete skeleton is the bug,
-not the feature.
+agent **over-competence**. Handed a scattered description, an agent will
+happily produce a clean, plausible architecture, and the cleanliness
+_disguises_ which parts are the human's conviction and which the agent's
+confabulation: the human ratifies a coherent-looking picture half of which they
+never decided. The skill keeps "decided" and "guessed" separated, continuously,
+so that by the skeleton write there is nothing left for the agent to invent.
+**The agent is a scribe here, not an architect.** Bias toward holes: an
+over-complete skeleton is the bug, not the feature.
 
 ## What a skeleton contains (and what it never does)
 
@@ -81,15 +69,13 @@ session. Concretely, a skeleton carries:
   shapes the doors traffic in. These are _decided content_ (the human's data
   nouns and shapes, transcribed), not holes.
 - **`@external "<source>"` declarations** — where the system meets existing
-  technology. Two cases land differently: a utility _called directly in visible
-  spec code_ (a `randomUUID`, a `timestamp`) is declared in the skeleton at its
-  call site; a _terminal behind a component door_ (the database behind a store,
-  the model API behind a suggester) has an interface that lives _behind the
-  door_ — don't fabricate it, because that is reaching through the door. Record
-  it in ARCHITECTURE.md's terminal nodes section and a boundary comment; its concrete
-  `@external` declaration is made at fill, where the held logic that calls it is
-  written. Call this distinction out during the session whenever a terminal's
-  interface turns out to be behind a door.
+  technology. A utility _called directly in visible spec code_ (a `randomUUID`,
+  a `timestamp`) is declared in the skeleton at its call site. A _terminal
+  behind a component door_ (the database behind a store, the model API behind a
+  suggester) has its interface _behind the door_: don't fabricate it. Record it
+  in ARCHITECTURE.md's terminal nodes section and a boundary comment; its
+  concrete `@external` declaration is made at fill. Call the distinction out
+  whenever a terminal's interface turns out to be behind a door.
 - **Skills** — `Skill<In, Out>` values for operations delegated to a runtime
   agent's judgment.
 - **`deferred<...>()` holes** — everything the human named but did not
@@ -102,120 +88,38 @@ the spec grows internal processing later, authored **by the human** during
 fill. The agent never writes it, at session zero or ever. So the skeleton is
 **interfaces present and concrete, implementations absent and held**.
 
-"Complete" for a component means **every gap routed, not every gap resolved**.
-Centina's definition of done is "no _unrouted_ holes," not "no holes." A
-component is ready to hand to `centina-iterate` with plenty of open questions,
-as long as each is deferred to the human, delegated to a Skill, externalized,
-or quarantined behind a boundary. That's what lets a consumer be filled against
-a mocked seam in parallel with the seam's own build.
+"Complete" for a component means **every gap routed, not every gap resolved**:
+"no _unrouted_ holes," not "no holes." A component is ready for
+`centina-iterate` with plenty of open questions, as long as each is deferred to
+the human, delegated to a Skill, externalized, or quarantined behind a
+boundary. That lets a consumer be filled against a mocked seam in parallel
+with the seam's own build.
 
 ## Which nodes earn a spec: routing, not gatekeeping
 
-Not every responsibility the human names wants to become a filled-in component.
-Some are **terminals** (they meet existing technology — route to `@external`),
-some are **Skills** (they turn on a runtime agent's judgment), and some are
-held **internal processing** (an algorithm the human writes at fill, routed as
-a `deferred<"unimplemented">` hole behind a door). Deciding which is which _is_
-the classification work of phases 2–4, and it has a lens.
+Not every responsibility the human names becomes a filled-in component: some
+are **terminals** (`@external`), some **Skills**, some held **internal
+processing** (a `deferred<"unimplemented">` hole behind a door). Classifying
+them is the work of phases 2–4. **Before classifying any node, read
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-routing.md`**: the lens in full, with
+the cases. In short:
 
-**The two planes.** Read every node on two planes and ask where its center of
-gravity sits:
-
-- **Structural** — _relationships between named data_: provenance (where data
-  enters, from whom), flow (how it moves between seams), contract (what shape
-  must hold). All describable as "X comes from Y, in shape Z, connects to W."
-  This is what a spec captures, so a structural node earns a filled component.
-- **Realization** — _carrying-out_: algorithm (how it's computed), dynamics
-  (how it behaves over time), aesthetics (how it's perceived). None reduces to
-  a nameable data relationship. A realization-dominated node is **not
-  rejected** — it is **routed behind a door** (terminal, Skill, or held hole),
-  and the spec keeps only the seam around it.
-
-That "routed, not rejected" is the post-pivot shift, and it's why session zero
-carries this judgment rather than a separate gate owning it. Before Centina had
-routing primitives a realization-heavy task had nowhere to go, so fit was a
-binary admit/reject asked before any spec was written. Now the routing
-primitives _are_ the answer: realization goes behind a door, and the only thing
-left to decide per node is whether anything structural remains once it does.
-
-**A node can straddle both planes — split on the seam, don't collapse it.**
-"Center of gravity" isn't always a whole-node verdict: one responsibility often
-bundles a structural half and a routed (realization / dynamics / external) half,
-and the move is to split it at the seam between them rather than label the whole
-node one way. Two seen in the test cases, on different plane-pairs:
-
-- _verify the token_ (oauth-callback) = a **trust-rules contract** — which
-  claims, from which source, must match what (structural, pins) — plus an opaque
-  **crypto primitive** (the signature math, routes `@external`).
-- _flush every N seconds_ (metrics-emitter) = a **drain-to-sink egress action**
-  (a structural seam) plus a **cadence** (the every-N-seconds trigger — dynamics,
-  routed `@external`; N itself is a config parameter).
-
-The failure is collapsing both halves into one hole: route the structural half
-behind a realization door and you lose the substance (the trust contract, the
-egress contract); pin the routed half and you over-reach into algorithm or
-dynamics. Interrogate the seam — "what part of this is a named-data relationship,
-and what part is the carrying-out?" — and route each half on its own plane.
-
-**The tell that a node is realization all the way down** is the
-**tasks-as-doors smell**: a door you can't name without an implementation verb
-(`computeLayout()`, `stepPhysics()`, `rankResults()`), or a door that keeps
-collapsing to `getData(): Answer` where the return shape _is_ the whole problem
-restated. A real seam names a data affordance and a shape; a fake one names a
-step in an algorithm. It surfaces in phase 3, when the human tries to say what
-crosses a door and can only describe how the far side computes.
-
-**The complement — the rules-vs-computation fork (a sleeper's trigger).** Before
-you route a domain-judgment verb as realization, locate the knowledge that
-governs it. The trigger to ask is exactly this shape: a verb that _applies /
-matches / resolves / selects over domain items_ (`applyDiscounts`,
-`combinePerRecipes`, `matchTasks`, `selectPlan`) whose governing criteria the
-seed leaves implicit inside the verb. Ask: **is that knowledge configurable
-data/rules the system reads (a rule set, a recipe table, a policy config —
-provenance you can point at), or a fixed computation?** Domain-authored
-knowledge — even if currently hardcoded — carries a latent rule-set contract,
-which is structural and mineable via the genesis re-slice (the crafting and
-pricing sleepers both hid one here). A fixed _intrinsic_ computation — a sort
-comparator, a physics step, a hash, rendering — has no author and no latent
-contract; that's genuine realization. The counter-tell that it's genuine
-computation: nobody would author or tune the rule (you don't configure gravity).
-Surface the fork the moment such a verb appears; the answer decides whether
-there's structure to pin or a realization leaf to mark.
-
-The rules-vs-computation split isn't always _either/or_: a validation / "verify"
-verb typically carries **both** halves — a trust-rules contract (structural, it
-pins) and an opaque crypto primitive (`@external`). That's an instance of the
-straddle-both-planes principle above; "verify the token" is the canonical case
-(`iss`/`aud`/`nonce`/`exp` and the identity key are the contract; the signature
-math is the primitive). Interrogate the verb into its two halves — "verified
-_against what_, establishing _what trust_?" — and route each on its own plane
-rather than letting the crypto flavor drag the provenance substance behind a door.
-
-**The degenerate case — a whole "system" that's really one node.** Pure compute
-(a parser, a sort, a pricing calc), a real-time/dynamics core (a physics or
-animation loop), or an aesthetics-dominated task (visual design, copy tone) can
-_each_ be routed behind a single door. When routing it leaves nothing else,
-there was no system to architect — but that is **not a recusal**. You still emit
-a skeleton: the one node's signature pinned, its body held, and an honest label
-saying "this is one function/algorithm, not a system — you likely didn't need
-session zero for it." Producing the thin honest map _is_ the output; refusing to
-engage is the verdict-era reflex the jurisdiction reframe retired. Deliver the
-map and let the human decide whether it was worth the trip.
-
-The tell that you're at this floor is a near-**empty contract set** — but
-"empty" is rarer than it looks, and interrogation almost always finds _some_
-contract before the floor. A "bare function" like rank-and-dedupe hides a
-**ranking-key** and a **dedup-identity** decision; those are named-data
-contracts even with zero seams. The contract set is _truly_ empty only when the
-items' **ordering and equality are both intrinsic** (primitives — numeric sort,
-value equality). Otherwise phase 3's shape interrogation yields the key/identity
-contracts and the skeleton is thin-but-non-empty, not hollow. Either way the
-move is identical: pin what interrogation surfaces, hold the algorithm, label
-the coverage honestly — never manufacture seams to fake a DAG, and never bounce
-the human with a "bad fit" verdict. (The whole-DAG view is more robust than
-counting boundary-ends on a single slice, which flips with where you draw the
-slice; it turns the 0-end case into a structural fact rather than a
-slice-relative guess.)
+- **Two planes.** A node whose center of gravity is _structural_ (relationships
+  between named data: provenance, flow, contract) earns a filled component. One
+  dominated by _realization_ (algorithm, dynamics, aesthetics) is **routed
+  behind a door** (terminal, Skill or held hole), never rejected; the spec
+  keeps only the seam around it.
+- **A node can straddle both.** Split it on the seam and route each half on its
+  own plane; don't collapse both into one hole.
+- **Tasks-as-doors smell.** A door you can't name without an implementation verb
+  (`computeLayout()`), or one that collapses to `getData(): Answer`, is
+  realization all the way down.
+- **Rules vs computation.** Before routing a domain-judgment verb as
+  realization, ask whether its governing knowledge is configurable data or
+  rules the system reads (structural; pin it) or a fixed intrinsic computation.
+- **A whole "system" that is one node** is not a recusal and not a reason to
+  invent seams: emit the honest minimal skeleton, signature pinned and body
+  held, labeled "this is one node, not a system".
 
 ## The ascent: raise the resolution of the questions; the human paints
 
@@ -255,13 +159,12 @@ them past what they've genuinely decided.
    cites that label.
 
 4. **Terminal-node closure.** Confirm which nodes are edges that meet existing
-   technology — naming concrete tech is fine and useful here, because it is
-   what becomes `@external`. Confirm the DAG is _closed_: every seam
-   terminates, either at another component or at a terminal node. This is also
-   the realizability check — a door that a real database or model API cannot
-   actually satisfy is caught here, at the contract, not after both sides are
-   written. A terminal whose interface sits behind a component door is
-   _recorded, not fabricated_ (see the `@external` note above): name the concrete
+   technology — naming concrete tech is fine here, because it becomes
+   `@external`. Confirm the DAG is _closed_: every seam terminates, at another
+   component or a terminal node. This is also the realizability check: a door
+   that a real database or model API cannot satisfy is caught here, at the
+   contract. A terminal whose interface sits behind a component door is
+   _recorded, not fabricated_ (the `@external` note above): name the concrete
    tech if known, leave the source TBD if not, and route the unknowns as holes.
    _Gate: the human confirms the DAG closes._
 
@@ -275,16 +178,11 @@ them past what they've genuinely decided.
 
 6. **Handoff.** The agent recuses from the pen. The human owns every spec file
    from here; the ledger's open questions are live; each component is ready for
-   `centina-iterate`. A node whose fit was genuinely in doubt has already been
-   routed by the check above (structural → filled component; realization →
-   behind a door) before it's handed on. Close by asking the human directly
-   whether they want to start a `centina-iterate` session on one of the
-   components **right now**, or would rather fill spec content in on their own
-   time and come back to `centina-iterate` later — name both as legitimate;
-   the skeleton and ARCHITECTURE.md don't go stale waiting. If several
-   components came out of this session, ask which one they want to start
-   with. If they say "later," the handoff is still complete — don't treat a
-   deferred start as unfinished business.
+   `centina-iterate`. Close by asking whether they want to start a
+   `centina-iterate` session on one of the components **right now** (which one,
+   if several), or fill spec content in on their own time and come back later.
+   Both are legitimate, and "later" leaves the handoff complete: the skeleton
+   and ARCHITECTURE.md don't go stale waiting.
 
 ### A stop-heuristic for phases 2–4
 
@@ -295,147 +193,70 @@ territory for fill/iterate, not session zero — declare the door and move on.
 
 ## Cross-cutting discipline
 
-- **Diagram as falsification.** A picture surfaces "that's not what I meant" in
-  seconds where prose hides it for paragraphs. Offer to render the DAG the human
-  has described at each phase boundary, before advancing — and offer it
-  _proactively_ if they show persistent confusion over a few exchanges about how
-  the pieces relate. (Note: Make sure to always generate the DAG code in a Markdown
-  document, _not_ in the session window, and once a DAG is generated, don't delete
-  it when revisions are needed or when new ones are generated. Instead, name the DAG
-  files with a simple "version" convention so their evolution over time can be easily
-  tracked by both the agent and the human.)
-  In a text/CLI medium prose often carries the gates fine, so
-  treat this as an offered aid keyed to the human's need, not a mandatory render
-  at every gate. When you do render, the diagram must show only nodes and edges
-  the human stated — never invent a component to make the picture tidier.
-- **Priority elicitation on high-stakes forks.** When a fork's cost is high and
-  hard to reverse, _solicit the human's priorities before framing options_, then
-  present each option's tradeoffs against those priorities (proactively, not only
-  when asked) — including which considerations _don't_ apply. The agent supplies
-  the tradeoff map; the human's priorities and the verdict stay theirs (Rule 0
-  intact). The failure this prevents: barreling into a fork's options without
-  ever asking what the human is optimizing for — an experienced spec-writer
-  volunteers their priorities, but a less experienced one won't, and then the
-  agent frames a tradeoff the human has no basis to weigh. Surfacing what
-  _doesn't_ matter (e.g. "rendering doesn't bear on this") is as load-bearing as
-  surfacing what does. (Promoted straight to core from the grid-inventory live
-  session, 2026-07-21 — the first lesson earned in a live run rather than an
-  adversarial trace.)
-- **Encode ratified intent into the type system when the seam can carry it.**
-  Intent-as-spec is one of Centina's headline concerns, and TypeScript is the
-  grammar precisely so a decision about _meaning_ can be made load-bearing and
-  checkable instead of left to a prose note an implementer can skip. Whenever you
-  confirm a decision with the human — especially a non-trivial one about
-  intent/meaning that should flow all the way into implementation — that the spec
-  code _isn't_ currently carrying but _easily could_ (a non-empty-array
-  precondition as `[T, ...T[]]`, a discriminated-union status that makes an
-  illegal state unrepresentable, a branded identity, an exhaustive enum that
-  forces every case), **call it out when it arises**, in whatever phase. Choosing
-  the type-level form that carries an _already-ratified_ decision is _form, which
-  is the agent's job_ (Rule 0's meaning/form split — not an exception to it), so
-  session zero grants standing authority to **default to emitting the encoded form
-  into the skeleton at phase 5 without a separate confirmation**. The safeguard is
-  mandatory and cheap: mention it at the time it comes up, and leave a short
-  comment at the encoding site citing the ledger label of the decision it
-  enforces (provenance). This
-  is a bounded relaxation of "propose-only-as-a-question / mark-provisional" —
-  bounded because it applies _only_ to encoding a decision the human already made,
-  never to inventing one, and only when the type genuinely carries it (when a
-  constraint can't be typed — e.g. array homogeneity — an `@agent:` note is the
-  honest fallback, not a forced encoding). (Promoted straight to core from the
-  grid-inventory live session, 2026-07-21 — the non-empty comparator-input type
-  `[ItemInstance, ...ItemInstance[]]` was the triggering case.)
-- **A run may surface language-level conventions, not just app contracts.**
-  Occasionally the elicitation kicks up a reusable Centina convention (a
-  boundary-door naming scheme, a rule for a recurring door shape) rather than a
-  system-specific decision. Surface it _to the human as a candidate_; if they
-  adopt it, apply it in the skeleton marked under-test — never fold it into the
-  language or this skill unilaterally. Guard two things: don't let this become a
-  lever that relaxes the skill's own strictures (Rule 0, scribe-not-architect,
-  bias-toward-holes), and be warier the more mature the language feels — a
-  settled convention set is a feature, and churn is a cost.
+The first five have their full text in
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Cross-cutting
+practices"; read it the first time one applies.
+
+- **Diagram as falsification.** Offer to render the DAG at each phase boundary,
+  and proactively if the human stays confused about how the pieces relate.
+  Render in a Markdown document, never delete one, and name new ones with a
+  version. Draw only nodes and edges the human stated.
+- **Priority elicitation on high-stakes forks.** When a fork is costly and hard
+  to reverse, ask the human's priorities _before_ framing options, then give
+  each option's tradeoffs against them, including which considerations _don't_
+  apply. The verdict stays theirs.
+- **Encode ratified intent into the type system when the seam can carry it**
+  (`[T, ...T[]]`, a discriminated union, a branded identity, an exhaustive
+  enum). Call it out when it comes up, in any phase. At phase 5 emit the encoded
+  form without a separate confirmation, with a short comment citing the ledger
+  label it enforces. Only for a decision the human already made and only when
+  the type genuinely carries it; otherwise an `@agent:` note.
+- **Language-level conventions.** Surface a reusable Centina convention to the
+  human as a candidate; if adopted, apply it marked under-test. Never fold it
+  into the language or this skill unilaterally, or use it to relax Rule 0,
+  scribe-not-architect or bias-toward-holes.
+- **Fit check.** On a high-stakes, hard-to-reverse fork the human can ask for a
+  "fit check on X": each option's merits and costs against their stated
+  priorities and the established patterns. The verdict stays theirs.
 - **Propose only as a question; record it as open.** When you must float a
   candidate component or contract to keep moving, float it _as a question_ and
   record it as a `sz:P` entry with `Status: open` until the human ratifies or
   rejects it at the next gate. A proposal still open at the skeleton write
   ships as a hole citing its label.
-- **Memory discipline.** This is a long session that will likely cross context
-  windows. The ledger is the load-bearing state: the decided/guessed
-  distinction lives in entry statuses, so it survives compaction. Write
-  entries when decisions happen, not at the end of a phase. Prose can be
-  re-derived; entries cannot.
-- **Where the ledger and SESSION-ZERO-STATE.md go.** Both in the same
-  `specs/<system>/` location as `ARCHITECTURE.md`, never directly in `specs/`,
-  and never at the repo root. `SESSION-ZERO-STATE.md` is only a run frame
-  (see `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). `<system>` is the
-  name of the system this session is about: if the human has already named
-  it, use that; if not, ask before the first write to disk rather than
-  guessing at a phase gate.
-- **Keep the ledger current.** Follow `ledger.md`'s "When a status changes"
-  on every change, and its "Sweeps" at every gate. A superseded entry that
-  nothing marks stale is the failure the ledger exists to prevent.
-- **Transcripts and concurrency.** Never open a session transcript without
-  asking first, and warn the human about concurrent sessions, per
-  `ledger.md`.
-- **Fit check.** When facing a high-stakes, hard-to-reverse fork with complex
-  tradeoffs, request a **fit check** (invoke with "fit check" or "fit check on X")
-  to get a structured costs/benefits analysis: each option's merits and costs,
-  alignment against stated priorities, and alignment against established patterns
-  (uniform reducer, event-sourcing, boundaries-as-affordances, etc.). The agent
-  supplies the tradeoff matrix; the verdict stays yours (Rule 0 intact).
-- **Long-session output management.** When the ledger grows beyond ~1500
-  lines, split it into partitions per
-  `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. No permission needed, but
-  note it in the conversation so the human knows.
-- **Label references get explained, not just cited.** Labels are ledger labels
-  (`sz:P4`). The first time one comes up in conversation, say what it is and
-  give a one-clause summary ("sz:P4, cap escalation depth at 3 attempts," not
-  "sz:P4"). When re-citing one, restate a brief reminder if more than 10 labels
-  of the same letter have come up since. Err toward restating when unsure. The
-  label index is `LEDGER-LABELS.md`; don't keep a separate one.
-- **Explain formula terms on introduction.** When a mathematical or scientific
-  formula appears for the first time in a session, or reappears in a long
-  session where you can't be confident the human still has each term in mind,
-  spell out every symbol in plain language next to the formula. Do the same
-  unconditionally whenever a formula goes into ARCHITECTURE.md, PLAN.md, or any
-  other document — never rely on a formula being self-explanatory or defined
-  earlier in the conversation.
+- **Ledger discipline.** This long session will likely cross context windows,
+  and the ledger is the load-bearing state: write entries when decisions
+  happen, not at the end of a phase (prose can be re-derived; entries cannot).
+  Follow `ledger.md`'s "When a status changes" on every change and its "Sweeps"
+  at every gate; never open a session transcript without asking, and warn about
+  concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` live in
+  `specs/<system>/` beside `ARCHITECTURE.md`, never directly in `specs/` or at
+  the repo root; the state file is only a run frame, and a ledger past ~1500
+  lines is split per `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md` (no
+  permission needed, but say so). Use the system name the human gave; if none,
+  ask before the first write to disk.
+- **Explain labels and formula terms.** The first time a ledger label comes up,
+  say what it is in one clause ("sz:P4, cap escalation depth at 3 attempts");
+  restate a reminder when more than 10 labels of the same letter have come up
+  since, erring toward restating. `LEDGER-LABELS.md` is the index. Spell out
+  every symbol of a formula next to it when it first appears or when you can't
+  be sure the human still holds each term, and always when it goes into
+  ARCHITECTURE.md, PLAN.md or any other document.
 
 ## Handoff: ARCHITECTURE.md + the skeleton set
 
-The primary artifact is the **skeleton spec set** itself — real `.centina.ts`
-files that `centina-iterate` consumes directly. Alongside it, write
-`specs/<system>/ARCHITECTURE.md`, which records what the skeleton alone can't
-carry:
-
-ARCHITECTURE.md holds structure. Anything with a status (decided, open,
-resolved, rejected) lives only in ledger headers; ARCHITECTURE.md cites the
-label and never restates the status.
-
-1. **The component DAG** — the diagram, plus each node's one-line
-   responsibility. _(Always present.)_
-2. **Contracts** — each seam, its door signatures and direction, and the
-   ledger label of the decision behind it.
-3. **Holes** — the label of each open `sz:Q` entry the skeleton carries. The
-   holes themselves live in the spec files, where the checker lists them.
-4. **Terminal nodes** — the `@external` edges and the concrete technology named
-   for each. An unknown source cites a `sz:Q` label.
-5. **Risks / watch-items** — each recorded as a ledger entry (a `sz:F`
-   finding, or a `sz:R` rule for conventions adopted under test); this section
-   cites the labels. (Added after the first run, where the thin-UI risk needed
-   a home the other four sections didn't give it.)
-6. **Rejected alternatives** — a pointer to the settled section of
-   `LEDGER-INDEX.md`. Rejected proposals stay in the ledger with their
-   reasons, which keeps the next session from reopening settled ground.
-
-Because statuses live in the ledger, ARCHITECTURE.md does not go stale when a
-decision changes. `centina-iterate` updates it only when a signature, file
-location or terminal source changes (see "Reconciling ARCHITECTURE.md before
-the plan" in its SKILL.md).
-
-ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
-lineage — a plan-per-boundary-set is derivable from a frozen contract
-ledger, and drifts exactly when the ledger drifts.
+The primary artifact is the **skeleton spec set**: real `.centina.ts` files
+that `centina-iterate` consumes directly. Alongside it write
+`specs/<system>/ARCHITECTURE.md`, which records what the skeleton can't carry.
+It holds structure only: anything with a status (decided, open, resolved,
+rejected) lives in ledger headers, and ARCHITECTURE.md cites the label and
+never restates the status. Its sections: the **component DAG** with each node's
+one-line responsibility (always present), **contracts**, **holes** (by `sz:Q`
+label), **terminal nodes**, **risks and watch-items** (as labels) and
+**rejected alternatives** (a pointer to the settled section of
+`LEDGER-INDEX.md`); what each carries:
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Handoff".
+`centina-iterate` updates ARCHITECTURE.md only when a signature, file location
+or terminal source changes.
 
 ## What NOT to do
 
@@ -459,13 +280,12 @@ ledger, and drifts exactly when the ledger drifts.
   Lifted for internal language-design work, same as the other skills, and the project
   author may invoke a development-purposes override for minor edits.
 - **Don't recall a canonical design and present it as elicited.** The more
-  famous the task — a URL shortener, a todo app, an auth flow — the more the
-  agent already _knows_ the standard architecture, and the stronger the pull to
-  name the store, the code scheme, the door shapes before the human does. A
-  _correct_ recalled answer is over-competence at its purest: it looks exactly
-  like elicitation and isn't. Scale the draw-it-out discipline _up_ on canonical
-  tasks, not down; the tell is any concrete tech or shape the agent introduced
-  that the human never said. (Surfaced by the url-shortener control trace.)
+  famous the task (a URL shortener, an auth flow), the stronger the pull to name
+  the store, the code scheme and the door shapes before the human does. A
+  _correct_ recalled answer is over-competence at its purest: it looks like
+  elicitation and isn't. Scale the draw-it-out discipline _up_ on canonical
+  tasks; the tell is any concrete tech or shape the agent introduced that the
+  human never said.
 - **Don't fill a hole to complete the picture.** An open decision left open is
   the _correct_ output. A satisfyingly-complete skeleton with no holes, from a
   session where the human left real questions unanswered, is the failure this
@@ -477,12 +297,10 @@ ledger, and drifts exactly when the ledger drifts.
   internals, algorithms, storage layout — is fill/iterate territory. Stop at
   the typed door.
 - **Don't manufacture seams — and don't refuse either.** If routing the
-  realization out leaves one node with little or nothing to freeze, the task is
-  one algorithm, not a system. Two opposite failures bracket the right move:
-  inventing seams to fake a DAG (over-competence), or bouncing the human with a
-  "bad fit" verdict (the retired recuse reflex). The correct output is the
-  honest minimal skeleton — signature pinned, body held, labeled "this is one
-  node, not a system." Emit that; don't pad and don't refuse.
+  realization out leaves a node with little to freeze, the task is one
+  algorithm, not a system. Don't invent seams to fake a DAG, and don't bounce
+  the human with a "bad fit" verdict: emit the honest minimal skeleton, signature
+  pinned and body held, labeled "this is one node, not a system".
 - **Don't over-elicit.** Stop each component at the highest resolution the
   human can genuinely commit to. Dragging them to pin detail they haven't
   thought through just manufactures provisional cruft that ships as holes
@@ -490,58 +308,8 @@ ledger, and drifts exactly when the ledger drifts.
 
 ## Lessons from use
 
-_Accumulate here as the skill is exercised: phases that reliably resolved or
-stalled, where the diagram earned its keep, where over-competence crept in past
-a gate, whether the "typed seams + routed holes" skeleton got the human to a
-better starting shape than a blank set of files._
-
-**First run — Wordboard (a writer's word-tracker app).** Produced a seven-file
-skeleton + ARCHITECTURE.md, tsc-clean, across intent → components → seams →
-terminals → skeleton.
-
-- _The gates held against over-competence._ The human painted every door name,
-  type, and mode; the agent supplied form and flagged ripples. Catching the
-  "definition-on-`Suggestion`" seam ripple early — it would have wired the
-  suggesters to the definition source and made `DefinitionLookup` vestigial —
-  was exactly the rework-avoidance the skill exists for.
-- _Boundary-as-user works and is worth reaching for._ Modeling the
-  orchestrator's far side — the human user — as a `@boundary` gave intent-level
-  doors (`exchangeSuggestion`, not "render a list and read a tap") that guide
-  the eventual UI without pinning it. Recognize it as an available pattern when
-  a thin orchestrator's far side is a person.
-- _A run surfaced language conventions, not just app contracts_ — the
-  `read*/write*/exchange*` boundary-door naming and a write-with-receipt door
-  heuristic both emerged here, adopted under-test per the cross-cutting note.
-- _Terminals behind a component door_ were recorded (ledger + comments) with the
-  concrete `@external` deferred to fill, rather than fabricated — folded into
-  the `@external` guidance above.
-- _Weak spot: the diagram lagged._ The agent narrated the DAG in prose through
-  the gates and only rendered mermaid at the skeleton write. Mostly fine in a
-  text medium, but it drove the softening of the diagram rule to
-  offer-at-each-phase-boundary and proactive-on-confusion (above).
-- _Put cross-seam vocabulary in a `shared.centina.ts`, not in a boundary
-  declarator file._ The checker confirmed it: wordboard's boundary files pass
-  the `boundary-dependency` rule because their contract types live in
-  `shared.centina.ts`, whereas a declarator that co-locates its types with the
-  boundary trips that rule (the founding `task-corpus` fixture does). It must
-  keep the `.centina.ts` suffix — the checker's spec-plane rules (hole
-  enumeration, `@agent:` labels) only scan files with that suffix, and a plain
-  `shared.ts` is invisible to them even though it can carry real spec content
-  (holes included). Default a session-zero skeleton to a `shared.centina.ts`
-  for the vocabulary the DAG traffics in across seams.
-- _Held internal-processing holes route to `deferred<"unimplemented">`_ — the
-  human fills them, in place, at `centina-iterate`. That correctly leaves
-  `bin/centina-check` reporting them as errors until fill: the honest "work
-  remaining" signal for a pre-fill, pre-plan handoff, not a defect.\*
-
-**Test-case traces (2026-07, fit-as-jurisdiction thread).** From adversarial
-test-case traces run during this skill's own development:
-
-- _Phase 3's failure/empty/not-found question is the highest-yield step in the
-  phase._ Across crafting-recipes, url-shortener, pricing-request-handler, and
-  oauth-callback it was reliably what converted a vague seed into real contracts
-  — forcing `CraftResult`, collision/idempotency, the itemized `PricedCart`
-  breakdown, and the OAuth trust branches (state mismatch, unverified email,
-  first-login provision-vs-reject) respectively, none visible in the seed prose.
-  Ask "what happens on the empty/failure case" first at every seam, not as a
-  cleanup pass.
+Accumulated in `${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`,
+"Lessons from use" (the first run, Wordboard, and the 2026-07 test-case
+traces). The one that bears on every run: phase 3's _what happens on the
+empty / not-found / failure case?_ is the highest-yield question in the phase.
+Ask it first at every seam, not as a cleanup pass.
