@@ -1,7 +1,9 @@
-# The trail (DRAFT, step 3 of the work-item progress tracking)
+# The trail (step 3 of the work-item progress tracking)
 
-Not built. This is the schema the tracker (step 5) and the `centina-realize`
-change (step 4) are designed against, for the author to react to first.
+Agreed in principle by the author (what counts as a decision, agent-drafted
+gates ruled by the human over several turns, JSONL); the checker does not read
+it yet and the tracker (step 5) is not built. `skills/centina-spike/SKILL.md`
+writes it by hand-appended lines following the formats below.
 
 ## What it is for
 
@@ -24,7 +26,9 @@ cites ledger labels instead of restating them (`ledger.md`, rule 5).
 - **Not a store of weights.** Time and tokens between two decisions are
   derived by the tracker from the session transcripts (`transcripts/`, each
   message has a timestamp and usage). The trail records the anchors the
-  derivation needs: when, and in which session and turn.
+  derivation needs: when (`at`, UTC) and in which session. The agent cannot
+  see a message's id, so there is no turn field; the tracker finds the turn
+  from the timestamp.
 - **Not spec content, and not the human's decisions.** The agent writes it as
   scribe, like the ledger. What it records as chosen is what the human said.
 
@@ -45,7 +49,7 @@ which file holds a scope.
 
 ```json
 {"type":"decision","id":"terrain/d41","at":"2026-10-04T16:02:11Z",
- "session":"b787868d-…","turn":"<message uuid>",
+ "session":"b787868d-…",
  "from":"terrain/d40.1","item":"terrain:W43",
  "question":"Step 2m found the Hessian step is not the cause. What next?",
  "options":[
@@ -77,7 +81,7 @@ which file holds a scope.
 
 ```json
 {"type":"choice","decision":"terrain/d41","chose":[1],
- "at":"2026-10-04T16:20:40Z","turn":"<message uuid>","quote":"plan route option 1"}
+ "at":"2026-10-04T16:20:40Z","quote":"plan route option 1"}
 ```
 
 `chose` is empty when the human took none (`"other":"free text"` carries what

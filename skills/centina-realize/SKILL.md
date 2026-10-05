@@ -1,6 +1,6 @@
 ---
 name: centina-realize
-description: Works behind a Centina spec's boundaries while the spec is still being refined. Plans a phase with the human before any code is written, then runs spikes that answer questions the spec can't settle without code and builds contract-backed code against the spec's types into a working slice. Tracks phases, steps, spikes and change requests as ledger work items, requires a written measurement plan before any measurement that will be recorded or decide a design, and routes every contract change back to the human. Use when the human wants to prototype, spike, test an assumption, build a vertical slice, or implement part of a Centina system before or between centina-iterate cycles.
+description: Works behind a Centina spec's boundaries while the spec is still being refined. Plans a phase with the human before any code is written, builds contract-backed code against the spec's types into a working slice, and hands each spike (a question the spec can't settle without code) to centina-spike to run. Tracks phases, steps, spikes and change requests as ledger work items and routes every contract change back to the human. Use when the human wants to plan a phase, prototype, test an assumption, build a vertical slice, or implement part of a Centina system before or between centina-iterate cycles.
 ---
 
 # Centina Realize
@@ -9,9 +9,8 @@ description: Works behind a Centina spec's boundaries while the spec is still be
 
 1. Run `${CLAUDE_PLUGIN_ROOT}/docs/plugin-setup-procedure.md` to resolve the
    project and `artifactsRoot`.
-2. Read `${CLAUDE_PLUGIN_ROOT}/docs/ledger.md`,
-   `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md` and
-   `${CLAUDE_PLUGIN_ROOT}/docs/measurement-methodology.md`.
+2. Read `${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and
+   `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`.
 3. This session's ID, for the `Session` header, is `${CLAUDE_SESSION_ID}`.
 4. Identify the system (`specs/<system>/`). It must have a `LEDGER.md`. If it
    does not, stop: suggest `centina-session-zero` for a new system, or ask
@@ -66,7 +65,7 @@ next phase.
 | Purpose  | Answer a question                               | Grow the slice                                     |
 | Code     | Outside the contracts; may compute ground truth | Implements spec types through the contracts module |
 | Produces | Findings (`F`)                                  | Working code, change requests                      |
-| Rules    | `measurement-methodology.md`                    | "Using spec types" below                           |
+| Rules    | the `centina-spike` skill                       | "Using spec types" below                           |
 
 Keep them in separate source trees from the start, as recorded in the run
 frame. **Never promote spike code into build code.** When a spike's result
@@ -120,8 +119,8 @@ Status is `planned` until the human confirms the plan, then the phase becomes
    that. Use search (grep, or a code-navigation tool if one is available)
    to locate a specific cross-reference named in the plan; that is a
    targeted lookup, not a re-orientation read.
-3. Build steps: write code against spec types (below). Spikes: write the
-   measurement plan first and get it confirmed.
+3. Build steps: write code against spec types (below). Spikes: run them with
+   `centina-spike` ("Spikes" below), not here.
 4. Run the closing test. It must print. Record findings as they appear.
 5. Close the step: `done`, with the evidence in the body or in `F` entries.
    Run the `--contracts` check and the conformance-coverage check
@@ -251,15 +250,15 @@ different return shape). So:
   one citation or one fill, confirm the error appears, revert. A check that
   fails by staying silent proves nothing when quiet.
 
-## Spikes and claims
+## Spikes
 
-Follow `measurement-methodology.md` for every measurement whose result will
-be recorded or decide a design. In short:
-
-- record the prediction (`F`, `predicted`) before measuring;
-- write the measurement plan into the spike entry and get it confirmed;
-- a result is `measured` only with `Evidence`;
-- a diagnosis is a claim, checked before it is reported as the cause.
+**A spike is run by `centina-spike`, not by this skill.** This skill plans the
+phase and admits the spike (the planning gate, step 5). When a spike is
+admitted, invoke `centina-spike` with the Skill tool before writing its plan,
+and again after any resume or `/clear` that dropped it. That skill requires the
+human to rule a gate, a budget and a back-out point first, keeps the line to
+one question, records the trail, and stops at checkpoints. It carries the
+measurement rules.
 
 Offering an idea or a likely outcome in conversation is fine when marked as
 such. Recording one as fact is not.

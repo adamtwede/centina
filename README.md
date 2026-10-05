@@ -546,7 +546,7 @@ with you, to be resolved at spec-iteration or plan-build time, never part of the
 
 ### Gap-hunting sessions
 
-Three project skills drive Centina as a collaborative, gated process. The first two are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess. The third, `centina-realize`, does the coding work a spec needs before it can be written with confidence. All three record their decisions in the system [ledger](docs/ledger.md).
+Four project skills drive Centina as a collaborative, gated process. The first two are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess. The third, `centina-realize`, does the coding work a spec needs before it can be written with confidence, and the fourth, `centina-spike`, runs the experiments it hands off. All four record their decisions in the system [ledger](docs/ledger.md).
 
 - **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
   It drives a gated conversation that turns a prose idea into a **component
@@ -568,11 +568,19 @@ Three project skills drive Centina as a collaborative, gated process. The first 
 
 - **[centina-realize](https://github.com/adamtwede/centina/blob/main/skills/centina-realize/SKILL.md)** — works behind a spec's doors while
   the spec is still being refined. It plans a phase with the human before any
-  code is written, runs **spikes** that answer questions the spec can't settle
-  without code (each with a written [measurement plan](docs/measurement-methodology.md)),
-  and **builds** code against the spec's types into a working slice. Contract
-  problems found along the way go back to the human as change requests; the
-  human makes every spec edit.
+  code is written, hands each **spike** to `centina-spike`, and **builds** code
+  against the spec's types into a working slice. Contract problems found along
+  the way go back to the human as change requests; the human makes every spec
+  edit.
+
+- **[centina-spike](https://github.com/adamtwede/centina/blob/main/skills/centina-spike/SKILL.md)** — runs one spike, a line of
+  experiments that answers a question the spec can't settle without code (each
+  step with a written [measurement plan](docs/measurement-methodology.md)). The
+  human rules a gate, a step budget and a back-out point before measuring; a
+  follow-up question becomes its own work item instead of another step; every
+  offered choice and gate reading goes in the system's trail
+  ([draft schema](docs/trail.md)); and the agent stops at a checkpoint when the
+  budget is spent, a return condition fires, or steps stop reading the gate.
 
 Crucially, "fit" is treated as a **jurisdiction map, not a verdict**. A realization-dominated responsibility (an algorithm, a physics loop, a rendering step) is never *rejected* from a spec — it is *routed behind a door* (a terminal, a delegated Skill, or a held `deferred<"unimplemented">` hole), and the spec keeps the typed seam around it. Even an idea that turns out to be "one algorithm, not a system" yields a minimal skeleton that is explicit about its remit rather than a bounced request. The value is in *localizing* the realization into a named, bounded hole.
 

@@ -29,7 +29,9 @@ centina-plugin/
 │   │   └── SKILL.md
 │   ├── centina-iterate/
 │   │   └── SKILL.md
-│   └── centina-realize/
+│   ├── centina-realize/
+│   │   └── SKILL.md
+│   └── centina-spike/
 │       └── SKILL.md
 ├── bin/
 │   └── centina-check

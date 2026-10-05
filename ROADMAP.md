@@ -478,6 +478,28 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   session transcripts. Unratified; step 4 (`centina-realize` writes it, and
   declares a closing test, step budget and back-out point per spike) and step
   5 (an HTML tree generated from it) wait on the author's review of the draft.
+- **`centina-spike`** (step 4, drafted, not yet exercised on a live spike):
+  `skills/centina-spike/SKILL.md`, 13k characters, splits spike work out of
+  `centina-realize` (which hands each admitted spike to it). It requires a
+  human-ruled gate, step budget and back-out with return conditions before
+  measuring, one question per entry (a follow-up that does not bear on the gate
+  is a new `W`, never another appended step), `decision`/`choice`/`gate`/
+  `reading` records in `TRAIL.jsonl` with a `close` and the nearest unexplored
+  option always offered, and checkpoints (budget spent, return condition fired,
+  two steps with no gate reading, a gate moving away twice, or on request).
+  Starting values (N = 2 extra steps, "two" steps) are guesses to tune from use.
+  Not built: `centina-check` reading `TRAIL.jsonl` (resolution, unanswered
+  decisions, `trail-missing-decision`), the tracker, and a qualitative gate.
+  Measured on the W43 transcript: the skill was loaded once and re-injected
+  34 times, so the failure was the skill's silence on long spikes, not its
+  absence from context.
+- **Skills over the post-compaction cap.** Claude Code re-injects an invoked
+  skill after each compaction cut at 20,000 characters, losing the end of the
+  file. `centina-realize` (now 18.5k) and `centina-spike` (13k) are held under
+  it by `scripts/bundle.test.mjs`; `centina-session-zero` (35k) and
+  `centina-iterate` (27k) are not, so a long session of either loses their
+  tails (their "What NOT to do" lists, among others) after the first
+  compaction. Not yet fixed.
 - **Ledger folder refactor.** A system directory such as
   `chrysalis/centina/specs/underworld/` now holds ~25 files beside its specs
   (`LEDGER*.md` partitions, the four generated views, `ITERATE-STATE.md`,

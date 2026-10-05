@@ -31,7 +31,7 @@ function installerDocs() {
 
 // Bundled files that name a doc through the plugin root at read time.
 function referencedDocs(bundled) {
-  const sources = ["skills/centina-session-zero/SKILL.md", "skills/centina-iterate/SKILL.md", "skills/centina-realize/SKILL.md", ...bundled.map((d) => `docs/${d}`)]
+  const sources = ["skills/centina-session-zero/SKILL.md", "skills/centina-iterate/SKILL.md", "skills/centina-realize/SKILL.md", "skills/centina-spike/SKILL.md", ...bundled.map((d) => `docs/${d}`)]
   const found = new Set()
   for (const rel of sources) {
     for (const m of read(rel).matchAll(/CLAUDE_PLUGIN_ROOT\}\/docs\/([A-Za-z0-9_-]+\.md)/g)) {
@@ -66,8 +66,10 @@ describe("plugin bundle", () => {
   // characters, and the cut loses the end of the file (the "What NOT to do" list
   // and the last steps of a close). A skill a long session depends on has to fit.
   // centina-session-zero and centina-iterate are over it and not yet held to it.
-  it("keeps centina-realize inside the 20,000 characters kept after compaction", () => {
-    const length = read("skills/centina-realize/SKILL.md").length
-    assert.ok(length <= 20_000, `centina-realize is ${length} characters; move detail into a doc read on demand`)
+  it("keeps centina-realize and centina-spike inside the 20,000 characters kept after compaction", () => {
+    for (const skill of ["centina-realize", "centina-spike"]) {
+      const length = read(`skills/${skill}/SKILL.md`).length
+      assert.ok(length <= 20_000, `${skill} is ${length} characters; move detail into a doc read on demand`)
+    }
   })
 })
