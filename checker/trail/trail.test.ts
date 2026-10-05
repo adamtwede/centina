@@ -158,6 +158,20 @@ describe("the tracker model", () => {
     assert.equal(m.tiles.closeOffered, 3)
   })
 
+  it("opens on the item asked for, else the latest one, and counts each item on its own", () => {
+    const two = [HEADER, decision(1), choice(1, [1]), decision(2, { item: "demo:W2" }), choice(2, [1]), decision(3, { item: "demo:W2", from: "demo/d2.1" })]
+    const dir = system(two)
+    const t = readTrail(dir)!
+    const build = (item?: string) => buildModel(t, checkTrail(t, readLedger(dir)), { ledger: readLedger(dir), item, now: Date.parse("2026-10-09T00:00:00Z") / 1000 })
+    assert.equal(build().focus, "demo:W2")
+    assert.equal(build("demo:W1").focus, "demo:W1")
+    assert.equal(build("demo:W9").focus, "demo:W2", "an item the trail never mentions is ignored")
+    const m = build()
+    assert.deepEqual([m.views["demo:W1"].tiles.decisions, m.views["demo:W2"].tiles.decisions, m.tiles.decisions], [1, 2, 3])
+    assert.equal(m.itemInfo["demo:W1"].decisions, 1)
+    assert.equal(m.itemInfo["demo:W1"].title, "a spike")
+  })
+
   it("lets a mark settle a branch, and a branch taken once is no longer standing", () => {
     const m = model([HEADER, decision(1), choice(1, [1]), line({ type: "mark", option: "demo/d1.2", state: "parked", why: "waits on data", at: "2026-10-02T09:00:00Z" }), decision(2, { from: "demo/d1.1" }), choice(2, [2])])
     assert.equal(m.nodes[0].options.find((o) => o.n === 2)!.state, "parked")

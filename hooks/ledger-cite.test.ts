@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activePhases, bearings, currentItem, driftLine, eli5Prompt, extractCites, findingsOf, headOutlineTail, itemDrift, itemProgressPrompt, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
+import { activePhases, bearings, currentItem, driftLine, pickItem, eli5Prompt, extractCites, findingsOf, headOutlineTail, itemDrift, itemProgressPrompt, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -289,4 +289,23 @@ test('the drift line gives the item\'s numbers and the closed items\' to compare
   expect(driftLine({ key: 'sz:W9', size: 275_000, findings: 20, days: 3, level: 'high', typical: { count: 25, median: 9_000, largest: 60_000, findingsMedian: 3 } }))
     .toBe('sz:W9: 275k chars, 20 findings, 3 days; closed 25 of its kind: median 9k chars and 3 findings, largest 60k')
   expect(driftLine({ key: 'sz:W9', size: 800, findings: 0, level: 'unknown' })).toBe('sz:W9: 800 chars, 0 findings')
+})
+
+test('a pinned item is the current one whatever the reply cites, and a pin that no longer resolves is ignored', () => {
+  expect(currentItem([chain], ['sz:W2'], 'sz:W3')?.entry.key).toBe('sz:W3')
+  expect(currentItem([chain], [], 'sz:W4')?.entry.key).toBe('sz:W4')
+  expect(currentItem([chain], [], 'sz:W9')?.entry.key).toBe('sz:W3')
+  expect(currentItem([chain], [], 'sz:W1')?.entry.key).toBe('sz:W3')
+})
+
+test('pickItem takes a full label, or a bare number when only one ledger has it, and says why not otherwise', () => {
+  const other = { dir: '/w/o', json: { system: 'o', entries: [entry('oz:W3', { kind: 'spike', status: 'active' })] } }
+  expect(pickItem([chain], 'sz:W2')).toEqual({ key: 'sz:W2' })
+  expect(pickItem([chain], ' w2 ')).toEqual({ key: 'sz:W2' })
+  expect(pickItem([chain], '4')).toEqual({ key: 'sz:W4' })
+  expect(pickItem([chain, other], 'W3')).toMatchObject({ problem: expect.stringContaining('several ledgers') })
+  expect(pickItem([chain, other], 'oz:W3')).toEqual({ key: 'oz:W3' })
+  expect(pickItem([chain], 'sz:W9')).toMatchObject({ problem: expect.stringContaining('No work item') })
+  expect(pickItem([chain], 'sz:F1')).toMatchObject({ problem: expect.stringContaining('not a work item') })
+  expect(pickItem([chain], 'sz:W1')).toEqual({ problem: expect.any(String) })
 })

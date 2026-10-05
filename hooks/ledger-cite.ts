@@ -423,14 +423,24 @@ export function eli5Prompt(
  * the first active one the reply cites, else the one a spike chain has reached,
  * i.e. an active item no other active item depends on. Of several such leaves
  * the one furthest down its ledger file wins, the ledger being append-only.
+ * A `pinned` key (the human's `/track-item`) overrides all of that.
  * Undefined when no work item is active.
  */
 export function currentItem(
   systems: System[],
   citedKeys: string[] = [],
+  pinned?: string | null,
 ): { system: System; entry: LedgerEntry } | undefined {
   const isItem = (e: LedgerEntry) =>
     /:W\d+$/.test(e.key) && e.kind !== "phase" && e.status === "active"
+  // A pin is the human's own choice, whatever the entry's status; a pin that no
+  // longer resolves is ignored rather than leaving the band empty.
+  if (pinned)
+    for (const system of systems) {
+      const entry = system.json.entries.find((e) => e.key === pinned)
+      if (entry && /:W\d+$/.test(entry.key) && entry.kind !== "phase")
+        return { system, entry }
+    }
   for (const key of citedKeys)
     for (const system of systems) {
       const entry = system.json.entries.find((e) => e.key === key)
@@ -444,6 +454,34 @@ export function currentItem(
       .map((entry) => ({ system, entry }))
   })
   return leaves.sort((a, b) => b.entry.line - a.entry.line)[0]
+}
+
+/**
+ * What the human typed after `/track-item`, as the key of one work item: the
+ * full label (`terrain:W44`), or the bare number (`W44`, `44`) when only one
+ * ledger has it. Otherwise says why not.
+ */
+export function pickItem(
+  systems: System[],
+  arg: string,
+): { key: string } | { problem: string } {
+  const typed = arg.trim()
+  const number = /^(?:[\w-]+:)?W?(\d+)$/i.exec(typed)
+  if (!number) return { problem: `"${typed}" is not a work item label such as terrain:W44` }
+  const keys = systems.flatMap((s) =>
+    s.json.entries
+      .filter((e) => /:W\d+$/.test(e.key) && e.kind !== "phase")
+      .map((e) => e.key),
+  )
+  const exact = keys.filter((k) => k.toLowerCase() === typed.toLowerCase())
+  const hits = exact.length > 0 ? exact : keys.filter((k) => k.endsWith(`:W${number[1]}`) && !typed.includes(":"))
+  if (hits.length === 1) return { key: hits[0] }
+  return {
+    problem:
+      hits.length === 0
+        ? `No work item ${typed} in any ledger`
+        : `${typed} is in several ledgers (${hits.join(", ")}); give the full label`,
+  }
 }
 
 /** The entries of `system` that rest on `key` (cite it in `Premises`), in ledger order. */

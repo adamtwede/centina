@@ -176,9 +176,13 @@ spike that starts later is checked in full.
 
 ## The checker and the tracker
 
-`centina-check trail [--check] [--out <file>] <system-dir>` reads
+`centina-check trail [--check] [--item <label>] [--out <file>] <system-dir>` reads
 `TRAIL.jsonl` and the ledger, prints findings, and writes `TRACKER.html` beside
-the trail (generated; never edit it). `--check` validates without writing. A
+the trail (generated; never edit it). `--check` validates without writing.
+`--item` opens the page on that work item; without it the page opens on the
+item with the latest decision. The page names its item at the top, and its
+numbers (tiles, gates, standing alternatives, table) are that item's; the menu
+switches to another item or to all of them. A
 system with no trail is not an error. Run it at a checkpoint, when closing a
 spike, and whenever the human wants the picture; the page is one
 self-contained file for a browser.

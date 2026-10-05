@@ -34,6 +34,7 @@ import {
   findingsOf,
   itemDrift,
   itemProgressPrompt,
+  pickItem,
   progressPrompt,
   references,
   resolve,
@@ -58,6 +59,7 @@ const hasPhase = atom({ plugin: "centina", key: "hasPhase" } as const, false)
 const hasItem = atom({ plugin: "centina", key: "hasItem" } as const, false)
 const drift = atom({ plugin: "centina", key: "drift" } as const, null)
 const trailDir = atom({ plugin: "centina", key: "trailDir" } as const, null)
+const pinnedItem = atom({ plugin: "centina", key: "pinnedItem" } as const, null)
 const latestRequest = atom({ plugin: "centina", key: "request" } as const, "")
 
 const ELI5_PANE = "centina-eli5"
@@ -69,6 +71,9 @@ const REVIEW_TIMEOUT_MS = 180_000
 const LEDGER_JSON = "LEDGER.json"
 const TRAIL_FILE = "TRAIL.jsonl"
 const TRACKER_FILE = "TRACKER.html"
+// Written by the SessionStart hook, which sees CLAUDE_PLUGIN_DATA; the mod may not.
+const DATA_POINTER = ".centina-data"
+const TRACK_COMMAND = "track-item"
 const TRACKER_TIMEOUT_MS = 60_000
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
 const MAX_DEPTH = 6
@@ -158,14 +163,21 @@ async function refreshPhase($: EngineInterface): Promise<void> {
     systems.some((s) => activePhases(s).length > 0),
   )
   const reply = await read($, latestReply)
+  const pin = await read($, pinnedItem)
   const found = currentItem(
     systems,
     extractCites(reply).map((c) => c.key),
+    pin,
   )
   await update($, hasItem, () => found !== undefined)
   const now = await $.clock.now()
   await update($, drift, () =>
-    found ? itemDrift(found.system, found.entry, now) : null,
+    found
+      ? {
+          ...itemDrift(found.system, found.entry, now),
+          ...(found.entry.key === pin ? { isPinned: true } : {}),
+        }
+      : null,
   )
   // The system the tracker is for: the current item's if it has a trail, else the first that does.
   const withTrail: string[] = []
@@ -533,6 +545,7 @@ async function itemProgress($: EngineInterface): Promise<void> {
       const found = currentItem(
         systems,
         extractCites(reply).map((c) => c.key),
+        await read($, pinnedItem),
       )
       if (found === undefined)
         return { failure: "No work item is active in the ledger." }
@@ -565,33 +578,65 @@ async function itemProgress($: EngineInterface): Promise<void> {
 }
 
 /**
- * Tracker: regenerates the system's TRACKER.html with `centina-check trail` and
- * opens it. The checker runs from the plugin's data folder, which the mod only
- * sees if the environment names it; without it the last generated page is
- * opened as it stands. The page is written even when the trail has errors, so
- * the toast says to read them.
+ * Where the checker's installed copy lives. Claude Code sets CLAUDE_PLUGIN_DATA
+ * for hook scripts, and a mod may or may not see it in its own environment, so
+ * the SessionStart hook leaves the path in a file beside the plugin as well.
+ */
+async function pluginData($: EngineInterface): Promise<string | undefined> {
+  const env = await $.env.get("CLAUDE_PLUGIN_DATA")
+  if (env) return env
+  const pointed = await $.fs
+    .read(`${$.plugin.root}/${DATA_POINTER}`)
+    .catch(() => "")
+  return pointed.trim() || undefined
+}
+
+/**
+ * Work item tracker: regenerates the system's TRACKER.html with `centina-check
+ * trail`, for the item the band is tracking, and opens it. If the checker can't
+ * be run the last generated page is opened as it stands, and the toast says
+ * why. The page is written even when the trail has errors, so the toast says
+ * to read them.
  */
 async function openTracker($: EngineInterface): Promise<void> {
   const dir = await read($, trailDir)
   if (dir === null) return
   const page = `${dir}/${TRACKER_FILE}`
-  const data = await $.env.get("CLAUDE_PLUGIN_DATA")
-  let refreshed = false
-  if (data) {
+  const item = (await read($, drift))?.key
+  const data = await pluginData($)
+  let why = ""
+  if (data === undefined) {
+    why = "the checker's folder is unknown (start a new session so the install hook records it)"
+  } else {
+    $.ui.toast("Building the tracker...")
     const root = $.plugin.root
     const ran = await $.process
-      .run(["node", `${root}/bin/centina-check`, "trail", dir], {
-        env: { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data },
-        timeoutMs: TRACKER_TIMEOUT_MS,
-      })
+      .run(
+        [
+          "node",
+          `${root}/bin/centina-check`,
+          "trail",
+          ...(item ? ["--item", item] : []),
+          dir,
+        ],
+        {
+          env: { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data },
+          timeoutMs: TRACKER_TIMEOUT_MS,
+        },
+      )
       .catch(() => undefined)
-    refreshed = ran !== undefined
-    if (ran !== undefined && ran.exitCode !== 0)
-      $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+    if (ran === undefined) why = "the checker did not finish"
+    else if (ran.exitCode !== 0) {
+      // Exit 1 is also "the trail has errors", with the page still written
+      // and named on a "tracker:" line.
+      if (!ran.stdout.includes("tracker: "))
+        why = `the checker failed: ${ran.stderr.trim().split("\n").pop() ?? ""}`
+      else $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+    }
   }
   const names = await $.fs.list(dir).catch(() => [])
   if (!names.some((n) => n.kind === "file" && n.name === TRACKER_FILE)) {
-    $.ui.toast(`No ${TRACKER_FILE} yet; run centina-check trail ${dir}`)
+    $.ui.toast(`No ${TRACKER_FILE} yet: ${why || "the checker wrote none"}`)
     return
   }
   const via = async (argv: string[]) => {
@@ -600,7 +645,38 @@ async function openTracker($: EngineInterface): Promise<void> {
   }
   if (!(await via(["open", page])) && !(await via(["xdg-open", page])))
     $.ui.toast(`Could not open ${page}`)
-  else if (!refreshed) $.ui.toast("Opened the last generated tracker, not refreshed")
+  else if (why) $.ui.toast(`Opened the last generated tracker, not refreshed: ${why}`)
+}
+
+/** `/track-item terrain:W44` pins the band to that item; `/track-item auto` lets the band choose again. */
+async function trackItem($: EngineInterface, arg: string): Promise<void> {
+  const typed = arg.trim()
+  if (typed === "") {
+    const pin = await read($, pinnedItem)
+    const now = (await read($, drift))?.key
+    $.ui.toast(
+      pin
+        ? `Tracking ${pin} (pinned); /${TRACK_COMMAND} auto to unpin`
+        : now
+          ? `Tracking ${now} (automatic); /${TRACK_COMMAND} <label> to pin one`
+          : `No item is tracked; /${TRACK_COMMAND} <label> to pin one`,
+    )
+    return
+  }
+  if (typed.toLowerCase() === "auto") {
+    await update($, pinnedItem, () => null)
+    await refreshPhase($)
+    $.ui.toast("Tracking the item the band picks")
+    return
+  }
+  const picked = pickItem(await readSystems($), typed)
+  if ("problem" in picked) {
+    $.ui.toast(picked.problem)
+    return
+  }
+  await update($, pinnedItem, () => picked.key)
+  await refreshPhase($)
+  $.ui.toast(`Tracking ${picked.key}`)
 }
 
 async function clear($: EngineInterface): Promise<void> {
@@ -615,7 +691,23 @@ export const register: Register = (on) => {
   on("session.start", async ($, e, next) => {
     await walk($)
     await refreshPhase($)
+    // Last, and guarded: a refused name must not stop the rest of the hook.
+    try {
+      await $.command.register({
+        name: TRACK_COMMAND,
+        description: "Pin the band and the tracker to a work item, or `auto`",
+        argumentHint: "<terrain:W44 | auto>",
+        immediate: true,
+      })
+    } catch {
+      // The band still works without the command.
+    }
     return next(e)
+  })
+
+  on("command.run", { command: TRACK_COMMAND }, async ($, e) => {
+    await trackItem($, e.args)
+    return {}
   })
 
   on("session.end", async ($, e, next) => {
@@ -796,9 +888,11 @@ export const register: Register = (on) => {
             }
             dimColor={longRunning.level === "ok" || longRunning.level === "unknown"}
           >
-            {longRunning.level === "high" || longRunning.level === "warn"
-              ? "Long-running "
-              : "Item "}
+            {longRunning.isPinned
+              ? "Pinned "
+              : longRunning.level === "high" || longRunning.level === "warn"
+                ? "Long-running "
+                : "Item "}
             {driftLine(longRunning)}
           </Text>
         )}

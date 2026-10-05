@@ -10,12 +10,13 @@ import { loadTicks } from "./weights"
 
 export const TRACKER_FILE = "TRACKER.html"
 
-const USAGE = "usage: centina-check trail [--check] [--out <file>] <system-dir>"
+const USAGE = "usage: centina-check trail [--check] [--item <label>] [--out <file>] <system-dir>"
 
 /**
  * `centina-check trail <system-dir>`: validates the system's TRAIL.jsonl
  * (docs/trail.md) and writes TRACKER.html beside it, the decision tree with
  * what each stretch of work cost. `--check` validates without writing.
+ * `--item` opens the page on that work item (default: the one worked on last).
  * `--out` writes the page elsewhere. Weights come from the transcript copies
  * in `<system-dir>/transcripts/`, read as timestamps and token counts only.
  * A system with no TRAIL.jsonl is not an error. Returns the exit code.
@@ -23,11 +24,18 @@ const USAGE = "usage: centina-check trail [--check] [--out <file>] <system-dir>"
 export function runTrailCommand(argv: string[]): number {
   let checkOnly = false
   let out: string | undefined
+  let item: string | undefined
   const dirs: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === "--check") checkOnly = true
-    else if (arg === "--out") {
+    else if (arg === "--item") {
+      item = argv[++i]
+      if (!item) {
+        console.error(`--item requires a work item label\n${USAGE}`)
+        return 1
+      }
+    } else if (arg === "--out") {
       out = argv[++i]
       if (!out) {
         console.error(`--out requires a file\n${USAGE}`)
@@ -64,13 +72,15 @@ export function runTrailCommand(argv: string[]): number {
   if (!checkOnly) {
     const sessions = trail.records.flatMap((r) => (r.type === "decision" && r.session ? [r.session] : []))
     const { ticks, missing } = loadTicks(systemDir, sessions)
-    const model = buildModel(trail, findings, { ledger, ticks, missingTranscripts: missing, waived })
+    const model = buildModel(trail, findings, { ledger, ticks, missingTranscripts: missing, waived, item })
     const target = out ? path.resolve(baseDir, out) : path.join(systemDir, TRACKER_FILE)
     const html = renderTracker(model)
     if (!existsSync(target) || readFileSync(target, "utf8") !== html) {
       writeFileSync(target, html)
       console.log(`wrote ${target}`)
     }
+    // Always named, so a caller can tell a page written from a checker that failed.
+    console.log(`tracker: ${target}`)
   }
   return hasErrors ? 1 : 0
 }

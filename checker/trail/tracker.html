@@ -25,7 +25,10 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
-h1{font-size:20px;margin:0 0 2px}
+.kicker{margin:0;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+h1{font-size:22px;margin:2px 0 2px}
+.meta{margin:0 0 10px;color:var(--ink2)}
+.meta b{color:var(--ink)}
 .sub{color:var(--ink2);margin:0 0 18px;max-width:80ch}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px}
 .tile{background:var(--panel);border-radius:8px;padding:10px 12px}
@@ -60,13 +63,15 @@ th{color:var(--ink2);font-weight:600}
 </head>
 <body>
 <main>
+<p class="kicker" id="kicker"></p>
 <h1 id="h"></h1>
+<p class="meta" id="meta"></p>
 <p class="sub" id="sub"></p>
 <div id="notes"></div>
 <div class="tiles" id="tiles"></div>
 <div class="bar">
   <span class="seg" id="seg" role="group" aria-label="Segment length"><button data-m="activeMin" aria-pressed="true">Active time</button><button data-m="tokens" aria-pressed="false">Output tokens</button></span>
-  <select id="item" aria-label="Work item"></select>
+  <label>Work item <select id="item"></select></label>
   <span class="legend">
     <span><i style="border-color:var(--taken)"></i>path taken</span>
     <span><span class="stub" style="border-color:var(--other)"></span>offered, not taken</span>
@@ -90,29 +95,47 @@ const fmtDur = m => m>=60 ? (m/60).toFixed(1)+' h' : Math.round(m)+' min';
 const fmtTok = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : Math.round(n/1e3)+'k';
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const trunc = (s,n) => s.length>n ? s.slice(0,n-1)+'…' : s;
-const T = M.tiles;
-let metric = 'activeMin', item = '';
+let metric = 'activeMin', item = M.focus || '';
+const V = () => (item && M.views[item]) || M;
+const itemName = i => i || 'All items';
 
-$('h').textContent = (M.system ? M.system+' — ' : '')+'work item tracker';
+// Which item this page is about, stated once at the top and again in the tab title.
+function heading(){
+  const info = M.itemInfo[item];
+  const short = item ? item.replace(/^[^:]*:/,'') : '';
+  $('kicker').textContent = (M.system ? M.system+' — ' : '')+'work item tracker';
+  $('h').textContent = item ? item+(info&&info.title?' — '+info.title:'') : 'All work items'+(M.items.length?' ('+M.items.length+')':'');
+  $('meta').innerHTML = item && info
+    ? '<b>'+esc(info.status||'status unknown')+'</b> · '+info.decisions+' decision'+(info.decisions===1?'':'s')+' · last '+fmtT(info.lastT)+(item===M.focus&&M.items.length>1?' · the latest item worked on':'')
+    : (M.items.length>1?'Every item in this trail, in one history.':'');
+  document.title = (short?short+' — ':'')+'Work item tracker';
+}
 $('sub').textContent = 'Each node is a point where the agent offered options. The line is the path taken; the stubs are what was offered and not taken. Segment length is the weight of the work after that decision.';
-const notes = [];
-if (!M.weighted) notes.push(['bad','No transcript copy was found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
-else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
-if (M.problems.errors+M.problems.warnings) notes.push(['bad',M.problems.errors+' errors and '+M.problems.warnings+' warnings in the trail; run centina-check trail to see them.']);
-if (T.pending) notes.push(['','Awaiting your answer: '+T.pending]);
-$('notes').innerHTML = notes.map(n=>'<div class="note '+n[0]+'">'+esc(n[1])+'</div>').join('');
 
-const tiles = [];
-if (M.weighted) tiles.push([fmtDur(T.activeMin),'active time','' ],[fmtTok(T.tokens),'output tokens','']);
-tiles.push([T.decisions,'decision points','']);
-if (T.closeOffered) tiles.push([T.closeDeclined+' of '+T.closeOffered,'stop / return options offered and declined', T.closeDeclined===T.closeOffered?'warn':'']);
-tiles.push([T.standing,'alternatives never taken','']);
-if (T.chosenOf) tiles.push([T.readOf+' of '+T.chosenOf,'steps that read a gate', T.sinceReading>=2?'warn':''],[T.sinceReading,'steps since a gate was last read', T.sinceReading>=2?'warn':'']);
-if (T.checkpoints) tiles.push([T.checkpoints,'checkpoints','']);
-$('tiles').innerHTML = tiles.map(t=>'<div class="tile '+t[2]+'"><b>'+t[0]+'</b><span>'+t[1]+'</span></div>').join('');
+function summary(){
+  const T = V().tiles;
+  const notes = [];
+  if (!M.weighted) notes.push(['bad','No transcript copy was found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
+  else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
+  if (M.problems.errors+M.problems.warnings) notes.push(['bad',M.problems.errors+' errors and '+M.problems.warnings+' warnings in the trail (all items); run centina-check trail to see them.']);
+  if (T.pending) notes.push(['','Awaiting your answer: '+T.pending]);
+  $('notes').innerHTML = notes.map(n=>'<div class="note '+n[0]+'">'+esc(n[1])+'</div>').join('');
+  const tiles = [];
+  if (M.weighted && T.activeMin!==undefined) tiles.push([fmtDur(T.activeMin),'active time','' ],[fmtTok(T.tokens),'output tokens','']);
+  tiles.push([T.decisions,'decision points','']);
+  if (T.closeOffered) tiles.push([T.closeDeclined+' of '+T.closeOffered,'stop / return options offered and declined', T.closeDeclined===T.closeOffered?'warn':'']);
+  tiles.push([T.standing,'alternatives never taken','']);
+  if (T.chosenOf) tiles.push([T.readOf+' of '+T.chosenOf,'steps that read a gate', T.sinceReading>=2?'warn':''],[T.sinceReading,'steps since a gate was last read', T.sinceReading>=2?'warn':'']);
+  if (T.checkpoints) tiles.push([T.checkpoints,'checkpoints','']);
+  $('tiles').innerHTML = tiles.map(t=>'<div class="tile '+t[2]+'"><b>'+t[0]+'</b><span>'+t[1]+'</span></div>').join('');
+}
 if (!M.weighted) $('seg').style.display='none';
-if (M.items.length>1) $('item').innerHTML = '<option value="">All items</option>'+M.items.map(i=>'<option>'+esc(i)+'</option>').join(''); else $('item').style.display='none';
-$('item').addEventListener('change',e=>{item=e.target.value;draw()});
+if (M.items.length) {
+  const label = i => i+(M.itemInfo[i]&&M.itemInfo[i].title?' — '+trunc(M.itemInfo[i].title,70):'');
+  $('item').innerHTML = M.items.map(i=>'<option value="'+esc(i)+'">'+esc(label(i))+'</option>').join('')+'<option value="">All items</option>';
+  $('item').value = item;
+} else $('item').parentElement.style.display='none';
+$('item').addEventListener('change',e=>{item=e.target.value;refresh()});
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
   metric=b.dataset.m; document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); draw();
 }));
@@ -200,10 +223,13 @@ function draw(){
 }
 
 // Standing alternatives (collapsed).
-$('standingTitle').textContent='Standing alternatives ('+M.standing.length+') — offered and never taken';
-$('standingBody').innerHTML = M.standing.length
- ? '<table><tr><th>Alternative</th><th>Offered</th><th>First / last</th><th>Since first offer</th><th>State</th></tr>'+M.standing.map(s=>'<tr><td>'+(s.kind==='close'?'<b>[stop/return]</b> ':'')+esc(s.label)+'</td><td>'+s.offers+'×</td><td>'+fmtT(s.firstT)+' / '+fmtT(s.lastT)+'</td><td>'+(s.activeMin!==undefined?fmtDur(s.activeMin)+', '+fmtTok(s.tokens):'—')+'</td><td>'+s.state+(s.why?': '+esc(s.why):'')+'</td></tr>').join('')+'</table>'
+function standing(){
+const S=V().standing;
+$('standingTitle').textContent='Standing alternatives ('+S.length+') — offered and never taken';
+$('standingBody').innerHTML = S.length
+ ? '<table><tr><th>Alternative</th><th>Offered</th><th>First / last</th><th>Since first offer</th><th>State</th></tr>'+S.map(s=>'<tr><td>'+(s.kind==='close'?'<b>[stop/return]</b> ':'')+esc(s.label)+'</td><td>'+s.offers+'×</td><td>'+fmtT(s.firstT)+' / '+fmtT(s.lastT)+'</td><td>'+(s.activeMin!==undefined?fmtDur(s.activeMin)+', '+fmtTok(s.tokens):'—')+'</td><td>'+s.state+(s.why?': '+esc(s.why):'')+'</td></tr>').join('')+'</table>'
  : '<p class="sub">Every option offered was taken at least once.</p>';
+}
 
 // Waived checks (collapsed, only when there are any): hidden from the checker's output, never from here.
 if (M.waived.length) {
@@ -213,7 +239,6 @@ if (M.waived.length) {
 }
 
 // Gates (collapsed).
-$('gatesTitle').textContent='Gates and readings ('+M.gates.length+')';
 function spark(g){
   const rs=g.readings.filter(r=>r.value!==undefined); if(rs.length<1) return '';
   const w=420,h=70,pad=14; const vals=rs.map(r=>r.value).concat(g.tolerance!==undefined?[g.tolerance]:[]);
@@ -225,12 +250,20 @@ function spark(g){
   rs.forEach((r,i)=>{ s+='<circle cx="'+x(i)+'" cy="'+yv(r.value)+'" r="4.5" fill="'+(r.verdict==='pass'?'var(--pass)':r.verdict==='fail'?'var(--fail)':'var(--surface)')+'" stroke="var(--taken)" stroke-width="2"><title>'+esc(r.value+(g.unit?' '+g.unit:'')+' — '+r.verdict+(r.evidence?' ('+r.evidence+')':''))+'</title></circle>'; });
   return s+'</svg>';
 }
-$('gatesBody').innerHTML = M.gates.length ? M.gates.map(g=>'<div class="gate"><h3>'+esc(g.id)+' · '+esc(g.item)+'</h3><p>'+esc(g.statement)+(g.quote?' — ruled: “'+esc(g.quote)+'”':'')+'</p>'+(g.readings.length?spark(g)+'<p>'+g.readings.length+' readings'+(g.trend?', latest '+({away:'further past the tolerance',toward:'closer to the tolerance',level:'level'})[g.trend]:'')+'.</p>':'<p>No readings yet.</p>')+'</div>').join('')
- : '<p class="sub">No gate has been ruled for any item in this trail.</p>';
+function gates(){
+const G=V().gates;
+$('gatesTitle').textContent='Gates and readings ('+G.length+')';
+$('gatesBody').innerHTML = G.length ? G.map(g=>'<div class="gate"><h3>'+esc(g.id)+' · '+esc(g.item)+'</h3><p>'+esc(g.statement)+(g.quote?' — ruled: “'+esc(g.quote)+'”':'')+'</p>'+(g.readings.length?spark(g)+'<p>'+g.readings.length+' readings'+(g.trend?', latest '+({away:'further past the tolerance',toward:'closer to the tolerance',level:'level'})[g.trend]:'')+'.</p>':'<p>No readings yet.</p>')+'</div>').join('')
+ : '<p class="sub">No gate has been ruled'+(item?' for '+esc(item):' for any item in this trail')+'.</p>';
+}
 
-draw();
+function table(){
 $('tbl').innerHTML='<tr><th>When</th><th>Item</th><th>Question</th><th>Taken</th><th>Not taken</th><th>Active</th><th>Output tokens</th></tr>'+
- M.nodes.map(n=>'<tr><td>'+fmtT(n.t)+'</td><td>'+esc(n.item||'')+'</td><td>'+esc(n.question)+'</td><td>'+(n.options.filter(o=>n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)).join('<br>')||(n.pending?'(pending)':esc(n.other||'—')))+'</td><td>'+n.options.filter(o=>!n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)+' ('+o.state+')').join('<br>')+'</td><td>'+(n.activeMin!==undefined?fmtDur(n.activeMin):'—')+'</td><td>'+(n.tokens!==undefined?fmtTok(n.tokens):'—')+'</td></tr>').join('');
+ M.nodes.filter(n=>!item||n.item===item).map(n=>'<tr><td>'+fmtT(n.t)+'</td><td>'+esc(n.item||'')+'</td><td>'+esc(n.question)+'</td><td>'+(n.options.filter(o=>n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)).join('<br>')||(n.pending?'(pending)':esc(n.other||'—')))+'</td><td>'+n.options.filter(o=>!n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)+' ('+o.state+')').join('<br>')+'</td><td>'+(n.activeMin!==undefined?fmtDur(n.activeMin):'—')+'</td><td>'+(n.tokens!==undefined?fmtTok(n.tokens):'—')+'</td></tr>').join('');
+}
+
+function refresh(){heading();summary();draw();standing();gates();table()}
+refresh();
 </script>
 </body>
 </html>

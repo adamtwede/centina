@@ -490,9 +490,14 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   spike yet, so capture (the agent appending records) is untested;
   `trail-missing-decision` is the backstop. Since built: a **Tracker** button
   in the mod's band, shown for a system with a `TRAIL.jsonl`, that runs
-  `centina-check trail` and opens `TRACKER.html` (it needs `CLAUDE_PLUGIN_DATA`
-  in the mod's environment to regenerate, which is not confirmed in a live
-  session; without it, it opens the last page and says so), and a `waive`
+  `centina-check trail --item <the tracked item>` and opens `TRACKER.html`
+  (labelled "Work item tracker", with a coloured marker, since `Button` takes
+  no colour). It finds the checker's folder from `CLAUDE_PLUGIN_DATA` or, if the
+  mod cannot see that, from `.centina-data` that the SessionStart hook leaves in
+  the plugin root; neither is confirmed live. If it can't build the page it
+  opens the last one and says why. A `/track-item <label>|auto` command pins the
+  band and the tracker to one item, since a reply that cites an older item
+  otherwise wins the band's pick. And a `waive`
   record (`docs/trail.md`) by which the human rules one warning for one item
   or decision out, for work not worth retrofitting; waived warnings are
   counted by the command and listed on the page, and a stale waiver warns.

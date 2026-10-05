@@ -4,7 +4,7 @@
 // no-op path (nothing changed) must stay cheap — a read and a hash compare.
 
 import { spawnSync } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { HASH_MARKER, installedHash, packageHash, syncCheckerSource } from "./checker-sync.mjs"
 
@@ -20,6 +20,14 @@ if (!pluginRoot || !pluginData) {
 
 const dataCheckerDir = path.join(pluginData, "checker")
 mkdirSync(dataCheckerDir, { recursive: true })
+
+// The mod (hooks/register.tsx) may not see CLAUDE_PLUGIN_DATA in its own
+// environment, and the Work item tracker button needs it to run the checker, so
+// leave the path beside the plugin. Best effort: a read-only root loses only the button's refresh.
+const pointer = path.join(pluginRoot, ".centina-data")
+try {
+  if (!existsSync(pointer) || readFileSync(pointer, "utf8") !== pluginData) writeFileSync(pointer, pluginData)
+} catch {}
 
 // Step 1 — copy source unconditionally. Cheap: a handful of small .ts files.
 // bin/centina-check repeats this before every run, since a plugin update

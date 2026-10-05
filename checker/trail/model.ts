@@ -100,6 +100,21 @@ export interface Tiles {
   tokens?: number
 }
 
+/** The numbers the page shows for one item, or for all of them. */
+export interface View {
+  gates: ModelGate[]
+  standing: Standing[]
+  tiles: Tiles
+}
+
+export interface ItemInfo {
+  title?: string
+  status?: string
+  decisions: number
+  /** Epoch seconds of its latest decision. */
+  lastT: number
+}
+
 export interface TrackerModel {
   system: string
   now: number
@@ -108,6 +123,11 @@ export interface TrackerModel {
   /** Sessions the trail names that have no transcript copy. */
   missingTranscripts: string[]
   nodes: ModelNode[]
+  /** The item the page opens on: the one asked for, else the latest worked on. Undefined for a trail with no item. */
+  focus?: string
+  itemInfo: Record<string, ItemInfo>
+  /** Gates, standing alternatives and tiles for each item; the top-level ones below are for all items together. */
+  views: Record<string, View>
   gates: ModelGate[]
   standing: Standing[]
   tiles: Tiles
@@ -124,7 +144,7 @@ function normalize(label: string): string {
 export function buildModel(
   trail: Trail,
   findings: Finding[],
-  options: { ledger?: Ledger; ticks?: Tick[]; missingTranscripts?: string[]; now?: number; waived?: Waived[] },
+  options: { ledger?: Ledger; ticks?: Tick[]; missingTranscripts?: string[]; now?: number; waived?: Waived[]; item?: string },
 ): TrackerModel {
   const { ledger, ticks } = options
   const now = options.now ?? Date.now() / 1000
@@ -198,83 +218,105 @@ export function buildModel(
     }
   })
 
-  // Gates and readings.
-  const gates: ModelGate[] = state.gates
-    .filter((g) => !state.superseded.has(g.id))
-    .map((g: Gate) => {
-      const readings = state.readings.filter((r) => r.gate === g.id).sort((a, b) => a.t - b.t).map((r) => ({ t: r.t, value: r.value, verdict: r.verdict, after: r.after, evidence: r.evidence }))
-      const past = (v: number) => (g.direction === "min" ? (g.tolerance ?? 0) - v : v - (g.tolerance ?? 0))
-      const withValue = readings.filter((r) => r.value !== undefined)
-      let trend: ModelGate["trend"]
-      if (g.tolerance !== undefined && withValue.length >= 2) {
-        const a = past(withValue[withValue.length - 2].value!)
-        const b = past(withValue[withValue.length - 1].value!)
-        trend = b > a ? "away" : b < a ? "toward" : "level"
-      }
-      return { id: g.id, item: g.item, statement: g.statement, metric: g.metric, unit: g.unit, tolerance: g.tolerance, direction: g.direction, quote: g.quote, ruled: g.ruled, readings, trend }
-    })
+  // Everything below the nodes is computed once for all items and once for each,
+  // so the page can show one item's numbers without regenerating.
+  const viewOf = (item?: string): View => {
+    const scope = item ? nodes.filter((n) => n.item === item) : nodes
+    const inScope = new Set(scope.map((n) => n.id))
+    const sortedScope = sorted.filter((d) => inScope.has(d.id))
 
-  // Standing alternatives: options offered and never taken, merged across decisions.
-  const optionAt = (ref: string): TrailOption | undefined => {
-    const m = OPTION_REF.exec(ref)
-    return m ? byId.get(m[1])?.options.find((o) => o.n === Number(m[2])) : undefined
-  }
-  const keyOf = (o: TrailOption, depth = 0): string => {
-    const target = o.revives && depth < 20 ? optionAt(o.revives) : undefined
-    return target ? keyOf(target, depth + 1) : normalize(o.label)
-  }
-  const groups = new Map<string, { label: string; kind: OptionKind; cites: Set<string>; offers: number; firstT: number; lastT: number; takenEver: boolean; state: OptionState; why?: string }>()
-  for (const d of sorted) {
-    const chose = state.choices.get(d.id)?.chose ?? []
-    for (const o of d.options) {
-      const key = keyOf(o)
-      const g = groups.get(key) ?? { label: o.label, kind: o.kind, cites: new Set<string>(), offers: 0, firstT: d.t, lastT: d.t, takenEver: false, state: "unexplored" as OptionState }
-      g.label = o.label
-      g.kind = o.kind
-      o.cites.forEach((c) => g.cites.add(c))
-      g.lastT = d.t
-      if (chose.includes(o.n)) g.takenEver = true
-      else g.offers += 1
-      const mark = state.marks.get(optionRef(d.id, o.n))
-      if (mark && !chose.includes(o.n)) {
-        g.state = mark.state
-        g.why = mark.why
-      }
-      groups.set(key, g)
+    // Gates and readings.
+    const gates: ModelGate[] = state.gates
+      .filter((g) => !state.superseded.has(g.id) && (!item || g.item === item))
+      .map((g: Gate) => {
+        const readings = state.readings.filter((r) => r.gate === g.id).sort((a, b) => a.t - b.t).map((r) => ({ t: r.t, value: r.value, verdict: r.verdict, after: r.after, evidence: r.evidence }))
+        const past = (v: number) => (g.direction === "min" ? (g.tolerance ?? 0) - v : v - (g.tolerance ?? 0))
+        const withValue = readings.filter((r) => r.value !== undefined)
+        let trend: ModelGate["trend"]
+        if (g.tolerance !== undefined && withValue.length >= 2) {
+          const a = past(withValue[withValue.length - 2].value!)
+          const b = past(withValue[withValue.length - 1].value!)
+          trend = b > a ? "away" : b < a ? "toward" : "level"
+        }
+        return { id: g.id, item: g.item, statement: g.statement, metric: g.metric, unit: g.unit, tolerance: g.tolerance, direction: g.direction, quote: g.quote, ruled: g.ruled, readings, trend }
+      })
+
+    // Standing alternatives: options offered and never taken, merged across decisions.
+    const optionAt = (ref: string): TrailOption | undefined => {
+      const m = OPTION_REF.exec(ref)
+      return m ? byId.get(m[1])?.options.find((o) => o.n === Number(m[2])) : undefined
     }
-  }
-  const standing: Standing[] = [...groups.values()]
-    .filter((g) => !g.takenEver && g.offers > 0)
-    .map((g) => ({
-      label: g.label, kind: g.kind, cites: [...g.cites].map(cite), offers: g.offers, firstT: g.firstT, lastT: g.lastT, state: g.state, why: g.why,
-      ...(ticks && ticks.length > 0 ? weigh(ticks, g.firstT, now) : {}),
-    }))
-    .sort((a, b) => b.offers - a.offers || a.firstT - b.firstT)
+    const keyOf = (o: TrailOption, depth = 0): string => {
+      const target = o.revives && depth < 20 ? optionAt(o.revives) : undefined
+      return target ? keyOf(target, depth + 1) : normalize(o.label)
+    }
+    const groups = new Map<string, { label: string; kind: OptionKind; cites: Set<string>; offers: number; firstT: number; lastT: number; takenEver: boolean; state: OptionState; why?: string }>()
+    for (const d of sortedScope) {
+      const chose = state.choices.get(d.id)?.chose ?? []
+      for (const o of d.options) {
+        const key = keyOf(o)
+        const g = groups.get(key) ?? { label: o.label, kind: o.kind, cites: new Set<string>(), offers: 0, firstT: d.t, lastT: d.t, takenEver: false, state: "unexplored" as OptionState }
+        g.label = o.label
+        g.kind = o.kind
+        o.cites.forEach((c) => g.cites.add(c))
+        g.lastT = d.t
+        if (chose.includes(o.n)) g.takenEver = true
+        else g.offers += 1
+        const mark = state.marks.get(optionRef(d.id, o.n))
+        if (mark && !chose.includes(o.n)) {
+          g.state = mark.state
+          g.why = mark.why
+        }
+        groups.set(key, g)
+      }
+    }
+    const standing: Standing[] = [...groups.values()]
+      .filter((g) => !g.takenEver && g.offers > 0)
+      .map((g) => ({
+        label: g.label, kind: g.kind, cites: [...g.cites].map(cite), offers: g.offers, firstT: g.firstT, lastT: g.lastT, state: g.state, why: g.why,
+        ...(ticks && ticks.length > 0 ? weigh(ticks, g.firstT, now) : {}),
+      }))
+      .sort((a, b) => b.offers - a.offers || a.firstT - b.firstT)
 
-  // Tiles.
-  const gated = new Set(gates.map((g) => g.item))
-  const readAfter = new Set(state.readings.map((r) => r.after).filter(Boolean))
-  const chosenRefs = nodes.filter((n) => n.item && gated.has(n.item)).flatMap((n) => n.chose.map((c) => ({ ref: optionRef(n.id, c), t: n.t })))
-  let since = 0
-  for (const c of [...chosenRefs].reverse()) {
-    if (readAfter.has(c.ref)) break
-    since += 1
+    // Tiles.
+    const gated = new Set(gates.map((g) => g.item))
+    const readAfter = new Set(state.readings.map((r) => r.after).filter(Boolean))
+    const chosenRefs = scope.filter((n) => n.item && gated.has(n.item)).flatMap((n) => n.chose.map((c) => ({ ref: optionRef(n.id, c), t: n.t })))
+    let since = 0
+    for (const c of [...chosenRefs].reverse()) {
+      if (readAfter.has(c.ref)) break
+      since += 1
+    }
+    const closeOffered = scope.flatMap((n) => n.options.filter((o) => o.kind === "close"))
+    const timed = scope.filter((n) => n.activeMin !== undefined)
+    const tiles: Tiles = {
+      decisions: scope.length,
+      closeOffered: closeOffered.length,
+      closeDeclined: closeOffered.filter((o) => o.state !== "taken").length,
+      standing: standing.length,
+      checkpoints: scope.filter((n) => n.checkpoint).length,
+      readOf: chosenRefs.filter((c) => readAfter.has(c.ref)).length,
+      chosenOf: chosenRefs.length,
+      sinceReading: since,
+      pending: scope.find((n) => n.pending)?.id,
+      activeMin: timed.length ? Math.round(timed.reduce((a, n) => a + (n.activeMin ?? 0), 0) * 10) / 10 : undefined,
+      tokens: timed.length ? timed.reduce((a, n) => a + (n.tokens ?? 0), 0) : undefined,
+    }
+    return { gates, standing, tiles }
   }
-  const closeOffered = nodes.flatMap((n) => n.options.filter((o) => o.kind === "close"))
+
   const items = [...new Set(nodes.map((n) => n.item).filter((i): i is string => !!i))]
+  const all = viewOf()
+  const views: Record<string, View> = {}
+  for (const item of items) views[item] = viewOf(item)
   const timed = nodes.filter((n) => n.activeMin !== undefined)
-  const tiles: Tiles = {
-    decisions: nodes.length,
-    closeOffered: closeOffered.length,
-    closeDeclined: closeOffered.filter((o) => o.state !== "taken").length,
-    standing: standing.length,
-    checkpoints: nodes.filter((n) => n.checkpoint).length,
-    readOf: chosenRefs.filter((c) => readAfter.has(c.ref)).length,
-    chosenOf: chosenRefs.length,
-    sinceReading: since,
-    pending: nodes.find((n) => n.pending)?.id,
-    activeMin: timed.length ? Math.round(timed.reduce((a, n) => a + (n.activeMin ?? 0), 0) * 10) / 10 : undefined,
-    tokens: timed.length ? timed.reduce((a, n) => a + (n.tokens ?? 0), 0) : undefined,
+  // The page opens on the item asked for, else the one worked on last.
+  const latest = [...nodes].reverse().find((n) => n.item)?.item
+  const focus = options.item && items.includes(options.item) ? options.item : latest
+  const itemInfo: Record<string, ItemInfo> = {}
+  for (const item of items) {
+    const entry = ledger?.entries.find((e) => e.key === (parseQualified(item) ? labelKey(parseQualified(item)!) : item))
+    itemInfo[item] = { title: entry?.title, status: entry ? status(entry) : undefined, decisions: views[item].tiles.decisions, lastT: Math.max(...nodes.filter((n) => n.item === item).map((n) => n.t)) }
   }
   return {
     system: trail.system ?? "",
@@ -283,9 +325,12 @@ export function buildModel(
     weighted: timed.length > 0,
     missingTranscripts: options.missingTranscripts ?? [],
     nodes,
-    gates,
-    standing,
-    tiles,
+    focus,
+    itemInfo,
+    views,
+    gates: all.gates,
+    standing: all.standing,
+    tiles: all.tiles,
     problems: { errors: findings.filter((f) => f.severity === "error").length, warnings: findings.filter((f) => f.severity === "warning").length },
     waived: (options.waived ?? []).map(({ finding, waiver }) => ({
       rule: waiver.rule, subject: waiver.subject, why: waiver.why, quote: waiver.quote, at: waiver.at, message: finding.message,

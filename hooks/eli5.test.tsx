@@ -376,8 +376,13 @@ const trailJson = JSON.stringify({ system: 'alpha', entries: [
   { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
 ] })
 
-for (const withData of [true, false]) {
-  test(`Tracker ${withData ? 'regenerates the page with the checker, then opens it' : 'opens the last page as it stands when the checker cannot be run'}`, async ($, on) => {
+const trackerCases = [
+  { name: 'regenerates the page with the checker, then opens it', env: '/data', pointer: undefined, runs: true, toast: undefined },
+  { name: 'finds the checker through the file the install hook left, when the mod cannot see the variable', env: undefined, pointer: '/data\n', runs: true, toast: undefined },
+  { name: 'opens the last page as it stands, and says why, when the checker cannot be found', env: undefined, pointer: undefined, runs: false, toast: 'not refreshed' },
+]
+for (const c of trackerCases) {
+  test(`Tracker ${c.name}`, async ($, on) => {
     const store = new Map<string, unknown>([['centina/cited', []]])
     const ran: { argv: readonly string[]; env?: Record<string, string> }[] = []
     const toasts: string[] = []
@@ -385,10 +390,14 @@ for (const withData of [true, false]) {
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
     on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
-    on('fs.read', async () => ({ value: trailJson }))
+    on('fs.read', async (_$, e) => {
+      if (!String(e.path).endsWith('.centina-data')) return { value: trailJson }
+      if (c.pointer === undefined) throw new Error('no such file')
+      return { value: c.pointer }
+    })
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))
     on('clock.now', async () => ({ value: 0 }) as never)
-    on('env.get', async () => ({ value: withData ? '/data' : undefined }) as never)
+    on('env.get', async () => ({ value: c.env }) as never)
     on('process.run', async (_$, e) => { ran.push({ argv: e.argv, env: e.init?.env }); return { value: { exitCode: 0, stdout: '', stderr: '' } } as never })
     on('ui.toast', async (_$, e) => { toasts.push(JSON.stringify(e)); return { value: undefined } as never })
     await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
@@ -396,12 +405,41 @@ for (const withData of [true, false]) {
     const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
     await ui.press({ key: 'tracker' })
     const argvs = ran.map((r) => r.argv.join(' '))
-    expect(argvs.some((a) => /^node .*bin\/centina-check trail \/w$/.test(a))).toBe(withData)
-    if (withData) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    // The page opens on the item the band is tracking.
+    expect(argvs.some((a) => /^node .*bin\/centina-check trail --item sz:W3 \/w$/.test(a))).toBe(c.runs)
+    if (c.runs) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
     expect(argvs).toContain('open /w/TRACKER.html')
-    expect(toasts.some((t) => t.includes('not refreshed'))).toBe(!withData)
+    expect(toasts.some((t) => t.includes('not refreshed'))).toBe(c.toast !== undefined)
   })
 }
+
+test('/track-item pins the band to an item, shows it as pinned, and auto lets the band choose again', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/cited', []]])
+  const toasts: string[] = []
+  const two = JSON.stringify({ system: 'alpha', entries: [
+    { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
+    { key: 'sz:W4', title: 'the next spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 20, dependsOn: [], parts: [], obsoletedBy: [] },
+  ] })
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: two }))
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  on('ui.toast', async (_$, e) => { toasts.push(JSON.stringify(e)); return { value: undefined } as never })
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  expect((store.get('centina/drift') as { key: string }).key).toBe('sz:W4')
+  await $.command.run({ command: 'track-item', args: 'W3' } as never)
+  expect(store.get('centina/pinnedItem')).toBe('sz:W3')
+  expect(store.get('centina/drift')).toMatchObject({ key: 'sz:W3', isPinned: true })
+  await $.command.run({ command: 'track-item', args: 'sz:W9' } as never)
+  expect(store.get('centina/pinnedItem')).toBe('sz:W3')
+  expect(toasts.some((t) => t.includes('No work item'))).toBe(true)
+  await $.command.run({ command: 'track-item', args: 'auto' } as never)
+  expect(store.get('centina/pinnedItem')).toBe(null)
+  expect((store.get('centina/drift') as { key: string }).key).toBe('sz:W4')
+})
 
 test('Tracker is not offered for a system with no trail', async ($, on) => {
   const store = new Map<string, unknown>([['centina/cited', []]])

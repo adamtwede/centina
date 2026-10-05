@@ -45,6 +45,8 @@ export type Drift = {
    * times the median one; `ok`: neither; `unknown`: no baseline or no size.
    */
   level: "ok" | "warn" | "high" | "unknown"
+  /** Set when the human chose this item with `/track-item`. */
+  isPinned?: boolean
 }
 
 declare module 'claude-code' {
@@ -55,8 +57,10 @@ declare module 'claude-code' {
      * `hasPhase` is whether a ledger has an active phase, which is what Phase
      * progress needs; `hasItem` is whether a work item is active, which is what
      * Item progress needs; `drift` is how long-running the current work item is;
-     * `trailDir` is the system directory whose TRAIL.jsonl the Tracker button opens.
+     * `trailDir` is the system directory whose TRAIL.jsonl the Tracker button opens;
+     * `pinnedItem` is the work item the human chose with `/track-item`, which
+     * overrides the band's own pick.
      */
-    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; request: string; hasPhase: boolean; hasItem: boolean; drift: Drift | null; trailDir: string | null }
+    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; request: string; hasPhase: boolean; hasItem: boolean; drift: Drift | null; trailDir: string | null; pinnedItem: string | null }
   }
 }
