@@ -7,7 +7,7 @@
 // the phase has got and which of its open items matter most; while a work item
 // is active, an "Item progress ($$)" button does the same for that one line of
 // inquiry: what it set out to settle, what has been tried, and whether it is
-// getting closer. Where a system has a TRAIL.jsonl, a "Tracker" button
+// getting closer. Where a system has a TRAIL.jsonl, a "Work item tracker" button
 // regenerates its TRACKER.html (`centina-check trail`) and opens it in the
 // browser. A "Second opinion
 // ($$$)" button has Opus review the latest reply against the reader's last
@@ -714,18 +714,24 @@ export const register: Register = (on) => {
           onPress={() => itemProgress($)}
         />
       ),
-      isTrailKept && (
-        <Button
-          key="tracker"
-          label="Tracker"
-          onPress={() => openTracker($)}
-        />
-      ),
       isExplainable && secondOpinionWorthy && (
         <Button
           key="review"
           label="Second opinion ($$$)"
           onPress={() => secondOpinion($)}
+        />
+      ),
+      // Button takes no colour, so the marker beside it carries the emphasis.
+      isTrailKept && (
+        <Text key="tracker-mark" color="cyan" bold>
+          {" ◆ "}
+        </Text>
+      ),
+      isTrailKept && (
+        <Button
+          key="tracker"
+          label="Work item tracker"
+          onPress={() => openTracker($)}
         />
       ),
     ]
