@@ -54,8 +54,9 @@ declare module 'claude-code' {
      * opinion; `request` is the reader's last typed prompt, for Second opinion.
      * `hasPhase` is whether a ledger has an active phase, which is what Phase
      * progress needs; `hasItem` is whether a work item is active, which is what
-     * Item progress needs; `drift` is how long-running the current work item is.
+     * Item progress needs; `drift` is how long-running the current work item is;
+     * `trailDir` is the system directory whose TRAIL.jsonl the Tracker button opens.
      */
-    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; request: string; hasPhase: boolean; hasItem: boolean; drift: Drift | null }
+    centina: { cited: Row[]; isHidden: boolean; eli5: Eli5 | null; reply: string; request: string; hasPhase: boolean; hasItem: boolean; drift: Drift | null; trailDir: string | null }
   }
 }

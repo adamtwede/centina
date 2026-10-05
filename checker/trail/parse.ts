@@ -97,7 +97,21 @@ export interface Link extends Base {
   file: string
 }
 
-export type TrailRecord = Decision | Choice | Mark | Gate | Reading | Link
+/**
+ * The human's ruling that a warning is not to be raised for one subject (an
+ * item label or a decision id), with where and why. A later record for the same
+ * rule and subject replaces it; `lifted` ends the waiver.
+ */
+export interface Waive extends Base {
+  type: "waive"
+  rule: string
+  subject: string
+  why: string
+  quote?: string
+  lifted?: boolean
+}
+
+export type TrailRecord = Decision | Choice | Mark | Gate | Reading | Link | Waive
 
 export interface Trail {
   file: string
@@ -221,6 +235,12 @@ function parseRecord(raw: Raw, line: number): TrailRecord | string {
         value: raw.value as number | undefined, unit: isString(raw.unit) ? raw.unit : undefined,
         evidence: isString(raw.evidence) ? raw.evidence : undefined,
       }
+    }
+    case "waive": {
+      if (!isString(raw.rule) || !/^trail-[a-z-]+$/.test(raw.rule)) return `"rule" must name a trail rule, like trail-spike-no-gate`
+      if (!isString(raw.subject)) return `"subject" is required: the item label or decision id the rule is waived for`
+      if (!isString(raw.why)) return `"why" is required`
+      return { ...base, type, rule: raw.rule, subject: raw.subject, why: raw.why, quote: isString(raw.quote) ? raw.quote : undefined, lifted: raw.lifted === true ? true : undefined }
     }
     case "link": {
       if (!isString(raw.scope) || !isString(raw.file)) return `"scope" and "file" are required`

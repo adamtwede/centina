@@ -1,6 +1,6 @@
 import { Finding } from "../types"
 import { Ledger, parseQualified, labelKey, status } from "../ledger/parse"
-import { Choice, Decision, Gate, Mark, OPTION_REF, Reading, Trail, scopeOf } from "./parse"
+import { Choice, Decision, Gate, Mark, OPTION_REF, Reading, Trail, Waive, scopeOf } from "./parse"
 
 // Rules for TRAIL.jsonl. Format and reasons: docs/trail.md.
 
@@ -18,11 +18,15 @@ export interface Resolved {
   readings: Reading[]
   /** Ids a later record corrects. */
   superseded: Set<string>
+  /** The waivers in effect, by `rule|subject`; a lifted one is gone. */
+  waivers: Map<string, Waive>
 }
+
+export const waiverKey = (rule: string, subject: string) => `${rule}|${keyOf(subject) ?? subject}`
 
 /** The records in effect: the latest choice per decision and mark per option; corrected ids noted. */
 export function resolve(trail: Trail): Resolved {
-  const out: Resolved = { decisions: [], choices: new Map(), marks: new Map(), gates: [], readings: [], superseded: new Set() }
+  const out: Resolved = { decisions: [], choices: new Map(), marks: new Map(), gates: [], readings: [], superseded: new Set(), waivers: new Map() }
   for (const r of trail.records) {
     if (r.type === "decision") {
       out.decisions.push(r)
@@ -33,14 +37,40 @@ export function resolve(trail: Trail): Resolved {
     } else if (r.type === "choice") out.choices.set(r.decision, r)
     else if (r.type === "mark") out.marks.set(r.option, r)
     else if (r.type === "reading") out.readings.push(r)
+    else if (r.type === "waive") {
+      if (r.lifted) out.waivers.delete(waiverKey(r.rule, r.subject))
+      else out.waivers.set(waiverKey(r.rule, r.subject), r)
+    }
   }
   return out
 }
 
+/** A warning the human has ruled is not to be raised, kept so it is still shown. */
+export interface Waived {
+  finding: Finding
+  waiver: Waive
+}
+
+/** The findings that stand; see `analyze` for the waived ones. */
 export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
-  const findings: Finding[] = [...trail.problems]
-  const add = (rule: string, severity: Finding["severity"], line: number, message: string) =>
-    findings.push({ rule, severity, file: trail.file, line, message })
+  return analyze(trail, ledger).findings
+}
+
+/**
+ * Every rule, then the waivers: a `waive` record drops the warnings of its rule
+ * for its subject (the item or decision the warning is about) and moves them to
+ * `waived`, where the command and the page still list them. Only warnings can
+ * be waived. A waiver with no ruling quote is an error, and one that matches
+ * nothing is a warning, so a stale waiver is not forgotten.
+ */
+export function analyze(trail: Trail, ledger?: Ledger): { findings: Finding[]; waived: Waived[] } {
+  const raised: Finding[] = [...trail.problems]
+  const subjects = new Map<Finding, string>()
+  const add = (rule: string, severity: Finding["severity"], line: number, message: string, subject?: string) => {
+    const finding: Finding = { rule, severity, file: trail.file, line, message }
+    raised.push(finding)
+    if (subject !== undefined) subjects.set(finding, subject)
+  }
   const state = resolve(trail)
 
   // Ids.
@@ -59,7 +89,7 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
     const scope = scopeOf(d.id)
     const number = Number(d.id.slice(d.id.indexOf("/d") + 2))
     const expected = (next.get(scope) ?? 0) + 1
-    if (number !== expected && !d.corrects) add("trail-id", "warning", d.line, `${d.id}: the next number in scope ${scope} is d${expected}`)
+    if (number !== expected && !d.corrects) add("trail-id", "warning", d.line, `${d.id}: the next number in scope ${scope} is d${expected}`, d.id)
     next.set(scope, Math.max(number, next.get(scope) ?? 0))
   }
 
@@ -82,12 +112,12 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
       needOption(o.revives, d.line, `option ${o.n} "revives"`)
       const revived = o.revives && OPTION_REF.exec(o.revives)
       if (revived && decisions.get(revived[1]) && decisions.get(revived[1])!.t > d.t) {
-        add("trail-time", "warning", d.line, `option ${o.n} revives ${o.revives}, which was offered later`)
+        add("trail-time", "warning", d.line, `option ${o.n} revives ${o.revives}, which was offered later`, d.id)
       }
     }
     needCorrected(d.corrects, d.line, decisions)
     if (d.options.length > 0 && !d.options.some((o) => o.kind === "close")) {
-      add("trail-no-close", "warning", d.line, `${d.id} offers no close option; a menu of only ways to continue is how a line never ends`)
+      add("trail-no-close", "warning", d.line, `${d.id} offers no close option; a menu of only ways to continue is how a line never ends`, d.id)
     }
   }
   for (const c of state.choices.values()) {
@@ -96,7 +126,7 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
       add("trail-ref", "error", c.line, `choice names ${c.decision}, which is not in the trail`)
       continue
     }
-    if (c.t < d.t) add("trail-time", "warning", c.line, `choice is dated before ${c.decision}`)
+    if (c.t < d.t) add("trail-time", "warning", c.line, `choice is dated before ${c.decision}`, c.decision)
     for (const n of c.chose) {
       if (d.options.length > 0 && !d.options.some((o) => o.n === n)) add("trail-ref", "error", c.line, `choice names option ${n}, which ${c.decision} did not offer`)
     }
@@ -116,7 +146,7 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
   const answered = (d: Decision) => state.choices.has(d.id)
   const later = (d: Decision) => trail.records.some((r) => r.line > d.line && (r.type === "decision" || r.type === "choice" || r.type === "reading") && !(r.type === "choice" && r.decision === d.id))
   for (const d of state.decisions) {
-    if (!answered(d) && later(d) && !state.superseded.has(d.id)) add("trail-unanswered", "warning", d.line, `${d.id} has no choice and later records exist`)
+    if (!answered(d) && later(d) && !state.superseded.has(d.id)) add("trail-unanswered", "warning", d.line, `${d.id} has no choice and later records exist`, d.id)
   }
 
   // Labels against the ledger.
@@ -146,11 +176,31 @@ export function checkTrail(trail: Trail, ledger?: Ledger): Finding[] {
       if (!/:W\d+$/.test(e.key) || e.fields.get("Kind")?.value !== "spike" || status(e) !== "active") continue
       const findings = ledger.entries.filter((o) => o.fields.get("Premises")?.value.split(",").some((p) => keyOf(p.trim()) === e.key)).length
       if (!decided.has(e.key) && findings >= 2) {
-        add("trail-missing-decision", "warning", 1, `${e.key} is an active spike with ${findings} findings and no decision in the trail; the options offered along the way were not recorded`)
+        add("trail-missing-decision", "warning", 1, `${e.key} is an active spike with ${findings} findings and no decision in the trail; the options offered along the way were not recorded`, e.key)
       }
-      if (!gated.has(e.key)) add("trail-spike-no-gate", "warning", 1, `${e.key} is an active spike with no ruled gate in the trail`)
+      if (!gated.has(e.key)) add("trail-spike-no-gate", "warning", 1, `${e.key} is an active spike with no ruled gate in the trail`, e.key)
     }
   }
-  return findings.sort((a, b) => a.line - b.line)
+
+  // Waivers.
+  const findings: Finding[] = []
+  const waived: Waived[] = []
+  const used = new Set<string>()
+  const addWaiveFinding = (severity: Finding["severity"], line: number, message: string) =>
+    findings.push({ rule: "trail-waive", severity, file: trail.file, line, message })
+  for (const f of raised) {
+    const subject = subjects.get(f)
+    const key = subject !== undefined && f.severity === "warning" ? waiverKey(f.rule, subject) : undefined
+    const waiver = key === undefined ? undefined : state.waivers.get(key)
+    if (waiver && key && waiver.quote) {
+      used.add(key)
+      waived.push({ finding: f, waiver })
+    } else findings.push(f)
+  }
+  for (const [key, w] of state.waivers) {
+    if (!w.quote) addWaiveFinding("error", w.line, `the waiver of ${w.rule} for ${w.subject} has no "quote": the human rules a waiver, the agent only records it`)
+    else if (!used.has(key)) addWaiveFinding("warning", w.line, `the waiver of ${w.rule} for ${w.subject} matches no warning now; lift it with a record carrying "lifted":true`)
+  }
+  return { findings: findings.sort((a, b) => a.line - b.line), waived: waived.sort((a, b) => a.finding.line - b.finding.line) }
 }
 

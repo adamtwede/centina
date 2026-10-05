@@ -1,6 +1,6 @@
 import { Ledger, labelKey, parseQualified, status } from "../ledger/parse"
 import { Finding } from "../types"
-import { resolve } from "./check"
+import { Waived, resolve } from "./check"
 import { Decision, Gate, OPTION_REF, OptionKind, Trail, TrailOption, optionRef } from "./parse"
 import { Tick, weigh } from "./weights"
 
@@ -112,6 +112,8 @@ export interface TrackerModel {
   standing: Standing[]
   tiles: Tiles
   problems: { errors: number; warnings: number }
+  /** Warnings the human ruled out, still shown. */
+  waived: { rule: string; subject: string; why: string; quote?: string; at: string; message: string }[]
   hiddenSuperseded: number
 }
 
@@ -122,7 +124,7 @@ function normalize(label: string): string {
 export function buildModel(
   trail: Trail,
   findings: Finding[],
-  options: { ledger?: Ledger; ticks?: Tick[]; missingTranscripts?: string[]; now?: number },
+  options: { ledger?: Ledger; ticks?: Tick[]; missingTranscripts?: string[]; now?: number; waived?: Waived[] },
 ): TrackerModel {
   const { ledger, ticks } = options
   const now = options.now ?? Date.now() / 1000
@@ -285,6 +287,9 @@ export function buildModel(
     standing,
     tiles,
     problems: { errors: findings.filter((f) => f.severity === "error").length, warnings: findings.filter((f) => f.severity === "warning").length },
+    waived: (options.waived ?? []).map(({ finding, waiver }) => ({
+      rule: waiver.rule, subject: waiver.subject, why: waiver.why, quote: waiver.quote, at: waiver.at, message: finding.message,
+    })),
     hiddenSuperseded: state.decisions.length - live.length,
   }
 }

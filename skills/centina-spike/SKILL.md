@@ -102,7 +102,9 @@ then run `${CLAUDE_PLUGIN_ROOT}/bin/centina-check trail specs/<system>` at every
 checkpoint and when closing the spike: it reports what is malformed, unresolved,
 unanswered or missing (a close option, a ruled gate) and writes `TRACKER.html`
 beside the trail, the picture the human reads. Fix its errors, and tell the
-human where the page is.
+human where the page is. When the human decides a warning on older work is
+not worth chasing, record it as a `waive` (`docs/trail.md`) with their words;
+never write one on your own.
 
 **When you end a turn offering the human two or more options that lead to
 different work, record it first.** A plain confirmation of one plan is not a

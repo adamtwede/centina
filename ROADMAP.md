@@ -486,9 +486,18 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   as they should on a trail never written under them) and on a synthetic trail
   covering every drawn state. Not built: a `centina-check` view for several
   scopes split across files (`link` records are parsed and ignored), a
-  qualitative gate, a mod button that opens `TRACKER.html`, and backfilling
-  older work. Nothing has run on a live spike yet, so capture (the agent
-  appending records) is untested; `trail-missing-decision` is the backstop.
+  qualitative gate and backfilling older work. Nothing has run on a live
+  spike yet, so capture (the agent appending records) is untested;
+  `trail-missing-decision` is the backstop. Since built: a **Tracker** button
+  in the mod's band, shown for a system with a `TRAIL.jsonl`, that runs
+  `centina-check trail` and opens `TRACKER.html` (it needs `CLAUDE_PLUGIN_DATA`
+  in the mod's environment to regenerate, which is not confirmed in a live
+  session; without it, it opens the last page and says so), and a `waive`
+  record (`docs/trail.md`) by which the human rules one warning for one item
+  or decision out, for work not worth retrofitting; waived warnings are
+  counted by the command and listed on the page, and a stale waiver warns.
+  Not done: regenerating the page when `TRAIL.jsonl` is written (the ledger
+  hook only watches `LEDGER*.md` edits, and agents append with Bash).
 - **`centina-spike`** (step 4, drafted, not yet exercised on a live spike):
   `skills/centina-spike/SKILL.md`, 13k characters, splits spike work out of
   `centina-realize` (which hands each admitted spike to it). It requires a

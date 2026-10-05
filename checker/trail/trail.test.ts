@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { readLedger } from "../ledger/parse"
-import { checkTrail } from "./check"
+import { analyze, checkTrail } from "./check"
 import { TRACKER_FILE, runTrailCommand } from "./command"
 import { buildModel } from "./model"
 import { readTrail } from "./parse"
@@ -193,6 +193,61 @@ describe("the tracker model", () => {
     assert.equal(m.nodes[0].tokens, 160)
     assert.equal(m.nodes[0].activeMin, 5)
     assert.equal(weigh([], 0, 10).tokens, 0)
+  })
+})
+
+function waive(extra: Record<string, unknown> = {}) {
+  return line({
+    type: "waive", rule: "trail-spike-no-gate", subject: "demo:W1", why: "retrofitted, not revisiting", quote: "leave it",
+    at: "2026-10-05T09:00:00Z", ...extra,
+  })
+}
+
+describe("waivers", () => {
+  const run = (trail: string[]) => {
+    const dir = system(trail)
+    return analyze(readTrail(dir)!, readLedger(dir))
+  }
+  const base = [HEADER, decision(1), choice(1, [1])]
+
+  it("moves the warning of its rule for its subject to waived, and keeps the others", () => {
+    const { findings, waived } = run([...base, waive()])
+    assert.ok(!findings.some((f) => f.rule === "trail-spike-no-gate"))
+    assert.deepEqual(waived.map((w) => w.finding.rule), ["trail-spike-no-gate"])
+    assert.ok(!findings.some((f) => f.rule === "trail-waive"))
+  })
+
+  it("does not touch the same rule for another subject, or another rule for the subject", () => {
+    assert.ok(run([...base, waive({ subject: "demo:W2" })]).findings.some((f) => f.rule === "trail-spike-no-gate"))
+    const noClose = line({ type: "decision", id: "demo/d1", at: "2026-10-01T10:00:00Z", item: "demo:W1", question: "q", options: [{ n: 1, label: "go", kind: "refine" }] })
+    const { findings } = run([HEADER, noClose, choice(1, [1]), waive({ rule: "trail-no-close", subject: "demo/d1" })])
+    assert.ok(!findings.some((f) => f.rule === "trail-no-close"))
+    assert.ok(findings.some((f) => f.rule === "trail-spike-no-gate"))
+  })
+
+  it("is an error without the human's quote, and then waives nothing", () => {
+    const { findings } = run([...base, waive({ quote: undefined })])
+    assert.ok(findings.some((f) => f.rule === "trail-waive" && f.severity === "error"))
+    assert.ok(findings.some((f) => f.rule === "trail-spike-no-gate"))
+  })
+
+  it("warns when it matches nothing, and when it names an error rule", () => {
+    assert.ok(run([...base, waive({ rule: "trail-no-close" })]).findings.some((f) => f.rule === "trail-waive" && f.severity === "warning"))
+    const bad = line({ type: "choice", decision: "demo/d1", chose: [9], at: "2026-10-01T11:00:00Z" })
+    const { findings } = run([HEADER, decision(1), bad, waive({ rule: "trail-ref", subject: "demo/d1" })])
+    assert.ok(findings.some((f) => f.rule === "trail-ref" && f.severity === "error"))
+  })
+
+  it("is ended by a later lifted record", () => {
+    const { findings, waived } = run([...base, waive(), waive({ lifted: true, at: "2026-10-06T09:00:00Z" })])
+    assert.ok(findings.some((f) => f.rule === "trail-spike-no-gate"))
+    assert.equal(waived.length, 0)
+  })
+
+  it("is listed on the page", () => {
+    const dir = system([...base, waive()])
+    runTrailCommand([dir])
+    assert.match(readFileSync(path.join(dir, TRACKER_FILE), "utf8"), /retrofitted, not revisiting/)
   })
 })
 

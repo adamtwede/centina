@@ -7,7 +7,9 @@
 // the phase has got and which of its open items matter most; while a work item
 // is active, an "Item progress ($$)" button does the same for that one line of
 // inquiry: what it set out to settle, what has been tried, and whether it is
-// getting closer. A "Second opinion
+// getting closer. Where a system has a TRAIL.jsonl, a "Tracker" button
+// regenerates its TRACKER.html (`centina-check trail`) and opens it in the
+// browser. A "Second opinion
 // ($$$)" button has Opus review the latest reply against the reader's last
 // request and the ledger; its answer waits in the pane until a "Send to session"
 // button there hands it to the main session.
@@ -55,6 +57,7 @@ const latestReply = atom({ plugin: "centina", key: "reply" } as const, "")
 const hasPhase = atom({ plugin: "centina", key: "hasPhase" } as const, false)
 const hasItem = atom({ plugin: "centina", key: "hasItem" } as const, false)
 const drift = atom({ plugin: "centina", key: "drift" } as const, null)
+const trailDir = atom({ plugin: "centina", key: "trailDir" } as const, null)
 const latestRequest = atom({ plugin: "centina", key: "request" } as const, "")
 
 const ELI5_PANE = "centina-eli5"
@@ -64,6 +67,9 @@ const PROGRESS_TIMEOUT_MS = 90_000
 const REVIEW_TIMEOUT_MS = 180_000
 
 const LEDGER_JSON = "LEDGER.json"
+const TRAIL_FILE = "TRAIL.jsonl"
+const TRACKER_FILE = "TRACKER.html"
+const TRACKER_TIMEOUT_MS = 60_000
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
 const MAX_DEPTH = 6
 const REWALK_MS = 30_000
@@ -160,6 +166,19 @@ async function refreshPhase($: EngineInterface): Promise<void> {
   const now = await $.clock.now()
   await update($, drift, () =>
     found ? itemDrift(found.system, found.entry, now) : null,
+  )
+  // The system the tracker is for: the current item's if it has a trail, else the first that does.
+  const withTrail: string[] = []
+  for (const system of systems) {
+    const names = await $.fs.list(system.dir).catch(() => [])
+    if (names.some((n) => n.kind === "file" && n.name === TRAIL_FILE))
+      withTrail.push(system.dir)
+  }
+  await update(
+    $,
+    trailDir,
+    () =>
+      withTrail.find((d) => d === found?.system.dir) ?? withTrail[0] ?? null,
   )
 }
 
@@ -545,6 +564,45 @@ async function itemProgress($: EngineInterface): Promise<void> {
   })
 }
 
+/**
+ * Tracker: regenerates the system's TRACKER.html with `centina-check trail` and
+ * opens it. The checker runs from the plugin's data folder, which the mod only
+ * sees if the environment names it; without it the last generated page is
+ * opened as it stands. The page is written even when the trail has errors, so
+ * the toast says to read them.
+ */
+async function openTracker($: EngineInterface): Promise<void> {
+  const dir = await read($, trailDir)
+  if (dir === null) return
+  const page = `${dir}/${TRACKER_FILE}`
+  const data = await $.env.get("CLAUDE_PLUGIN_DATA")
+  let refreshed = false
+  if (data) {
+    const root = $.plugin.root
+    const ran = await $.process
+      .run(["node", `${root}/bin/centina-check`, "trail", dir], {
+        env: { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data },
+        timeoutMs: TRACKER_TIMEOUT_MS,
+      })
+      .catch(() => undefined)
+    refreshed = ran !== undefined
+    if (ran !== undefined && ran.exitCode !== 0)
+      $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+  }
+  const names = await $.fs.list(dir).catch(() => [])
+  if (!names.some((n) => n.kind === "file" && n.name === TRACKER_FILE)) {
+    $.ui.toast(`No ${TRACKER_FILE} yet; run centina-check trail ${dir}`)
+    return
+  }
+  const via = async (argv: string[]) => {
+    const ran = await $.process.run(argv).catch(() => undefined)
+    return ran !== undefined && ran.exitCode === 0
+  }
+  if (!(await via(["open", page])) && !(await via(["xdg-open", page])))
+    $.ui.toast(`Could not open ${page}`)
+  else if (!refreshed) $.ui.toast("Opened the last generated tracker, not refreshed")
+}
+
 async function clear($: EngineInterface): Promise<void> {
   turnCites = []
   isNewTurn = true
@@ -625,13 +683,15 @@ export const register: Register = (on) => {
     // Phase progress needs an active phase in the ledger, whatever the reply cites.
     const isPhaseActive = await read($, hasPhase)
     const isItemActive = await read($, hasItem)
+    const isTrailKept = (await read($, trailDir)) !== null
     const longRunning = await read($, drift)
     if (
       e.props.hasSurvey ||
       (rows.length === 0 &&
         !isExplainable &&
         !isPhaseActive &&
-        !isItemActive)
+        !isItemActive &&
+        !isTrailKept)
     )
       return next(e)
 
@@ -652,6 +712,13 @@ export const register: Register = (on) => {
           key="item-progress"
           label="Item progress ($$)"
           onPress={() => itemProgress($)}
+        />
+      ),
+      isTrailKept && (
+        <Button
+          key="tracker"
+          label="Tracker"
+          onPress={() => openTracker($)}
         />
       ),
       isExplainable && secondOpinionWorthy && (

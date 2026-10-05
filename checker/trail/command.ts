@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { printFindings } from "../report"
 import { readLedger } from "../ledger/parse"
-import { checkTrail } from "./check"
+import { analyze } from "./check"
 import { buildModel } from "./model"
 import { TRAIL_FILE, readTrail } from "./parse"
 import { renderTracker } from "./render"
@@ -52,15 +52,19 @@ export function runTrailCommand(argv: string[]): number {
   }
 
   const ledger = existsSync(path.join(systemDir, "LEDGER.md")) ? readLedger(systemDir) : undefined
-  const findings = checkTrail(trail, ledger)
+  const { findings, waived } = analyze(trail, ledger)
   const hasErrors = findings.some((f) => f.severity === "error")
   if (findings.length > 0) printFindings(findings)
   else console.log(`trail: clean (${path.basename(systemDir)})`)
+  if (waived.length > 0) {
+    console.log(`\n${waived.length} waived (the human ruled these not to be raised):`)
+    for (const { finding, waiver } of waived) console.log(`  ${finding.rule} for ${waiver.subject}: ${waiver.why}`)
+  }
 
   if (!checkOnly) {
     const sessions = trail.records.flatMap((r) => (r.type === "decision" && r.session ? [r.session] : []))
     const { ticks, missing } = loadTicks(systemDir, sessions)
-    const model = buildModel(trail, findings, { ledger, ticks, missingTranscripts: missing })
+    const model = buildModel(trail, findings, { ledger, ticks, missingTranscripts: missing, waived })
     const target = out ? path.resolve(baseDir, out) : path.join(systemDir, TRACKER_FILE)
     const html = renderTracker(model)
     if (!existsSync(target) || readFileSync(target, "utf8") !== html) {

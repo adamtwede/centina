@@ -138,6 +138,30 @@ is computed by the tracker from consecutive readings of one gate, never
 asserted by the agent. A step's headline number must be a reading of a
 declared gate or a new gate record, not a free-floating figure.
 
+### `waive`: a warning the human has ruled out
+
+```json
+{"type":"waive","rule":"trail-spike-no-gate","subject":"terrain:W43",
+ "why":"retrofitted after the fact; not revisiting","quote":"leave W43 alone","at":"…"}
+```
+
+For work the human has decided not to bring under the trail, such as a spike
+that began before it existed. The checker stops raising `rule` for `subject`,
+which is the item label or decision id the warning is about. Scope is the
+point: one rule for one subject, never a rule for the whole trail, so a
+spike that starts later is checked in full.
+
+- Only **warnings** can be waived. Parse, id, reference, label and ruling
+  errors are faults in the file; the fix is to correct them.
+- The human rules it, like a gate: no `quote` is an error (`trail-waive`), and
+  the warning stands.
+- It is not hidden. The command prints "N waived" with each reason, and the
+  page lists them in a collapsed panel with the human's words.
+- A waiver that matches no warning now (the item closed, or the fault was
+  fixed) warns, so stale ones are removed: append the same record with
+  `"lifted":true`. The latest record for a rule and subject is the one in
+  effect.
+
 ### `link`: a split trail
 
 ```json
@@ -173,6 +197,7 @@ self-contained file for a browser.
 | `trail-unanswered` | warning | a decision has no `choice` and later records exist |
 | `trail-spike-no-gate` | warning | an active `Kind: spike` item has no ruled gate |
 | `trail-missing-decision` | warning | an active spike with two or more findings has no decision: capture was dropped |
+| `trail-waive` | error with no `quote`; warning when it matches nothing | a `waive` record is not ruled by the human, or has gone stale |
 
 `trail-missing-decision` is the check for the weak point named below. It cannot
 see a plan confirmed with no decision record (that needs the ledger's history),

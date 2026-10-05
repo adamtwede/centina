@@ -77,6 +77,7 @@ th{color:var(--ink2);font-weight:600}
 <div class="chart"><svg id="svg" role="img" aria-label="Decision history tree for the work item"></svg></div>
 <details id="standing"><summary id="standingTitle"></summary><div id="standingBody"></div></details>
 <details id="gates"><summary id="gatesTitle"></summary><div id="gatesBody"></div></details>
+<details id="waived" hidden><summary id="waivedTitle"></summary><div id="waivedBody"></div></details>
 <details><summary>Table view</summary><table id="tbl"></table></details>
 </main>
 <div class="tip" id="tip"></div>
@@ -203,6 +204,13 @@ $('standingTitle').textContent='Standing alternatives ('+M.standing.length+') �
 $('standingBody').innerHTML = M.standing.length
  ? '<table><tr><th>Alternative</th><th>Offered</th><th>First / last</th><th>Since first offer</th><th>State</th></tr>'+M.standing.map(s=>'<tr><td>'+(s.kind==='close'?'<b>[stop/return]</b> ':'')+esc(s.label)+'</td><td>'+s.offers+'×</td><td>'+fmtT(s.firstT)+' / '+fmtT(s.lastT)+'</td><td>'+(s.activeMin!==undefined?fmtDur(s.activeMin)+', '+fmtTok(s.tokens):'—')+'</td><td>'+s.state+(s.why?': '+esc(s.why):'')+'</td></tr>').join('')+'</table>'
  : '<p class="sub">Every option offered was taken at least once.</p>';
+
+// Waived checks (collapsed, only when there are any): hidden from the checker's output, never from here.
+if (M.waived.length) {
+  $('waived').hidden=false;
+  $('waivedTitle').textContent='Waived checks ('+M.waived.length+') — warnings the checker no longer raises';
+  $('waivedBody').innerHTML='<table><tr><th>Check</th><th>For</th><th>Why waived</th><th>Ruled</th></tr>'+M.waived.map(w=>'<tr><td>'+esc(w.rule)+'</td><td>'+esc(w.subject)+'</td><td>'+esc(w.why)+'</td><td>'+esc(w.quote||'')+' <span class="muted">'+fmtT(Date.parse(w.at)/1000)+'</span></td></tr>').join('')+'</table>';
+}
 
 // Gates (collapsed).
 $('gatesTitle').textContent='Gates and readings ('+M.gates.length+')';

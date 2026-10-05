@@ -371,3 +371,49 @@ test('a prompt the reader typed is kept as the last request; a plugin\'s own is 
   await $.prompt.submit({ text: 'what I typed', origin: { kind: 'composer' } } as never)
   expect(store.get('centina/request')).toBe('what I typed')
 })
+
+const trailJson = JSON.stringify({ system: 'alpha', entries: [
+  { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
+] })
+
+for (const withData of [true, false]) {
+  test(`Tracker ${withData ? 'regenerates the page with the checker, then opens it' : 'opens the last page as it stands when the checker cannot be run'}`, async ($, on) => {
+    const store = new Map<string, unknown>([['centina/cited', []]])
+    const ran: { argv: readonly string[]; env?: Record<string, string> }[] = []
+    const toasts: string[] = []
+    on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+    on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+    on('session.root', async () => ({ value: '/w' }) as never)
+    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
+    on('fs.read', async () => ({ value: trailJson }))
+    on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+    on('clock.now', async () => ({ value: 0 }) as never)
+    on('env.get', async () => ({ value: withData ? '/data' : undefined }) as never)
+    on('process.run', async (_$, e) => { ran.push({ argv: e.argv, env: e.init?.env }); return { value: { exitCode: 0, stdout: '', stderr: '' } } as never })
+    on('ui.toast', async (_$, e) => { toasts.push(JSON.stringify(e)); return { value: undefined } as never })
+    await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+    expect(store.get('centina/trailDir')).toBe('/w')
+    const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+    await ui.press({ key: 'tracker' })
+    const argvs = ran.map((r) => r.argv.join(' '))
+    expect(argvs.some((a) => /^node .*bin\/centina-check trail \/w$/.test(a))).toBe(withData)
+    if (withData) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    expect(argvs).toContain('open /w/TRACKER.html')
+    expect(toasts.some((t) => t.includes('not refreshed'))).toBe(!withData)
+  })
+}
+
+test('Tracker is not offered for a system with no trail', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/cited', []]])
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: trailJson }))
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  expect(store.get('centina/trailDir')).toBe(null)
+  const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  expect(await ui.find({ key: 'tracker' })).toBeUndefined()
+})
