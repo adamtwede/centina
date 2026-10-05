@@ -14,6 +14,9 @@ One ledger per system, in `<artifactsRoot>/specs/<system>/`:
   generated. Never edit them. `LEDGER.json` is the machine-readable view
   (label, title, status, date, size, file and heading line, parts, park
   condition, successor, depends-on and premises keys); the plugin's Claude Code mod reads it to show cited entries.
+- `TRAIL.jsonl` (written by `centina-spike`) and `TRACKER.html` (generated from
+  it by `centina-check trail`; never edit): the options offered at each
+  decision and the picture of them. Format: `docs/trail.md`.
 - `transcripts/`: session transcript copies. See "Transcripts".
 
 The ledger records decisions, questions, findings, options, work items, goals

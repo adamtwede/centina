@@ -1,9 +1,10 @@
 # The trail (step 3 of the work-item progress tracking)
 
-Agreed in principle by the author (what counts as a decision, agent-drafted
-gates ruled by the human over several turns, JSONL); the checker does not read
-it yet and the tracker (step 5) is not built. `skills/centina-spike/SKILL.md`
-writes it by hand-appended lines following the formats below.
+Agreed by the author (what counts as a decision, agent-drafted gates ruled by
+the human over several turns, JSONL, one file per system). `centina-check
+trail <system-dir>` validates it and writes `TRACKER.html` (see "The checker
+and the tracker" below). `skills/centina-spike/SKILL.md` writes it, by
+appending lines in the formats below.
 
 ## What it is for
 
@@ -37,7 +38,10 @@ cites ledger labels instead of restating them (`ledger.md`, rule 5).
 One file per system, `TRAIL.jsonl` beside `LEDGER.md` (its place follows the
 ledger folder refactor, ROADMAP "Open"). JSON Lines: append-only, one record
 per line, so two sessions merge cleanly and a half-written record damages one
-line. Never edit a line; correct with a later record (`corrects`).
+line. Never edit a line. A `decision` or `gate` is corrected by a later record with
+a new id and `"corrects":"<old id>"` (the old one is then hidden); for a
+`choice`, `mark` or `reading` the latest record for the same decision, option
+or (gate, `after`) is the one in effect.
 
 **Ids are qualified by scope, like ledger labels:** `terrain/d41`, option
 `terrain/d41.2`. The scope is the scope of the item the decision is about.
@@ -58,6 +62,10 @@ which file holds a scope.
   {"n":3,"label":"Close terrain:W43, record the negative result","kind":"close"}],
  "recommended":1}
 ```
+
+An optional `"checkpoint":"budget|return|no-reading|moving-away|asked"` marks a
+decision written at a `centina-spike` checkpoint; the tracker draws it as a
+diamond.
 
 - `from`: the option whose chosen work led here. Absent on a root. Edges of
   the tree are `from` pointers, so the through-line is a chain of `from`.
@@ -142,30 +150,55 @@ declared gate or a new gate record, not a free-floating figure.
 {"type":"trail","version":1,"system":"underworld"}
 ```
 
-## What the tracker derives
+## The checker and the tracker
 
-- **Tree:** decisions as nodes, options as edges, `from` as parent. Through-
-  lines are chains of chosen `refine` options; `branch` and unchosen options
-  hang off as stubs, styled by state (taken, unexplored, parked, abandoned).
-- **Weights:** between a `choice` and the next decision `from` it, the active
-  time (gaps between messages capped) and output tokens in the transcript of
-  that session. Cache-read tokens are not counted: they dominate the total and
-  mean nothing here.
-- **Gate line:** the readings of each gate in order, with the tolerance.
-- **Back-out:** every unexplored or parked option with its distance (how many
-  decisions and how much time and tokens since it was offered).
+`centina-check trail [--check] [--out <file>] <system-dir>` reads
+`TRAIL.jsonl` and the ledger, prints findings, and writes `TRACKER.html` beside
+the trail (generated; never edit it). `--check` validates without writing. A
+system with no trail is not an error. Run it at a checkpoint, when closing a
+spike, and whenever the human wants the picture; the page is one
+self-contained file for a browser.
 
-## What the checker would verify
+**Findings** (`checker/trail/check.ts`):
 
-- every `from`, `revives`, `decision`, `gate`, `after` and `option` resolves,
-  and every ledger label in `cites`/`ruled` resolves;
-- ids are unique and sequential per scope; `chose` names options that exist;
-- a decision followed by later work with no `choice` (`trail-unanswered`);
-- a `W` entry confirmed (status moved to `active`) or a plan confirmed with no
-  decision record in the turn before it (`trail-missing-decision`), the
-  counterpart of the missing-conformance-assertion check, and with the same
-  caveat: nothing but the agent's discipline writes the record, so this is the
-  rule that is expected to fail first and the reason for the warning.
+| Rule | Severity | Fires when |
+|---|---|---|
+| `trail-parse` | error; warning for a missing header | a line is not JSON or has the wrong shape |
+| `trail-id` | error; warning for a skipped number | an id repeats, or is not the next in its scope |
+| `trail-ref` | error | `from`, `revives`, `after`, `option`, `gate`, `decision`, `corrects` or a chosen number names nothing |
+| `trail-label` | error | an item, cite, `ruled` or `evidence` label is not in the ledger |
+| `trail-time` | warning | a choice is dated before its decision, or an option revives one offered later |
+| `trail-gate-ruling` | error | a `gate` has no `ruled` and `quote` (the human rules it) |
+| `trail-no-close` | warning | a decision offers no `close` option |
+| `trail-unanswered` | warning | a decision has no `choice` and later records exist |
+| `trail-spike-no-gate` | warning | an active `Kind: spike` item has no ruled gate |
+| `trail-missing-decision` | warning | an active spike with two or more findings has no decision: capture was dropped |
+
+`trail-missing-decision` is the check for the weak point named below. It cannot
+see a plan confirmed with no decision record (that needs the ledger's history),
+so it catches the pattern, not the instance.
+
+**The page** shows, per decision, what was taken (the line) and what was
+offered and not (stubs: grey, orange for a stop or return, blue when taken up
+later, dashed with a label when parked, struck through when abandoned, a tick
+when done); a diamond for a checkpoint; a ring for a decision still awaiting an
+answer; an arc where the work returned to an earlier option; and the cited
+ledger entries as links that open in VS Code. Segment length is the weight of
+the work after a decision, switchable between active time and output tokens.
+Collapsed below it: **standing alternatives** (options offered and never taken,
+merged across decisions by `revives` or by their words, with how often, when,
+how much work has gone by since the first offer, and their state) and **gates**
+(each gate's readings against its tolerance, and whether the latest moved
+toward or away from it). The tiles include "steps that read a gate" and "steps
+since a gate was last read".
+
+**Weights** come from the session transcripts the ledger hook copies to
+`<system-dir>/transcripts/<session-id>.jsonl`, for the sessions the trail names.
+The checker reads only each message's time and output-token count, never its
+text: an assistant message is counted once, and a gap of over ten minutes is the
+human away. The work after a decision runs from the human's answer to their
+answer to the next. With no transcript copy the page says so and draws
+unweighted segments.
 
 ## Known weak points
 

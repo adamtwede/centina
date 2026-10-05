@@ -97,8 +97,12 @@ The trail, `specs/<system>/TRAIL.jsonl`, records what was offered, not just
 what was decided. Append one JSON object per line, never edit a line, and
 correct with a later record carrying `"corrects":"<id>"`. Take times from
 `date -u +%Y-%m-%dT%H:%M:%SZ`. The first line of a new file is
-`{"type":"trail","version":1,"system":"<system>"}`. The checker does not read
-the trail yet, so follow the formats exactly.
+`{"type":"trail","version":1,"system":"<system>"}`. Follow the formats exactly,
+then run `${CLAUDE_PLUGIN_ROOT}/bin/centina-check trail specs/<system>` at every
+checkpoint and when closing the spike: it reports what is malformed, unresolved,
+unanswered or missing (a close option, a ruled gate) and writes `TRACKER.html`
+beside the trail, the picture the human reads. Fix its errors, and tell the
+human where the page is.
 
 **When you end a turn offering the human two or more options that lead to
 different work, record it first.** A plain confirmation of one plan is not a
@@ -157,8 +161,10 @@ screen: the question and gate; the readings in order against the tolerance;
 how many steps read the gate and how many did not; the budget used; the
 earlier options never taken, with how far back they are; and the options,
 including the return and a close, with a `recommended`. Record it as a
-decision. Wait for the ruling. A line the human lets continue gets a new
-budget in a revised plan (`centina-realize`, "Revising the plan").
+decision. Wait for the ruling. Add
+`"checkpoint":"budget|return|no-reading|moving-away|asked"` (the reason) to that
+decision. A line the human lets continue gets a new budget in a revised plan
+(`centina-realize`, "Revising the plan").
 
 ## Measuring
 

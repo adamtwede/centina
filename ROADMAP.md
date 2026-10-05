@@ -472,12 +472,23 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
 
 - **Trail file and tracker** (steps 3 to 5 of the work-item progress
   tracking; steps 1 and 2 are the Item progress button and the drift line,
-  above). `docs/trail.md` is the draft schema for step 3: an append-only
-  `TRAIL.jsonl` per system of `decision`, `choice`, `mark`, `gate` and
-  `reading` records, citing ledger labels, with weights derived from the
-  session transcripts. Unratified; step 4 (`centina-realize` writes it, and
-  declares a closing test, step budget and back-out point per spike) and step
-  5 (an HTML tree generated from it) wait on the author's review of the draft.
+  above). Built: `docs/trail.md` (the schema: `decision`, `choice`, `mark`,
+  `gate`, `reading` records in an append-only `TRAIL.jsonl` per system, citing
+  ledger labels) and `centina-check trail <system-dir>` (`checker/trail/`),
+  which validates it (ten `trail-*` rules, see the doc) and writes
+  `TRACKER.html`: the decision tree, with segment length weighted by active
+  time or output tokens read from the system's `transcripts/` copies (times and
+  token counts only), stubs for options offered and not taken, checkpoint
+  diamonds, returns to earlier options, and collapsed panels for standing
+  alternatives (offered and never taken, merged by `revives` or wording) and
+  gate readings against their tolerance. Tried on the W43 history reconstructed
+  into a trail (24 decisions; weights from the real transcript; the rules fired
+  as they should on a trail never written under them) and on a synthetic trail
+  covering every drawn state. Not built: a `centina-check` view for several
+  scopes split across files (`link` records are parsed and ignored), a
+  qualitative gate, a mod button that opens `TRACKER.html`, and backfilling
+  older work. Nothing has run on a live spike yet, so capture (the agent
+  appending records) is untested; `trail-missing-decision` is the backstop.
 - **`centina-spike`** (step 4, drafted, not yet exercised on a live spike):
   `skills/centina-spike/SKILL.md`, 13k characters, splits spike work out of
   `centina-realize` (which hands each admitted spike to it). It requires a
@@ -488,8 +499,8 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   option always offered, and checkpoints (budget spent, return condition fired,
   two steps with no gate reading, a gate moving away twice, or on request).
   Starting values (N = 2 extra steps, "two" steps) are guesses to tune from use.
-  Not built: `centina-check` reading `TRAIL.jsonl` (resolution, unanswered
-  decisions, `trail-missing-decision`), the tracker, and a qualitative gate.
+  It now runs `centina-check trail` at checkpoints and at close. Not built: a
+  qualitative gate.
   Measured on the W43 transcript: the skill was loaded once and re-injected
   34 times, so the failure was the skill's silence on long spikes, not its
   absence from context.
@@ -516,8 +527,8 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   lives.
 
 - `claude plugin test` run at the plugin root sweeps every `*.test.ts`,
-  including `checker/ledger/ledger.test.ts`, which imports Node and so
-  reports a load failure there; `npm test` is unaffected. The band's own
+  including `checker/ledger/ledger.test.ts` and `checker/trail/trail.test.ts`,
+  which import Node and so report a load failure there; `npm test` is unaffected. The band's own
   tests pass; a UI test of the band needs seeded state, which the test kit's
   `$` cannot give the real module, so it lives only as a scratch check.
 - Whether the ledger hook should fire on writes under `buildRoots`. It finds

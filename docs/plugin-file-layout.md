@@ -51,6 +51,9 @@ centina-plugin/
 │   ├── tsPluginImpl.ts
 │   ├── ledger/
 │   │   └── *.ts
+│   ├── trail/
+│   │   ├── *.ts
+│   │   └── tracker.html
 │   └── rules/
 │       └── *.ts
 ├── centina.ts
