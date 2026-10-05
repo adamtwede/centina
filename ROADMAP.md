@@ -478,7 +478,8 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   which validates it (ten `trail-*` rules, see the doc) and writes
   `TRACKER.html`: the decision tree, with segment length weighted by active
   time or output tokens read from the system's `transcripts/` copies (times and
-  token counts only), stubs for options offered and not taken, checkpoint
+  token counts only, also kept in a committed `weights/<session>.json` so a
+  page can be regenerated after the transcripts are gone), stubs for options offered and not taken, checkpoint
   diamonds, returns to earlier options, and collapsed panels for standing
   alternatives (offered and never taken, merged by `revives` or wording) and
   gate readings against their tolerance. Tried on the W43 history reconstructed

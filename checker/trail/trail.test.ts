@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, it } from "node:test"
@@ -8,7 +8,7 @@ import { analyze, checkTrail } from "./check"
 import { TRACKER_FILE, runTrailCommand } from "./command"
 import { buildModel } from "./model"
 import { readTrail } from "./parse"
-import { readTicks, weigh } from "./weights"
+import { loadTicks, readTicks, weigh } from "./weights"
 
 const HEADER = `{"type":"trail","version":1,"system":"demo"}`
 const LEDGER = `# Ledger: demo
@@ -262,6 +262,46 @@ describe("waivers", () => {
     const dir = system([...base, waive()])
     runTrailCommand([dir])
     assert.match(readFileSync(path.join(dir, TRACKER_FILE), "utf8"), /retrofitted, not revisiting/)
+  })
+})
+
+describe("stored weights", () => {
+  const row = (type: string, ts: string, extra: object = {}) => line({ type, timestamp: ts, ...extra })
+  const transcript = [
+    row("user", "2026-10-01T10:30:00Z"),
+    row("assistant", "2026-10-01T10:31:00Z", { message: { id: "m1", usage: { output_tokens: 100 } } }),
+    row("assistant", "2026-10-01T10:35:00Z", { message: { id: "m2", usage: { output_tokens: 50 } } }),
+  ].join("\n")
+  const stored = (dir: string) => path.join(dir, "weights", "s1.json")
+
+  it("are written with the page, regenerate the same page once the transcript is gone, and are not written by --check", () => {
+    const dir = system([HEADER, decision(1, { session: "s1" }), choice(1, [1])], { "transcripts/s1.jsonl": transcript })
+    runTrailCommand(["--check", dir])
+    assert.equal(existsSync(stored(dir)), false)
+    runTrailCommand([dir])
+    assert.equal(JSON.parse(readFileSync(stored(dir), "utf8")).length, 3)
+    const read = () => readFileSync(path.join(dir, TRACKER_FILE), "utf8").replace(/"now":[\d.]+/, "")
+    const page = read()
+    assert.match(page, /"tokens":150/)
+    rmSync(path.join(dir, "transcripts"), { recursive: true })
+    rmSync(path.join(dir, TRACKER_FILE))
+    runTrailCommand([dir])
+    assert.equal(read(), page)
+  })
+
+  it("never shrink: a shorter transcript does not replace more stored ticks, a longer one does", () => {
+    const dir = system([HEADER, decision(1, { session: "s1" }), choice(1, [1])], { "transcripts/s1.jsonl": transcript })
+    runTrailCommand([dir])
+    writeFileSync(path.join(dir, "transcripts", "s1.jsonl"), transcript.split("\n").slice(0, 1).join("\n"))
+    assert.equal(loadTicks(dir, ["s1"], true).ticks.length, 3)
+    assert.equal(JSON.parse(readFileSync(stored(dir), "utf8")).length, 3)
+    writeFileSync(path.join(dir, "transcripts", "s1.jsonl"), transcript + "\n" + row("assistant", "2026-10-01T10:36:00Z", { message: { id: "m3", usage: { output_tokens: 5 } } }))
+    loadTicks(dir, ["s1"], true)
+    assert.equal(JSON.parse(readFileSync(stored(dir), "utf8")).length, 4)
+  })
+
+  it("leave a session with neither a transcript nor weights missing", () => {
+    assert.deepEqual(loadTicks(system([HEADER]), ["nope"]).missing, ["nope"])
   })
 })
 

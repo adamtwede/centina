@@ -26,7 +26,8 @@ cites ledger labels instead of restating them (`ledger.md`, rule 5).
   is step 4's job, not the trail's.)
 - **Not a store of weights.** Time and tokens between two decisions are
   derived by the tracker from the session transcripts (`transcripts/`, each
-  message has a timestamp and usage). The trail records the anchors the
+  message has a timestamp and usage), kept in reduced form in `weights/` (see
+  "The checker and the tracker"). The trail records the anchors the
   derivation needs: when (`at`, UTC) and in which session. The agent cannot
   see a message's id, so there is no turn field; the tracker finds the turn
   from the timestamp.
@@ -228,8 +229,19 @@ since a gate was last read".
 The checker reads only each message's time and output-token count, never its
 text: an assistant message is counted once, and a gap of over ten minutes is the
 human away. The work after a decision runs from the human's answer to their
-answer to the next. With no transcript copy the page says so and draws
-unweighted segments.
+answer to the next. With neither a transcript copy nor stored weights the page
+says so and draws unweighted segments.
+
+**Stored weights.** The transcript copies are large (Underworld's are 127 MB)
+and gitignored. So each time the command writes the page, it also writes
+`<system-dir>/weights/<session-id>.json` for every session the trail names: just
+the `[time, output tokens]` of each message, about 190 KB for all of
+Underworld. These are committed, and the page is regenerated from them when the
+transcripts are gone, for a fresh clone or for work resumed long after. A
+session's file is replaced only when its transcript holds more messages, so it
+never shrinks. `--check` writes nothing. A resumed item needs no special
+handling: its new decisions append to the same trail, and the page, built from
+the whole trail and all stored weights, shows its full history.
 
 ## Known weak points
 

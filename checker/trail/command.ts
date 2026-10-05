@@ -39,7 +39,8 @@ const USAGE = "usage: centina-check trail [--check] [--item <label>] [--out <fil
  * what each stretch of work cost. `--check` validates without writing.
  * `--item` opens the page on that work item (default: the one worked on last).
  * `--out` writes the page elsewhere. Weights come from the transcript copies
- * in `<system-dir>/transcripts/`, read as timestamps and token counts only.
+ * in `<system-dir>/transcripts/`, read as timestamps and token counts only, and
+ * kept in `<system-dir>/weights/` so they outlast the copies.
  * A system with no TRAIL.jsonl is not an error. Returns the exit code.
  */
 export function runTrailCommand(argv: string[]): number {
@@ -93,7 +94,7 @@ export function runTrailCommand(argv: string[]): number {
 
   if (!checkOnly) {
     const sessions = trail.records.flatMap((r) => (r.type === "decision" && r.session ? [r.session] : []))
-    const { ticks, missing } = loadTicks(systemDir, sessions)
+    const { ticks, missing } = loadTicks(systemDir, sessions, true)
     const model = buildModel(trail, findings, { ledger, ticks, missingTranscripts: missing, waived, item })
     const target = out ? path.resolve(baseDir, out) : path.join(systemDir, TRACKER_FILE)
     const html = renderTracker(model)

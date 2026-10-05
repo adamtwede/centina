@@ -120,7 +120,7 @@ export interface TrackerModel {
   now: number
   items: string[]
   weighted: boolean
-  /** Sessions the trail names that have no transcript copy. */
+  /** Sessions the trail names that have no transcript copy and no stored weights. */
   missingTranscripts: string[]
   nodes: ModelNode[]
   /** The item the page opens on: the one asked for, else the latest worked on. Undefined for a trail with no item. */

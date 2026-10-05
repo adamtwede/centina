@@ -115,8 +115,8 @@ $('sub').textContent = 'Each node is a point where the agent offered options. Th
 function summary(){
   const T = V().tiles;
   const notes = [];
-  if (!M.weighted) notes.push(['bad','No transcript copy was found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
-  else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
+  if (!M.weighted) notes.push(['bad','No transcript copy or stored weights were found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
+  else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy or stored weights for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
   if (M.problems.errors+M.problems.warnings) notes.push(['bad',M.problems.errors+' errors and '+M.problems.warnings+' warnings in the trail (all items); run centina-check trail to see them.']);
   if (T.pending) notes.push(['','Awaiting your answer: '+T.pending]);
   $('notes').innerHTML = notes.map(n=>'<div class="note '+n[0]+'">'+esc(n[1])+'</div>').join('');

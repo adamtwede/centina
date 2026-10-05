@@ -1,9 +1,14 @@
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 // What a stretch of work cost, from the session transcripts the ledger hook
 // copies into `<system>/transcripts/<session-id>.jsonl`. Read as data: only
 // each message's time and output-token count are used, never its text.
+//
+// The transcript copies are large and not committed. So each session's ticks
+// are also kept in `<system>/weights/<session-id>.json`, a few KB to tens of
+// KB, which is committed. A page can then be regenerated, for resumed work
+// or a fresh clone, after the transcripts are gone.
 
 export interface Tick {
   /** Epoch seconds. */
@@ -45,14 +50,42 @@ export function readTicks(file: string): Tick[] {
   return ticks.sort((a, b) => a.t - b.t)
 }
 
-/** The transcripts for `sessions` that exist in `<systemDir>/transcripts/`, merged in time order, and the sessions that had none. */
-export function loadTicks(systemDir: string, sessions: Iterable<string>): { ticks: Tick[]; missing: string[] } {
+const weightsFile = (systemDir: string, session: string) => path.join(systemDir, "weights", `${session}.json`)
+
+function readStored(file: string): Tick[] | undefined {
+  try {
+    const rows: unknown = JSON.parse(readFileSync(file, "utf8"))
+    if (!Array.isArray(rows)) return undefined
+    return rows.map(([t, out]) => ({ t, out }))
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The ticks of `sessions`, merged in time order, and the sessions with no data.
+ * A session's ticks come from its transcript copy and its stored weights,
+ * whichever holds more (a transcript is only ever copied whole, so more is
+ * newer). With `save`, the stored weights are brought up to date.
+ */
+export function loadTicks(systemDir: string, sessions: Iterable<string>, save = false): { ticks: Tick[]; missing: string[] } {
   const ticks: Tick[] = []
   const missing: string[] = []
   for (const session of new Set(sessions)) {
-    const file = path.join(systemDir, "transcripts", `${session}.jsonl`)
-    if (existsSync(file)) ticks.push(...readTicks(file))
-    else missing.push(session)
+    const transcript = path.join(systemDir, "transcripts", `${session}.jsonl`)
+    const file = weightsFile(systemDir, session)
+    const stored = readStored(file)
+    const fresh = existsSync(transcript) ? readTicks(transcript) : undefined
+    const best = fresh && (!stored || fresh.length > stored.length) ? fresh : stored
+    if (!best) {
+      missing.push(session)
+      continue
+    }
+    if (best === fresh && save) {
+      mkdirSync(path.dirname(file), { recursive: true })
+      writeFileSync(file, JSON.stringify(best.map((k) => [k.t, k.out])) + "\n")
+    }
+    ticks.push(...best)
   }
   return { ticks: ticks.sort((a, b) => a.t - b.t), missing }
 }
