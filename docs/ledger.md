@@ -10,8 +10,13 @@ One ledger per system, in `<artifactsRoot>/specs/<system>/`:
 
 - `LEDGER.md`, plus `LEDGER-<part>.md` partitions once it grows (see
   `output-management.md`).
-- `LEDGER-INDEX.md`, `LEDGER-LABELS.md` and `STANDING.md`: generated. Never
-  edit them.
+- `LEDGER-INDEX.md`, `LEDGER-LABELS.md`, `LEDGER.json` and `STANDING.md`:
+  generated. Never edit them. `LEDGER.json` is the machine-readable view
+  (label, title, status, date, size, file and heading line, parts, park
+  condition, successor, depends-on and premises keys); the plugin's Claude Code mod reads it to show cited entries.
+- `TRAIL.jsonl` (written by `centina-spike`) and `TRACKER.html` (generated from
+  it by `centina-check trail`; never edit): the options offered at each
+  decision and the picture of them. Format: `docs/trail.md`.
 - `transcripts/`: session transcript copies. See "Transcripts".
 
 The ledger records decisions, questions, findings, options, work items, goals
@@ -159,6 +164,7 @@ Every letter can also be `superseded`, which requires `Obsoleted-by`.
 | `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
 | `Constraints` | phase `W` | `R` labels that bear on the phase |
 | `Review` | `R` | When a `provisional` rule is reconsidered; required when `provisional` |
+| `Parked` | `Q`, `P` | `YYYY-MM-DD, until <condition>`; set aside but still open. Only on `open` items; the condition is required free text. The index shows it beside the title |
 | `Enforced-by` | `R` | The type or test enforcing the rule |
 | `Evidence` | `F` | Harness, command, commit; required when `measured` or `measured-false` |
 | `Tags` | `A` | Free-text, comma-separated categories for grouping (e.g. `world, vessel`) |

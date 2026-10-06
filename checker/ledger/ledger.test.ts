@@ -5,8 +5,9 @@ import path from "node:path"
 import { describe, it } from "node:test"
 import { checkLedger, checkProposals } from "./check"
 import { runLedgerCommand } from "./command"
-import { affectedWorkItems, renderIndex, renderLabels, renderPhaseView, renderStanding } from "./generate"
-import { commentLines, isLedgerFileName, readLedger, scanBuildRoot, scanSystemFiles } from "./parse"
+import { affectedWorkItems, renderIndex, renderJson, renderLabels, renderPhaseView, renderStanding } from "./generate"
+import { extractCites } from "../../hooks/ledger-cite"
+import { commentLines, isLedgerFileName, labelKey, readLedger, refsInText, scanBuildRoot, scanSystemFiles } from "./parse"
 
 function system(files: Record<string, string>): string {
   const dir = path.join(mkdtempSync(path.join(tmpdir(), "ledger-")), "demo")
@@ -180,6 +181,34 @@ describe("ledger check", () => {
       "LEDGER.md": `### sz:F1: measured\n- Status: measured\n\n### sz:W1: blocked\n- Kind: step\n- Status: blocked\n\n### sz:R1: provisional\n- Kind: method\n- Status: provisional\n`,
     }).filter((f) => f.rule === "ledger-missing-field")
     assert.equal(found.length, 3)
+  })
+
+  it("accepts Parked on an open Q or P and rejects it elsewhere or without a condition", () => {
+    const found = check({
+      "LEDGER.md": [
+        `### sz:Q1: ok\n- Status: open\n- Parked: 2026-09-30, until a conclusion needs sz:R1\n`,
+        `### sz:Q2: closed\n- Status: answered\n- Parked: 2026-09-30, until later\n`,
+        `### sz:P1: no condition\n- Status: open\n- Parked: 2026-09-30\n`,
+        `### sz:P2: empty condition\n- Status: open\n- Parked: 2026-09-30, until \n`,
+        `### sz:F1: wrong letter\n- Status: hypothesis\n- Parked: 2026-09-30, until later\n`,
+      ].join("\n"),
+    }).filter((f) => f.rule === "ledger-field-not-applicable" || f.rule === "ledger-malformed")
+    assert.deepEqual(
+      found.map((f) => [f.rule, f.message.match(/sz:\w+/)?.[0]]),
+      [
+        ["ledger-field-not-applicable", "sz:Q2"],
+        ["ledger-malformed", "sz:P1"],
+        ["ledger-malformed", "sz:P2"],
+        ["ledger-field-not-applicable", "sz:F1"],
+      ],
+    )
+  })
+
+  it("shows a park condition on the index row", () => {
+    const index = renderIndex(
+      readLedger(system({ "LEDGER.md": `### sz:Q1: which door\n- Status: open\n- Parked: 2026-09-30, until a conclusion needs sz:R1\n` })),
+    )
+    assert.match(index, /\| sz:Q1 \| {2}\| open \| which door \(parked until a conclusion needs sz:R1\) \|/)
   })
 
   it("reports undefined labels and parts in headers, bodies and other files", () => {
@@ -382,6 +411,62 @@ describe("ledger generation", () => {
     assert.match(labels, /\| sz:P2 \| ratified \| cap escalation depth at 5 attempts \| LEDGER\.md \|/)
   })
 
+  it("emits every label as JSON with its file relative to the system directory", () => {
+    const json = JSON.parse(renderJson(readLedger(system({ "LEDGER.md": VALID }))))
+    assert.equal(json.system, "demo")
+    const p1 = json.entries.find((e: { key: string }) => e.key === "sz:P1")
+    assert.deepEqual(
+      { status: p1.status, file: p1.file, obsoletedBy: p1.obsoletedBy },
+      { status: "superseded", file: "LEDGER.md", obsoletedBy: ["sz:P2"] },
+    )
+    assert.equal(typeof p1.line, "number")
+  })
+
+  it("emits the phase an item belongs to in the JSON", () => {
+    const json = JSON.parse(
+      renderJson(
+        readLedger(
+          system({
+            "LEDGER.md": `### sz:W1: the phase\n- Kind: phase\n- Status: active\n\n### sz:W2: step\n- Kind: step\n- Status: planned\n- Phase: sz:W1\n`,
+          }),
+        ),
+      ),
+    )
+    const phaseOf = (key: string) => json.entries.find((e: { key: string }) => e.key === key).phase
+    assert.deepEqual([phaseOf("sz:W1"), phaseOf("sz:W2")], [undefined, "sz:W1"])
+  })
+
+  it("emits an entry's date, dependencies and premises as keys, and nothing for an entry without them", () => {
+    const json = JSON.parse(
+      renderJson(
+        readLedger(
+          system({
+            "LEDGER.md": `### sz:F1: premise\n- Date: 2026-10-01\n- Status: measured\n- Evidence: verify.ts\n\n### sz:W1: first\n- Kind: step\n- Status: done\n\n### sz:W2: step\n- Date: 2026-10-02\n- Kind: step\n- Status: planned\n- Depends-on: sz:W1\n- Premises: sz:F1(a), sz:F1, sz:W1\n`,
+          }),
+        ),
+      ),
+    )
+    const get = (key: string) => json.entries.find((e: { key: string }) => e.key === key)
+    assert.deepEqual(
+      { date: get("sz:W2").date, dependsOn: get("sz:W2").dependsOn, premises: get("sz:W2").premises },
+      { date: "2026-10-02", dependsOn: ["sz:W1"], premises: ["sz:F1", "sz:W1"] },
+    )
+    assert.equal("dependsOn" in get("sz:W1") || "premises" in get("sz:W1"), false)
+    assert.ok(get("sz:W2").size >= 0 && typeof get("sz:W2").size === "number")
+  })
+
+  it("emits an entry's size as the length of its text, so a long-running item stands out", () => {
+    const body = "x".repeat(99)
+    const json = JSON.parse(
+      renderJson(
+        readLedger(system({ "LEDGER.md": `### sz:W1: short\n- Kind: step\n- Status: done\n\nshort\n\n### sz:W2: long\n- Kind: step\n- Status: active\n\n${body}\n` })),
+      ),
+    )
+    const size = (key: string) => json.entries.find((e: { key: string }) => e.key === key).size
+    assert.ok(size("sz:W2") > size("sz:W1"))
+    assert.ok(size("sz:W2") >= body.length)
+  })
+
   it("lists work items whose premises no longer hold", () => {
     const ledger = readLedger(
       system({
@@ -480,7 +565,7 @@ describe("ledger command", () => {
     // nothing there, on purpose (see renderPhaseView).
     assert.deepEqual(
       readdirSync(dir).filter((name) => name !== "LEDGER.md").sort(),
-      ["LEDGER-INDEX.md", "LEDGER-LABELS.md", "STANDING.md"],
+      ["LEDGER-INDEX.md", "LEDGER-LABELS.md", "LEDGER.json", "STANDING.md"],
     )
   })
 
@@ -809,5 +894,33 @@ describe("limit rules", () => {
     )
     assert.match(standing, /## Rules\n\n- `sz:R1` \(structural\): only the simulation generates content/)
     assert.match(standing, /## Current limits\n\n- `sz:R2` \(provisional\): bodies do not rotate/)
+  })
+})
+
+describe("the Claude Code mod's citation reader (hooks/ledger-cite.ts)", () => {
+  // The mod's sandbox cannot import parse.ts, so it keeps its own copy of the
+  // citation grammar; this holds the copy to the original.
+  const corpus = [
+    "sz:P12, sz:P12(a) and beta/sz:P12 and task-matcher:Q3.",
+    "(sz:P1) sz:P1. sz:P1, `sz:P1` \"sz:P1\" [sz:P1]",
+    "bare P12 and Q3(b) are not qualified citations",
+    "http://x:P1 https://host/sz:P1 a/b/sz:P1 x.sz:P1 x:sz:P1 x-sz:P1",
+    "sz:P12x xsz:P1y sz:P0 sz:P01 Sz:P1 sz:p1 sz:X1 sz:P1(ab) sz:P1(A) sz:P1(a)(b)",
+    "audit:P6 audit:A3 sz-findings:F10(c) 9z:P1 -z:P1 z9:O2",
+    "gamma/sz:P12 gamma/delta/sz:P12 sz:P12/sz:P13",
+  ]
+
+  it("finds the same qualified citations as the checker", () => {
+    for (const text of corpus) {
+      const seen = new Set<string>()
+      const expected = refsInText(text)
+        .filter((r) => !r.bare)
+        .map((r) => ({ system: r.ref.system, key: labelKey(r.ref), part: r.ref.part }))
+        .filter((c) => {
+          const id = `${c.system ?? ""}/${c.key}(${c.part ?? ""})`
+          return !seen.has(id) && seen.add(id)
+        })
+      assert.deepEqual(extractCites(text), expected, text)
+    }
   })
 })

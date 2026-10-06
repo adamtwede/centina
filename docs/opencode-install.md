@@ -72,7 +72,8 @@ only used to produce the install and to source updates from later.
    This copies `centina.ts`, `conformance.ts`, `tsconfig.template.json`,
    `checker/` (source only — see next step), and the `docs/` subset the
    skills reference (`plugin-setup-procedure.md`, `output-management.md`,
-   `ledger.md`, `measurement-methodology.md`) into the install root, and
+   `ledger.md`, `measurement-methodology.md`, `realize-conformance.md`, `trail.md`, `session-zero-routing.md`,
+   `session-zero-reference.md`, `iterate-reference.md`) into the install root, and
    deliberately strips `checker/node_modules` and
    `package-lock.json` — those are install-time artifacts, not something to
    ship stale.

@@ -1,0 +1,20 @@
+{
+	// Typechecks the Claude Code mod under hooks/ against the claude-code API
+	// types the engine lays at .claude-plugin/types/ (gitignored: engine-written,
+	// ~750KB, rewritten on update). Separate from tsconfig.json because a hooks
+	// module runs in its own environment: no DOM, no Node.
+	"compilerOptions": {
+		"target": "es2023",
+		"lib": ["es2023"],
+		"types": [],
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		"jsx": "react",
+		"jsxFactory": "h",
+		"jsxFragmentFactory": "Fragment"
+	},
+	"include": [".claude-plugin/types", "hooks"]
+}

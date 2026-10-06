@@ -69,12 +69,16 @@ const LIST_FIELDS: Record<string, ListFieldSpec> = {
   "Renumbered-from": { single: true, parts: false, resolve: false },
 }
 
+/** `Parked: <date>, until <condition>`; the condition must be non-empty. */
+export const PARKED_FORMAT = /^\d{4}-\d{2}-\d{2},\s*until\s+\S/
+
 const KNOWN_FIELDS = new Set([
   "Date",
   "Session",
   "Status",
   "Kind",
   "Review",
+  "Parked",
   "Enforced-by",
   "Evidence",
   "Tags",
@@ -86,6 +90,7 @@ const FIELD_LETTERS: Record<string, Letter[]> = {
   "Depends-on": ["W"],
   Constraints: ["W"],
   Review: ["R"],
+  Parked: ["Q", "P"],
   "Enforced-by": ["R"],
   Evidence: ["F"],
   Tags: ["A"],
@@ -459,6 +464,19 @@ function checkHeader(
   )
   requires(letter === "W" && statusValue === "blocked", "Depends-on", `${entry.key} is blocked but has no Depends-on`)
   requires(letter === "R" && statusValue === "provisional", "Review", `${entry.key} is provisional but has no Review`)
+
+  // A park is a wake condition on an item that can still be answered, so it
+  // means nothing once the item is closed, and a park with no condition is
+  // just the status-that-rots it exists to avoid.
+  const parked = entry.fields.get("Parked")
+  if (parked) {
+    if ((letter === "Q" || letter === "P") && statusValue !== undefined && statusValue !== "open") {
+      error("ledger-field-not-applicable", entry.file, parked.line, `"Parked" applies only to open items (${entry.key} is ${statusValue})`)
+    }
+    if (!PARKED_FORMAT.test(parked.value)) {
+      error("ledger-malformed", entry.file, parked.line, `"Parked" must read "YYYY-MM-DD, until <condition>" (${entry.key})`)
+    }
+  }
 
   const obsoletedBy = entry.fields.get("Obsoleted-by")
   if (statusValue === "superseded" && !obsoletedBy) {

@@ -280,12 +280,48 @@ Centina ships as a self-contained Claude Code plugin. There is nothing to instal
    tracked link.
 
    `bin/centina-check` (the checker's CLI) ends up at
-   `~/.claude/skills/centina/bin/centina-check`, but installing doesn't put
-   it on your `PATH`. That's fine for normal use — Claude Code skills
-   invoke it directly via `${CLAUDE_PLUGIN_ROOT}`, nothing to configure
-   there — but if you ever want to run it yourself from a terminal, either
-   add that `bin/` directory to your `PATH` or call it by full path
-   (`install.sh` prints the exact path to use at the end of the install).
+   `~/.claude/skills/centina/bin/centina-check`. That's fine for normal
+   use — Claude Code skills invoke it directly via `${CLAUDE_PLUGIN_ROOT}`,
+   nothing to configure there.
+
+   **Running it yourself from a terminal.** Putting `bin/` on your `PATH`
+   isn't enough. `centina-check` expects two environment variables that
+   only Claude Code sets, and fails without them:
+
+   | Variable | Value | What it is |
+   |---|---|---|
+   | `CLAUDE_PLUGIN_ROOT` | `~/.claude/skills/centina` | The installed plugin source. |
+   | `CLAUDE_PLUGIN_DATA` | `~/.claude/plugins/data/centina-skills-dir` | The writable copy of the checker, with its `node_modules`, that the `SessionStart` hook maintains. The wrapper runs the checker from here, never from `ROOT`. |
+
+   Set them for the one invocation, not with `export`: variables exported
+   in your shell are inherited by every Claude Code session you start from
+   it. A function in `~/.zshrc` (or `~/.bashrc`) does that, and needs no
+   `PATH` change:
+
+   ```sh
+   centina-check() {
+     CLAUDE_PLUGIN_ROOT="$HOME/.claude/skills/centina" \
+     CLAUDE_PLUGIN_DATA="$HOME/.claude/plugins/data/centina-skills-dir" \
+     "$HOME/.claude/skills/centina/bin/centina-check" "$@"
+   }
+   ```
+
+   Then, from anywhere (relative paths resolve against where you ran it):
+
+   ```console
+   centina-check --project ./tsconfig.json path/to/spec.centina.ts
+   centina-check ledger --check path/to/specs/<system>
+   ```
+
+   Two caveats. The `DATA` directory name is chosen by Claude Code, not by
+   Centina; if the function reports `checker dependencies aren't
+   installed`, check `ls ~/.claude/plugins/data/` for the real name. And
+   `DATA` only exists, with dependencies installed, after a Claude Code
+   session has started at least once with the plugin loaded — the same
+   session start is what reinstalls them after an update that changes
+   `checker/package.json`, and until then the wrapper refuses to run
+   rather than report a result from stale dependencies. See
+   [docs/plugin-checker-install.md](docs/plugin-checker-install.md).
 
    Prefer a one-off session against a specific checkout instead (no
    install, no lasting change)? `claude --plugin-dir /path/to/centina`
@@ -510,7 +546,7 @@ with you, to be resolved at spec-iteration or plan-build time, never part of the
 
 ### Gap-hunting sessions
 
-Three project skills drive Centina as a collaborative, gated process. The first two are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess. The third, `centina-realize`, does the coding work a spec needs before it can be written with confidence. All three record their decisions in the system [ledger](docs/ledger.md).
+Four project skills drive Centina as a collaborative, gated process. The first two are **gap-hunting** sessions: their job is to help a human architect pin down structure while making every unresolved decision *visible* as a routed hole rather than an invisible guess. The third, `centina-realize`, does the coding work a spec needs before it can be written with confidence, and the fourth, `centina-spike`, runs the experiments it hands off. All four record their decisions in the system [ledger](docs/ledger.md).
 
 - **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/skills/centina-session-zero/SKILL.md)** — the front of the funnel for a whole *system*.
   It drives a gated conversation that turns a prose idea into a **component
@@ -532,11 +568,19 @@ Three project skills drive Centina as a collaborative, gated process. The first 
 
 - **[centina-realize](https://github.com/adamtwede/centina/blob/main/skills/centina-realize/SKILL.md)** — works behind a spec's doors while
   the spec is still being refined. It plans a phase with the human before any
-  code is written, runs **spikes** that answer questions the spec can't settle
-  without code (each with a written [measurement plan](docs/measurement-methodology.md)),
-  and **builds** code against the spec's types into a working slice. Contract
-  problems found along the way go back to the human as change requests; the
-  human makes every spec edit.
+  code is written, hands each **spike** to `centina-spike`, and **builds** code
+  against the spec's types into a working slice. Contract problems found along
+  the way go back to the human as change requests; the human makes every spec
+  edit.
+
+- **[centina-spike](https://github.com/adamtwede/centina/blob/main/skills/centina-spike/SKILL.md)** — runs one spike, a line of
+  experiments that answers a question the spec can't settle without code (each
+  step with a written [measurement plan](docs/measurement-methodology.md)). The
+  human rules a gate, a step budget and a back-out point before measuring; a
+  follow-up question becomes its own work item instead of another step; every
+  offered choice and gate reading goes in the system's trail
+  ([draft schema](docs/trail.md)); and the agent stops at a checkpoint when the
+  budget is spent, a return condition fires, or steps stop reading the gate.
 
 Crucially, "fit" is treated as a **jurisdiction map, not a verdict**. A realization-dominated responsibility (an algorithm, a physics loop, a rendering step) is never *rejected* from a spec — it is *routed behind a door* (a terminal, a delegated Skill, or a held `deferred<"unimplemented">` hole), and the spec keeps the typed seam around it. Even an idea that turns out to be "one algorithm, not a system" yields a minimal skeleton that is explicit about its remit rather than a bounced request. The value is in *localizing* the realization into a named, bounded hole.
 
@@ -791,6 +835,10 @@ prose-vs-Centina head-to-head that tests goal 3 directly).
   falsifiability frame, and the findings log that drove the pivot.
 - `docs/ledger.md`, `docs/measurement-methodology.md`,
   `docs/output-management.md` — shared working rules the skills load.
+  `docs/realize-conformance.md`, `docs/trail.md`,
+  `docs/session-zero-routing.md`, `docs/session-zero-reference.md` and
+  `docs/iterate-reference.md` hold detail the skills read on demand, kept out
+  of the skills so each fits the post-compaction cap.
 - `skills/` — `centina-session-zero`, `centina-iterate` and
   `centina-realize`, the current toolchain, packaged for plugin
   auto-discovery.

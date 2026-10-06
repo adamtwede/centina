@@ -1,9 +1,9 @@
 {
   "name": "centina",
-  "version": "0.6.4",
+  "version": "0.10.0",
   "description": "Centina — spec-flavored TypeScript: type-checked falsework for coding tasks. TypeScript is the grammar; a spec-plane checker (not tsc) is the arbiter of done.",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.hooks.json",
     "check": "tsx checker/cli.ts",
     "test": "tsx --test \"checker/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
     "bump-version": "node scripts/bump-version.mjs"

@@ -361,8 +361,199 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   both holes found in these checks so far came from a deliberate
   falsification, neither from reading output.
 
+- **Ledger-citation band** (`hooks/register.tsx`, `hooks/ledger-cite.ts`,
+  `hooks/types/index.d.ts`; `checker/ledger/generate.ts` `renderJson`) — a
+  Claude Code mod, shipped in the plugin, that lists the ledger entries cited
+  in the current turn's replies above the prompt (terminal and desktop), with
+  status, successor, park condition, a flag on a label or part that resolves
+  nowhere, and an Open button that opens the entry's heading in VS Code. It
+  reads the new generated `LEDGER.json` (`centina-check ledger` now writes it
+  beside the index), because the mod's sandbox has no Node and cannot import
+  `parse.ts`; the citation regex is therefore duplicated in
+  `hooks/ledger-cite.ts` and must follow `QUALIFIED_IN_TEXT`. Open tries
+  `code -g`, then the `vscode://` URL via `open` (macOS), since `code` is
+  often not on PATH. Verified: `claude plugin validate`, `tsc` against the
+  engine types, pure-logic tests, a headless run that produced the right rows
+  from a real reply, and the band tree mounted and pressed on both surfaces
+  in a scratch copy with seeded state. Seen live in a terminal (the user's
+  session). Each row also has an **ELI5** button: `$.model.complete` asks
+  Haiku, with no session history and nothing written to the transcript, to
+  explain the entry from its markdown section (cut at the next heading, plus
+  the titles of the entries it cites), answered in a pane. It refuses when the
+  heading is no longer at the line `LEDGER.json` recorded, caches by prompt,
+  and a newer press supersedes an older one. Mocked-model test in
+  `hooks/eli5.test.tsx`; not yet tried against the real model.
+  The band's header also has a **TLDR THIS** button, for the latest main-agent
+  reply as a whole (kept in the `reply` state atom): same Haiku call, same pane,
+  but the prompt is the reply plus the active phase (`Kind: phase`, `active`),
+  the active goals (`G`, `active`) and the entries the reply cites, each in full
+  while a 20k-character budget lasts (cited first, then phase, then goals) and
+  by title after that. It asks for a plain summary and, where the reply offers
+  options, each option's meaning, benefits, tradeoffs and risks against the
+  phase and the project goals. "Full text if necessary" is the budget, not a
+  model decision: one call cannot fetch mid-answer. The band now also shows,
+  with just this button, for a reply that cites nothing, once a `LEDGER.json`
+  has been found. Mocked-model tests only; not yet tried against the real model.
+  A third button, **Phase progress ($)**, asks **Sonnet** (medium effort, 2k
+  tokens, 90s) how far the active phase has got: a progress summary of at most
+  300 words, the remaining work, and which open items are still critical against
+  the phase's goal and definition of done and the project goals. It shows
+  whenever some system's `LEDGER.json` has a phase (`Kind: phase`) with status
+  `active` (the `hasPhase` atom, refreshed at session start and after each
+  reply), not when `centina-realize` was loaded: the skill's loading leaves no
+  trace after a resume, and a skill loaded while planning has no `active` phase
+  yet. `LEDGER.json` entries gained a `phase` field (the `Phase` header) so the
+  mod can find a phase's items without parsing markdown; a `LEDGER.json` older
+  than the field must be regenerated with `centina-check ledger`, and the button
+  refuses (no model call) when the active phase has no items. Open items
+  (`open`, `hypothesis`, `predicted`, `planned`, `blocked`, `active`,
+  `deferred`) get their full text while the 20k budget lasts; closed ones are
+  titles only. Mocked-model tests only; not yet tried against the real model.
+  A fourth button, **Second opinion ($$$)**, asks **Opus** (high effort, 8k
+  tokens, 180s) to review the latest reply for errors and flaws, gaps and
+  risks, and improvements. Its prompt is TLDR's (reply, phase, goals, cited
+  entries, same budget) plus the reader's last typed prompt (the `request`
+  atom, kept by the mod's own `prompt.submit` hook for `composer` and `bridge`
+  origins only, so a plugin's, a peer's or a scheduled prompt never replaces
+  it). The call has no tools and no session history, so it can review the
+  reasoning and the ledger fit but cannot check the reply against the code; the
+  system prompt tells it to say what would have to be checked instead of
+  asserting. The answer stays in the pane: it is never sent on its own. A
+  **Send to session** button under it calls `$.prompt.submit` (not `asUser`, so
+  the session reads it as a message from the plugin) with a lead line saying
+  where it came from and that it is to be weighed, not adopted, and the button
+  goes once pressed so one answer is sent once. Mocked-model tests only; not
+  yet tried against the real model, and the `opus` alias is subject to the
+  org's model allowlist.
+  A fifth button, **Item progress ($$)**, is Phase progress for one line of
+  inquiry: the phase button's 20k budget and 3k-per-entry cut show a long
+  spike its oldest 3,000 characters, which on `terrain:W43` (about 275 KB of
+  appended steps) is the original plan and none of the work since. It shows
+  while any work item (`W`, not a phase) is `active` (the `hasItem` atom). The
+  item is the first active one the latest reply cites, else the end of the
+  active `Depends-on` chain (an active item no other active item depends on;
+  the one furthest down its file if several). Sonnet (high effort, 8k tokens,
+  90s) gets the item's start, one cut-off line per paragraph in between (every
+  paragraph keeps a line, shortened to fit, so no stage of the work is
+  dropped) and its end in full; the titles and statuses of the entries that
+  name it in `Premises`; what it depends on, by title; its phase and the active
+  goals. It reports the original question and closing test (and says when the
+  item states none), the path so far with each step marked as on-question or
+  a side question, whether the line is closer, level or further against the
+  item's own numbers, and the options (continue, back out to a named point,
+  park). `LEDGER.json` entries gained `date`, `dependsOn` and `premises` (keys,
+  parts dropped, omitted when empty; about 20% larger on the Underworld ledger,
+  197 KB to 240 KB); a `LEDGER.json` older than the fields shows no findings and
+  no chain, so regenerate it with `centina-check ledger`. Checked against the
+  real Underworld ledger without writing to it: resolves `terrain:W43`, finds
+  its 20 findings (`F46` to `F65`), builds a 27k-character prompt. Mocked-model
+  tests only; not yet tried against the real model.
+  **The drift line**, step 2 of the work-item progress tracking. While a work
+  item is active the band's unfolded header is followed by one line for the
+  current item (the same one Item progress reports on): its size in characters,
+  the entries naming it in `Premises`, its age in days, and the median and
+  largest size and median finding count of the `done` items of the same `Kind`
+  in the system. It is yellow ("Long-running") past 3 times the median size and
+  red past the largest closed item, dim otherwise, and shows facts without a
+  level when fewer than 3 closed items exist to compare with. Size is the
+  signal because the Underworld numbers say so: a closed spike's median is 8k
+  characters and the largest 59k (`terrain:W7`, 24 findings), while
+  `terrain:W43` is 275k, 4.6 times the largest; its finding count (20) and line
+  count (270) sit inside the range of `W7` and `W17`, so neither tells a runaway
+  item from a big one that closed. It is a flag for attention, not a verdict (a
+  long item can still be producing), and Item progress is given the same line as
+  plain facts. `LEDGER.json` gained `size` (the entry's text length, heading
+  and header excluded); with step 1's fields it is 251 KB against 197 KB on
+  Underworld. Free: no model call, no file read beyond `LEDGER.json`. Still
+  absent until `centina-realize` declares them: a step budget and a closing
+  test to measure against, so "steps beyond the plan" cannot be shown yet.
+
 ## Open / under discussion
 
+- **Trail file and tracker** (steps 3 to 5 of the work-item progress
+  tracking; steps 1 and 2 are the Item progress button and the drift line,
+  above). Built: `docs/trail.md` (the schema: `decision`, `choice`, `mark`,
+  `gate`, `reading` records in an append-only `TRAIL.jsonl` per system, citing
+  ledger labels) and `centina-check trail <system-dir>` (`checker/trail/`),
+  which validates it (ten `trail-*` rules, see the doc) and writes
+  `TRACKER.html`: the decision tree, with segment length weighted by active
+  time or output tokens read from the system's `transcripts/` copies (times and
+  token counts only, also kept in a committed `weights/<session>.json` so a
+  page can be regenerated after the transcripts are gone), stubs for options offered and not taken, checkpoint
+  diamonds, returns to earlier options, and collapsed panels for standing
+  alternatives (offered and never taken, merged by `revives` or wording) and
+  gate readings against their tolerance. Tried on the W43 history reconstructed
+  into a trail (24 decisions; weights from the real transcript; the rules fired
+  as they should on a trail never written under them) and on a synthetic trail
+  covering every drawn state. Not built: a `centina-check` view for several
+  scopes split across files (`link` records are parsed and ignored), a
+  qualitative gate and backfilling older work. Nothing has run on a live
+  spike yet, so capture (the agent appending records) is untested;
+  `trail-missing-decision` is the backstop. Since built: a **Tracker** button
+  in the mod's band, shown for a system with a `TRAIL.jsonl`, that runs
+  `centina-check trail --item <the tracked item>` and opens `TRACKER.html`
+  (labelled "Work item tracker", with a coloured marker, since `Button` takes
+  no colour). It finds the checker's folder from `CLAUDE_PLUGIN_DATA` or, if the
+  mod cannot see that, from `.centina-data` that the SessionStart hook leaves in
+  the plugin root; neither is confirmed live. If it can't build the page it
+  opens the last one and says why. A `/track-item <label>|auto` command pins the
+  band and the tracker to one item, since a reply that cites an older item
+  otherwise wins the band's pick. And a `waive`
+  record (`docs/trail.md`) by which the human rules one warning for one item
+  or decision out, for work not worth retrofitting; waived warnings are
+  counted by the command and listed on the page, and a stale waiver warns.
+  Not done: regenerating the page when `TRAIL.jsonl` is written (the ledger
+  hook only watches `LEDGER*.md` edits, and agents append with Bash).
+- **`centina-spike`** (step 4, drafted, not yet exercised on a live spike):
+  `skills/centina-spike/SKILL.md`, 13k characters, splits spike work out of
+  `centina-realize` (which hands each admitted spike to it). It requires a
+  human-ruled gate, step budget and back-out with return conditions before
+  measuring, one question per entry (a follow-up that does not bear on the gate
+  is a new `W`, never another appended step), `decision`/`choice`/`gate`/
+  `reading` records in `TRAIL.jsonl` with a `close` and the nearest unexplored
+  option always offered, and checkpoints (budget spent, return condition fired,
+  two steps with no gate reading, a gate moving away twice, or on request).
+  Starting values (N = 2 extra steps, "two" steps) are guesses to tune from use.
+  It now runs `centina-check trail` at checkpoints and at close. Not built: a
+  qualitative gate.
+  Measured on the W43 transcript: the skill was loaded once and re-injected
+  34 times, so the failure was the skill's silence on long spikes, not its
+  absence from context.
+- **Skills over the post-compaction cap** (fixed). Claude Code re-injects an
+  invoked skill after each compaction cut at 20,000 characters, losing the end
+  of the file. All four skills are now held under it by
+  `scripts/bundle.test.mjs`: `centina-realize` 18.5k, `centina-spike` 13.6k,
+  `centina-session-zero` 19.4k (was 35k) and `centina-iterate` 18.6k (was 27k).
+  The cold detail moved verbatim into docs the skills read on demand:
+  `session-zero-routing.md` (the routing lens, read before classifying nodes),
+  `session-zero-reference.md` (background, the full cross-cutting practices, the
+  ARCHITECTURE.md handoff, the Lessons from use) and `iterate-reference.md`
+  (boundary extraction, fresh-skeleton starting points, reconciling, the plan,
+  Lessons from use). Each skill keeps a short form of what it moved, and its
+  guardrails ("What NOT to do") now sit inside the cap. New lessons go in the
+  reference docs. Not verified in a live session: whether an agent reads the
+  on-demand docs at the right moment (the routing doc especially); watch the
+  next `centina-session-zero` run for node classification without it.
+- **Ledger folder refactor.** A system directory such as
+  `chrysalis/centina/specs/underworld/` now holds ~25 files beside its specs
+  (`LEDGER*.md` partitions, the four generated views, `ITERATE-STATE.md`,
+  `REALIZE-STATE.md`, `transcripts/`, `archive/`). Wanted: the ledger material
+  in its own subfolder. Not yet scoped; what moving it touches: `file` paths in
+  `LEDGER.json` (relative to the system directory), the mod's walk (finds the
+  system by `LEDGER.json`, skips `archive`/`transcripts`), `readLedger` and
+  `scanSystemFiles` in `checker/ledger/parse.ts`, the ledger hook's walk up from
+  a written file to find `LEDGER.md`, the skills' and `output-management.md`'s
+  paths, and the labels existing ledgers cite each other by file name. Decide
+  first which files move (ledger and generated views, state files,
+  transcripts) and which stay beside the specs, and how existing systems
+  migrate. Also constrains where the trail file (step 3 of the tracking work)
+  lives.
+
+- `claude plugin test` run at the plugin root sweeps every `*.test.ts`,
+  including `checker/ledger/ledger.test.ts` and `checker/trail/trail.test.ts`,
+  which import Node and so report a load failure there; `npm test` is unaffected. The band's own
+  tests pass; a UI test of the band needs seeded state, which the test kit's
+  `$` cannot give the real module, so it lives only as a scratch check.
 - Whether the ledger hook should fire on writes under `buildRoots`. It finds
   a system by walking up from the written file for a `LEDGER.md`, which finds
   nothing from build code, so a newly written owner label waits for the next

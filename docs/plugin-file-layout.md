@@ -17,13 +17,21 @@ centina-plugin/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── hooks/
-│   └── hooks.json
+│   ├── hooks.json
+│   ├── register.tsx
+│   ├── ledger-cite.ts
+│   ├── ledger-cite.test.ts
+│   ├── eli5.test.tsx
+│   └── types/
+│       └── index.d.ts
 ├── skills/
 │   ├── centina-session-zero/
 │   │   └── SKILL.md
 │   ├── centina-iterate/
 │   │   └── SKILL.md
-│   └── centina-realize/
+│   ├── centina-realize/
+│   │   └── SKILL.md
+│   └── centina-spike/
 │       └── SKILL.md
 ├── bin/
 │   └── centina-check
@@ -43,6 +51,9 @@ centina-plugin/
 │   ├── tsPluginImpl.ts
 │   ├── ledger/
 │   │   └── *.ts
+│   ├── trail/
+│   │   ├── *.ts
+│   │   └── tracker.html
 │   └── rules/
 │       └── *.ts
 ├── centina.ts
@@ -52,7 +63,12 @@ centina-plugin/
     ├── plugin-setup-procedure.md
     ├── output-management.md
     ├── ledger.md
-    └── measurement-methodology.md
+    ├── measurement-methodology.md
+    ├── realize-conformance.md
+    ├── trail.md
+    ├── session-zero-routing.md
+    ├── session-zero-reference.md
+    └── iterate-reference.md
 ```
 
 This tree is exactly what `install.sh` (at the checkout's own root,

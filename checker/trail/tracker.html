@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work item tracker</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface:#fcfcfb; --panel:#f3f2ef; --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974; --grid:#e3e2dd;
+  --taken:#2a78d6; --stop:#eb6834; --other:#9a9993; --pass:#1baf7a; --fail:#e34948;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
+    --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
+  --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+.kicker{margin:0;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+h1{font-size:22px;margin:2px 0 2px}
+.meta{margin:0 0 10px;color:var(--ink2)}
+.meta b{color:var(--ink)}
+.sub{color:var(--ink2);margin:0 0 18px;max-width:80ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px}
+.tile{background:var(--panel);border-radius:8px;padding:10px 12px}
+.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink2);font-size:12px}
+.tile.warn b{color:var(--stop)}
+.bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 8px;color:var(--ink2);font-size:13px}
+.seg button,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--grid);padding:4px 10px;cursor:pointer}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0;border-left:0}
+.seg button[aria-pressed="true"]{background:var(--taken);color:#fff;border-color:var(--taken)}
+select{border-radius:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.legend .stub{width:10px;height:10px;border:2px solid;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px}
+.chart{overflow-x:auto;background:var(--surface);border:1px solid var(--grid);border-radius:10px}
+svg{display:block}
+svg text{fill:var(--ink);font:12px system-ui,-apple-system,sans-serif}
+svg .muted{fill:var(--ink2)} svg .faint{fill:var(--ink3)} svg .bold{font-weight:600}
+svg a text{fill:var(--taken);text-decoration:underline}
+.tip{position:fixed;z-index:5;pointer-events:none;max-width:420px;background:var(--panel);color:var(--ink);border:1px solid var(--grid);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 18px rgba(0,0,0,.18);display:none;white-space:pre-wrap}
+details{margin-top:14px;background:var(--panel);border-radius:8px;padding:8px 12px}
+summary{cursor:pointer;color:var(--ink2);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+th,td{border-bottom:1px solid var(--grid);padding:4px 6px;text-align:left;vertical-align:top}
+th{color:var(--ink2);font-weight:600}
+.note{background:var(--panel);border-radius:8px;padding:10px 12px;color:var(--ink2);margin:14px 0;max-width:90ch}
+.note.bad{border-left:4px solid var(--stop)}
+.gate{margin:10px 0 18px}
+.gate h3{font-size:13px;margin:0 0 2px}
+.gate p{margin:0 0 4px;color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<p class="kicker" id="kicker"></p>
+<h1 id="h"></h1>
+<p class="meta" id="meta"></p>
+<p class="sub" id="sub"></p>
+<div id="notes"></div>
+<div class="tiles" id="tiles"></div>
+<div class="bar">
+  <span class="seg" id="seg" role="group" aria-label="Segment length"><button data-m="activeMin" aria-pressed="true">Active time</button><button data-m="tokens" aria-pressed="false">Output tokens</button></span>
+  <label>Work item <select id="item"></select></label>
+  <span class="legend">
+    <span><i style="border-color:var(--taken)"></i>path taken</span>
+    <span><span class="stub" style="border-color:var(--other)"></span>offered, not taken</span>
+    <span><span class="stub" style="border-color:var(--stop)"></span>stop / return, not taken</span>
+    <span><span class="stub" style="border-color:var(--taken)"></span>taken up later</span>
+  </span>
+</div>
+<div class="chart"><svg id="svg" role="img" aria-label="Decision history tree for the work item"></svg></div>
+<details id="standing"><summary id="standingTitle"></summary><div id="standingBody"></div></details>
+<details id="gates"><summary id="gatesTitle"></summary><div id="gatesBody"></div></details>
+<details id="waived" hidden><summary id="waivedTitle"></summary><div id="waivedBody"></div></details>
+<details><summary>Table view</summary><table id="tbl"></table></details>
+</main>
+<div class="tip" id="tip"></div>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const M = JSON.parse(document.getElementById('data').textContent);
+const $ = id => document.getElementById(id);
+const fmtT = t => new Date(t*1000).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+const fmtDur = m => m>=60 ? (m/60).toFixed(1)+' h' : Math.round(m)+' min';
+const fmtTok = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : Math.round(n/1e3)+'k';
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const trunc = (s,n) => s.length>n ? s.slice(0,n-1)+'…' : s;
+let metric = 'activeMin', item = M.focus || '';
+const V = () => (item && M.views[item]) || M;
+const itemName = i => i || 'All items';
+
+// Which item this page is about, stated once at the top and again in the tab title.
+function heading(){
+  const info = M.itemInfo[item];
+  const short = item ? item.replace(/^[^:]*:/,'') : '';
+  $('kicker').textContent = (M.system ? M.system+' — ' : '')+'work item tracker';
+  $('h').textContent = item ? item+(info&&info.title?' — '+info.title:'') : 'All work items'+(M.items.length?' ('+M.items.length+')':'');
+  $('meta').innerHTML = item && info
+    ? '<b>'+esc(info.status||'status unknown')+'</b> · '+info.decisions+' decision'+(info.decisions===1?'':'s')+' · last '+fmtT(info.lastT)+(item===M.focus&&M.items.length>1?' · the latest item worked on':'')
+    : (M.items.length>1?'Every item in this trail, in one history.':'');
+  document.title = (short?short+' — ':'')+'Work item tracker';
+}
+$('sub').textContent = 'Each node is a point where the agent offered options. The line is the path taken; the stubs are what was offered and not taken. Segment length is the weight of the work after that decision.';
+
+function summary(){
+  const T = V().tiles;
+  const notes = [];
+  if (!M.weighted) notes.push(['bad','No transcript copy or stored weights were found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
+  else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy or stored weights for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
+  if (M.problems.errors+M.problems.warnings) notes.push(['bad',M.problems.errors+' errors and '+M.problems.warnings+' warnings in the trail (all items); run centina-check trail to see them.']);
+  if (T.pending) notes.push(['','Awaiting your answer: '+T.pending]);
+  $('notes').innerHTML = notes.map(n=>'<div class="note '+n[0]+'">'+esc(n[1])+'</div>').join('');
+  const tiles = [];
+  if (M.weighted && T.activeMin!==undefined) tiles.push([fmtDur(T.activeMin),'active time','' ],[fmtTok(T.tokens),'output tokens','']);
+  tiles.push([T.decisions,'decision points','']);
+  if (T.closeOffered) tiles.push([T.closeDeclined+' of '+T.closeOffered,'stop / return options offered and declined', T.closeDeclined===T.closeOffered?'warn':'']);
+  tiles.push([T.standing,'alternatives never taken','']);
+  if (T.chosenOf) tiles.push([T.readOf+' of '+T.chosenOf,'steps that read a gate', T.sinceReading>=2?'warn':''],[T.sinceReading,'steps since a gate was last read', T.sinceReading>=2?'warn':'']);
+  if (T.checkpoints) tiles.push([T.checkpoints,'checkpoints','']);
+  $('tiles').innerHTML = tiles.map(t=>'<div class="tile '+t[2]+'"><b>'+t[0]+'</b><span>'+t[1]+'</span></div>').join('');
+}
+if (!M.weighted) $('seg').style.display='none';
+if (M.items.length) {
+  const label = i => i+(M.itemInfo[i]&&M.itemInfo[i].title?' — '+trunc(M.itemInfo[i].title,70):'');
+  $('item').innerHTML = M.items.map(i=>'<option value="'+esc(i)+'">'+esc(label(i))+'</option>').join('')+'<option value="">All items</option>';
+  $('item').value = item;
+} else $('item').parentElement.style.display='none';
+$('item').addEventListener('change',e=>{item=e.target.value;refresh()});
+document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
+  metric=b.dataset.m; document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); draw();
+}));
+const tip=$('tip');
+function showTip(e,text){tip.textContent=text;tip.style.display='block';tip.style.left=Math.max(8,Math.min(e.clientX+14,innerWidth-440))+'px';tip.style.top=Math.min(e.clientY+14,innerHeight-120)+'px'}
+function hideTip(){tip.style.display='none'}
+function hover(nodes,text){for(const n of nodes){n.addEventListener('mousemove',e=>showTip(e,text));n.addEventListener('mouseleave',hideTip)}}
+const NS='http://www.w3.org/2000/svg';
+function el(name,attrs,parent,text){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e}
+
+function stubStyle(o){
+  if (o.state==='abandoned') return {col:'var(--other)',dash:'1 3',mark:'×'};
+  if (o.state==='done') return {col:'var(--pass)',dash:'3 3',mark:'✓'};
+  if (o.takenLaterBy) return {col:'var(--taken)',dash:'3 3',mark:''};
+  return {col:o.kind==='close'?'var(--stop)':'var(--other)',dash:'3 3',mark:o.state==='parked'?'parked':''};
+}
+
+function draw(){
+  const svg=$('svg'); svg.innerHTML='';
+  const nodes=M.nodes.filter(n=>!item||n.item===item);
+  if(!nodes.length){svg.setAttribute('height',60);svg.setAttribute('width',600);el('text',{x:12,y:30,class:'muted'},svg,'No decisions recorded yet.');return}
+  const SP=270, ROW=17, TOP=40, W=1120;
+  const val=n=>M.weighted?(n[metric]||0):0;
+  const vmax=Math.max(1,...nodes.map(val));
+  const K=M.weighted?300/vmax:0;
+  let y=TOP; const pos=[], at=new Map();
+  nodes.forEach((n,i)=>{
+    const stubs=n.options.filter(o=>!n.chose.includes(o.n)).length;
+    const need=Math.max(ROW*(stubs+1)+14, 36);
+    pos.push({y:y,need:need,end:y+need+val(n)*K}); at.set(n.id,i);
+    y=y+need+val(n)*K+6;
+  });
+  const H=y+34;
+  svg.setAttribute('width',W); svg.setAttribute('height',H); svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const days=new Set();
+  nodes.forEach((n,i)=>{ const d=new Date(n.t*1000).toDateString(); if(!days.has(d)){days.add(d);
+    el('line',{x1:0,x2:W,y1:pos[i].y-8,y2:pos[i].y-8,stroke:'var(--grid)'},svg);
+    el('text',{x:10,y:pos[i].y+4,class:'bold'},svg,new Date(n.t*1000).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
+  }});
+  nodes.forEach((n,i)=>{
+    const y0=pos[i].y+9, y1=(i+1<nodes.length?pos[i+1].y+9:pos[i].end);
+    el('line',{x1:SP,x2:SP,y1:y0,y2:y1,stroke:'var(--taken)','stroke-width':3,'stroke-linecap':'round'},svg);
+    if(M.weighted && val(n)*K>26) el('text',{x:SP-12,y:(pos[i].y+pos[i].need+pos[i].end)/2+4,'text-anchor':'end',class:'muted'},svg,metric==='activeMin'?fmtDur(n.activeMin):fmtTok(n.tokens));
+  });
+  // returns to an earlier option
+  nodes.forEach((n,i)=>{
+    if(!n.jump) return; const m=/^(.+)\.(\d+)$/.exec(n.jump.from); const j=m&&at.get(m[1]); if(j===undefined||j===null) return;
+    const y0=pos[i].y+9, yo=pos[j].y+9+ROW*(1+n.options.length>0?1:1);
+    el('path',{d:'M'+(SP-8)+','+y0+' L'+(SP-90)+','+y0+' L'+(SP-90)+','+(pos[j].y+9)+' L'+(SP-8)+','+(pos[j].y+9),fill:'none',stroke:'var(--taken)','stroke-width':1.5,'stroke-dasharray':'4 3'},svg);
+    el('text',{x:SP-96,y:y0-4,'text-anchor':'end',class:'faint'},svg,'returns to '+n.jump.from);
+  });
+  nodes.forEach((n,i)=>{
+    const y0=pos[i].y, g=el('g',{},svg);
+    const dot = n.pending
+      ? el('circle',{cx:SP,cy:y0+9,r:6.5,fill:'var(--surface)',stroke:'var(--taken)','stroke-width':3},g)
+      : n.checkpoint
+        ? el('rect',{x:SP-7,y:y0+2,width:14,height:14,transform:'rotate(45 '+SP+' '+(y0+9)+')',fill:'var(--taken)',stroke:'var(--surface)','stroke-width':2},g)
+        : el('circle',{cx:SP,cy:y0+9,r:6,fill:'var(--taken)',stroke:'var(--surface)','stroke-width':2},g);
+    const chosen=n.options.filter(o=>n.chose.includes(o.n));
+    let lab = chosen.length ? chosen.map(o=>o.n+'. '+trunc(o.label,64)).join('  +  ') : n.pending ? 'awaiting an answer: '+trunc(n.question,60) : (n.other?'other: '+trunc(n.other,60):'no option taken');
+    if(n.backfilled) lab+='  (reconstructed)';
+    const ct=el('text',{x:SP+30,y:y0+13,class:n.pending?'muted bold':'bold'},g,lab);
+    let tx=SP+30+Math.min(lab.length*6.6,520)+12;
+    el('text',{x:tx,y:y0+13,class:'faint'},g,fmtT(n.t)+(n.checkpoint?'  · checkpoint: '+n.checkpoint:'')); tx+=150+(n.checkpoint?(n.checkpoint.length+16)*6.2:0);
+    n.cites.slice(0,6).forEach(c=>{
+      const a=el(c.url?'a':'g',c.url?{href:c.url}:{},g); const t=el('text',{x:tx,y:y0+13,class:'faint'},a,c.label.replace(/^[a-z0-9-]+:/,'')); tx+=c.label.replace(/^[a-z0-9-]+:/,'').length*6.6+10;
+      hover([t],c.label+(c.status?' ('+c.status+')':'')+(c.title?'\n'+c.title:''));
+    });
+    hover([ct,dot],fmtT(n.t)+(n.item?'\n'+n.item:'')+'\n'+n.question+(n.quote?'\n\nHuman: '+n.quote:'')+'\n\nOffered:\n'+n.options.map(o=>(n.chose.includes(o.n)?'▶ ':'   ')+o.n+'. '+o.label+(o.kind==='close'?'  [stop/return]':'')+(o.recommended?'  [agent recommended]':'')+(o.note?'\n      '+o.note:'')).join('\n'));
+    let r=1;
+    n.options.filter(o=>!n.chose.includes(o.n)).forEach(o=>{
+      const sy=y0+9+r*ROW; r++;
+      const s=stubStyle(o);
+      el('path',{d:'M'+SP+','+(y0+9)+' L'+(SP+22)+','+(y0+9)+' L'+(SP+22)+','+sy+' L'+(SP+44)+','+sy,fill:'none',stroke:s.col,'stroke-width':1.5,'stroke-dasharray':s.dash},g);
+      const mk=el('circle',{cx:SP+50,cy:sy,r:4.5,fill:'var(--surface)',stroke:s.col,'stroke-width':2},g);
+      const text=o.n+'. '+trunc(o.label,92)+(o.recommended?'  ★':'')+(s.mark&&s.mark.length>1?'  ('+s.mark+')':s.mark?'  '+s.mark:'')+(o.takenLaterBy?'  → '+o.takenLaterBy:'');
+      const t=el('text',{x:SP+60,y:sy+4,class:o.kind==='close'?'':'muted'},g,text);
+      if(o.state==='abandoned') t.setAttribute('text-decoration','line-through');
+      hover([mk,t],'Offered, not taken ('+fmtT(n.t)+') — '+o.state+(o.why?': '+o.why:'')+'\n'+o.label+(o.note?'\n'+o.note:''));
+    });
+  });
+  const last=pos[pos.length-1];
+  el('circle',{cx:SP,cy:last.end,r:5,fill:'var(--surface)',stroke:'var(--taken)','stroke-width':3},svg);
+  el('text',{x:SP+14,y:last.end+4,class:'muted'},svg,'now');
+}
+
+// Standing alternatives (collapsed).
+function standing(){
+const S=V().standing;
+$('standingTitle').textContent='Standing alternatives ('+S.length+') — offered and never taken';
+$('standingBody').innerHTML = S.length
+ ? '<table><tr><th>Alternative</th><th>Offered</th><th>First / last</th><th>Since first offer</th><th>State</th></tr>'+S.map(s=>'<tr><td>'+(s.kind==='close'?'<b>[stop/return]</b> ':'')+esc(s.label)+'</td><td>'+s.offers+'×</td><td>'+fmtT(s.firstT)+' / '+fmtT(s.lastT)+'</td><td>'+(s.activeMin!==undefined?fmtDur(s.activeMin)+', '+fmtTok(s.tokens):'—')+'</td><td>'+s.state+(s.why?': '+esc(s.why):'')+'</td></tr>').join('')+'</table>'
+ : '<p class="sub">Every option offered was taken at least once.</p>';
+}
+
+// Waived checks (collapsed, only when there are any): hidden from the checker's output, never from here.
+if (M.waived.length) {
+  $('waived').hidden=false;
+  $('waivedTitle').textContent='Waived checks ('+M.waived.length+') — warnings the checker no longer raises';
+  $('waivedBody').innerHTML='<table><tr><th>Check</th><th>For</th><th>Why waived</th><th>Ruled</th></tr>'+M.waived.map(w=>'<tr><td>'+esc(w.rule)+'</td><td>'+esc(w.subject)+'</td><td>'+esc(w.why)+'</td><td>'+esc(w.quote||'')+' <span class="muted">'+fmtT(Date.parse(w.at)/1000)+'</span></td></tr>').join('')+'</table>';
+}
+
+// Gates (collapsed).
+function spark(g){
+  const rs=g.readings.filter(r=>r.value!==undefined); if(rs.length<1) return '';
+  const w=420,h=70,pad=14; const vals=rs.map(r=>r.value).concat(g.tolerance!==undefined?[g.tolerance]:[]);
+  const lo=Math.min(...vals), hi=Math.max(...vals), span=(hi-lo)||1;
+  const x=i=>pad+(rs.length===1?(w-2*pad)/2:i*(w-2*pad)/(rs.length-1)), yv=v=>h-pad-(v-lo)/span*(h-2*pad);
+  let s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Readings of '+esc(g.id)+'">';
+  if(g.tolerance!==undefined) s+='<line x1="'+pad+'" x2="'+(w-pad)+'" y1="'+yv(g.tolerance)+'" y2="'+yv(g.tolerance)+'" stroke="var(--stop)" stroke-dasharray="4 3"/><text x="'+(w-pad)+'" y="'+(yv(g.tolerance)-4)+'" text-anchor="end" class="faint">tolerance '+g.tolerance+(g.unit?' '+esc(g.unit):'')+'</text>';
+  s+='<polyline fill="none" stroke="var(--taken)" stroke-width="2" points="'+rs.map((r,i)=>x(i)+','+yv(r.value)).join(' ')+'"/>';
+  rs.forEach((r,i)=>{ s+='<circle cx="'+x(i)+'" cy="'+yv(r.value)+'" r="4.5" fill="'+(r.verdict==='pass'?'var(--pass)':r.verdict==='fail'?'var(--fail)':'var(--surface)')+'" stroke="var(--taken)" stroke-width="2"><title>'+esc(r.value+(g.unit?' '+g.unit:'')+' — '+r.verdict+(r.evidence?' ('+r.evidence+')':''))+'</title></circle>'; });
+  return s+'</svg>';
+}
+function gates(){
+const G=V().gates;
+$('gatesTitle').textContent='Gates and readings ('+G.length+')';
+$('gatesBody').innerHTML = G.length ? G.map(g=>'<div class="gate"><h3>'+esc(g.id)+' · '+esc(g.item)+'</h3><p>'+esc(g.statement)+(g.quote?' — ruled: “'+esc(g.quote)+'”':'')+'</p>'+(g.readings.length?spark(g)+'<p>'+g.readings.length+' readings'+(g.trend?', latest '+({away:'further past the tolerance',toward:'closer to the tolerance',level:'level'})[g.trend]:'')+'.</p>':'<p>No readings yet.</p>')+'</div>').join('')
+ : '<p class="sub">No gate has been ruled'+(item?' for '+esc(item):' for any item in this trail')+'.</p>';
+}
+
+function table(){
+$('tbl').innerHTML='<tr><th>When</th><th>Item</th><th>Question</th><th>Taken</th><th>Not taken</th><th>Active</th><th>Output tokens</th></tr>'+
+ M.nodes.filter(n=>!item||n.item===item).map(n=>'<tr><td>'+fmtT(n.t)+'</td><td>'+esc(n.item||'')+'</td><td>'+esc(n.question)+'</td><td>'+(n.options.filter(o=>n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)).join('<br>')||(n.pending?'(pending)':esc(n.other||'—')))+'</td><td>'+n.options.filter(o=>!n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)+' ('+o.state+')').join('<br>')+'</td><td>'+(n.activeMin!==undefined?fmtDur(n.activeMin):'—')+'</td><td>'+(n.tokens!==undefined?fmtTok(n.tokens):'—')+'</td></tr>').join('');
+}
+
+function refresh(){heading();summary();draw();standing();gates();table()}
+refresh();
+</script>
+</body>
+</html>

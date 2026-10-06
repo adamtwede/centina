@@ -22,6 +22,7 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 cp -R "$SRC/.claude-plugin" "$DEST/"
+rm -rf "$DEST/.claude-plugin/types" # engine-laid dev types for tsconfig.hooks.json, not part of the bundle
 cp -R "$SRC/hooks" "$DEST/"
 cp -R "$SRC/skills" "$DEST/"
 cp -R "$SRC/bin" "$DEST/"
@@ -35,7 +36,8 @@ mkdir -p "$DEST/docs"
 # Keep this list in step with docs/plugin-file-layout.md's directory tree;
 # scripts/bundle.test.mjs asserts the two agree.
 for doc in plugin-setup-procedure.md output-management.md ledger.md \
-           measurement-methodology.md; do
+           measurement-methodology.md realize-conformance.md trail.md \
+           session-zero-routing.md session-zero-reference.md iterate-reference.md; do
   cp "$SRC/docs/$doc" "$DEST/docs/"
 done
 
@@ -49,8 +51,9 @@ echo "This checkout ($SRC) is no longer required — Claude Code will load the"
 echo "plugin from $DEST every session from now on. Re-run this script after"
 echo "pulling updates; nothing here tracks the checkout automatically."
 echo
-echo "Note: $DEST/bin/centina-check is not on your PATH. Claude Code skills"
-echo "invoke it directly via \${CLAUDE_PLUGIN_ROOT} — nothing to do there. To"
-echo "run it yourself from a terminal, either add $DEST/bin to your PATH, or"
-echo "call it by full path, e.g.:"
-echo "  $DEST/bin/centina-check --project <path/to/tsconfig.json> <file...>"
+echo "Note: Claude Code skills invoke $DEST/bin/centina-check directly via"
+echo "\${CLAUDE_PLUGIN_ROOT} — nothing to do there. To run it yourself from a"
+echo "terminal, putting bin/ on your PATH is not enough: it needs"
+echo "CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA set, which only Claude Code"
+echo "sets. See README.md, \"Claude Code setup\" (\"Running it yourself from a"
+echo "terminal\"), for a shell function that sets them per invocation."

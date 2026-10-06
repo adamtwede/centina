@@ -1,5 +1,5 @@
 import path from "node:path"
-import { CLOSED_PHASE, NOT_HOLDING } from "./check"
+import { CLOSED_PHASE, NOT_HOLDING, PARKED_FORMAT } from "./check"
 import { Entry, LETTERS, Ledger, fieldRefs, formatRef, labelKey, status } from "./parse"
 
 const GENERATED_NOTE =
@@ -15,6 +15,13 @@ function compareEntries(a: Entry, b: Entry): number {
     LETTERS.indexOf(a.ref.letter) - LETTERS.indexOf(b.ref.letter) ||
     a.ref.number - b.ref.number
   )
+}
+
+/** A title with its park condition appended, so a header scan sees it. */
+function titleOf(e: Entry): string {
+  const parked = e.fields.get("Parked")?.value
+  const condition = parked && PARKED_FORMAT.test(parked) ? parked.replace(/^[^,]*,\s*until\s+/, "") : undefined
+  return condition ? `${e.title} (parked until ${condition})` : e.title
 }
 
 function sorted(entries: Entry[]): Entry[] {
@@ -114,6 +121,45 @@ export function renderStanding(ledger: Ledger): string {
     ...standingLines(uniqueEntries(ledger)),
     "",
   ].join("\n")
+}
+
+/**
+ * Machine-readable view of every label, for tooling that can't import the
+ * checker (the plugin's Claude Code mod reads this to annotate cited labels).
+ * `file` is relative to the system directory, so the file is machine-independent.
+ */
+export function renderJson(ledger: Ledger): string {
+  const parkedCondition = (e: Entry) => {
+    const parked = e.fields.get("Parked")?.value
+    return parked && PARKED_FORMAT.test(parked) ? parked.replace(/^[^,]*,\s*until\s+/, "") : undefined
+  }
+  const phaseOf = (e: Entry) => {
+    const ref = fieldRefs(e, "Phase").refs[0]
+    return ref ? labelKey(ref) : undefined
+  }
+  // Distinct keys, parts dropped; absent when the field is empty, so entries
+  // that cite nothing add nothing to the file.
+  const keysOf = (e: Entry, field: string) => {
+    const keys = [...new Set(fieldRefs(e, field).refs.map(labelKey))]
+    return keys.length > 0 ? keys : undefined
+  }
+  const entries = uniqueEntries(ledger).map((e) => ({
+    key: e.key,
+    title: e.title,
+    status: status(e),
+    kind: e.fields.get("Kind")?.value,
+    phase: phaseOf(e),
+    date: e.fields.get("Date")?.value,
+    size: e.body.reduce((n, l) => n + l.text.length + 1, 0),
+    dependsOn: keysOf(e, "Depends-on"),
+    premises: keysOf(e, "Premises"),
+    file: path.relative(ledger.dir, e.file),
+    line: e.line,
+    parts: [...e.parts].sort(),
+    parkedUntil: parkedCondition(e),
+    obsoletedBy: fieldRefs(e, "Obsoleted-by").refs.map(formatRef),
+  }))
+  return `${JSON.stringify({ generated: "by `centina-check ledger`; do not edit", system: ledger.system, entries }, null, 2)}\n`
 }
 
 /** Every label, for taking the next number in a scope and for looking up a label's file. */
@@ -261,14 +307,14 @@ export function renderPhaseView(ledger: Ledger, phaseKey: string): { ok: true; t
     "",
     ...table(
       ["Label", "Kind", "Status", "Title"],
-      phaseItems.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", e.title]),
+      phaseItems.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", titleOf(e)]),
     ),
     "",
     "## Pulled in via Depends-on / Premises / Constraints",
     "",
     ...table(
       ["Label", "Status", "Title"],
-      otherPulledIn.map((e) => [e.key, status(e) ?? "", e.title]),
+      otherPulledIn.map((e) => [e.key, status(e) ?? "", titleOf(e)]),
     ),
     "",
   ]
@@ -328,7 +374,7 @@ export function renderIndex(ledger: Ledger): string {
       "",
       ...table(
         ["Label", "Kind", "Status", "Title"],
-        phaseGroups.get(group)!.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", e.title]),
+        phaseGroups.get(group)!.map((e) => [e.key, e.fields.get("Kind")?.value ?? "", status(e) ?? "", titleOf(e)]),
       ),
       "",
     )
