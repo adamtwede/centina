@@ -45,11 +45,17 @@ Write `<artifactsRoot>/.centina/config.json`:
 
 ```json
 {
-  "hostRoot": "<resolved absolute path from Step 1>",
-  "artifactsRoot": "<resolved absolute path>",
+  "hostRoot": "<path from artifactsRoot to the Step 1 host root, forward slashes, e.g. \"..\">",
+  "artifactsRoot": ".",
   "pluginVersion": "<version field from ${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json>"
 }
 ```
+
+Write both paths **relative**, never absolute: the config is committed and read
+on other machines, and an absolute path is right on only one. They are relative
+to the directory holding `.centina/`, which is the artifacts root, so
+`artifactsRoot` is always `"."`. (`known-projects.json` below is machine-local
+and stays absolute.)
 
 Those three keys are what setup writes; the file gains others as they are
 needed — `ledgerHook`, and a `systems` entry per system carrying its
@@ -93,6 +99,76 @@ not by where its checkout happens to sit — pointing here instead of at
 `ROOT` means an existing project's `tsconfig.json` keeps working even if the
 checkout is later moved or renamed.
 
+Write the path with forward slashes on every platform: Windows accepts them,
+and a backslash path needs every `\` escaped inside the JSON string.
+
+The result is machine-specific, so it must not be committed. Make sure
+`<artifactsRoot>/.gitignore` lists `/tsconfig.json` (create the file or append
+the line; keep any other content). If the file is already tracked by git, say
+so and give the human `git rm --cached <path>` to run themselves — do not run
+it. A fresh clone has no `tsconfig.json` until this step runs, which it does on
+the first session there.
+
+The ledger command's generated files are written with LF endings, and a
+Windows checkout with `core.autocrlf=true` turns them into CRLF. The checker
+compares them ignoring that difference, so this is not required for a clean
+`centina-check ledger --check`; it keeps the committed bytes stable. Make sure
+`<artifactsRoot>/.gitattributes` has these lines (create the file or append
+what is missing; keep any other content, and don't add a blanket `*` rule to a
+repo that didn't ask for one):
+
+```
+LEDGER-INDEX.md text eol=lf
+LEDGER-LABELS.md text eol=lf
+LEDGER.json text eol=lf
+STANDING.md text eol=lf
+```
+
+### Regenerating the tsconfig by hand
+
+Running any centina skill regenerates it (this procedure runs at the start of
+each). To do it without a session, for example after moving to a new machine,
+where a committed or copied `tsconfig.json` still names the old machine's path:
+
+- the plugin's own copy is at `~/.claude/skills/centina/` (or
+  `$CLAUDE_CONFIG_DIR/skills/centina/`), the `CLAUDE_PLUGIN_ROOT` of a session;
+- `CLAUDE_PLUGIN_DATA` is `~/.claude/plugins/data/centina-skills-dir` (under
+  `$CLAUDE_CONFIG_DIR` instead, if that is set). It holds the checker with its
+  `node_modules`, put there by the `SessionStart` hook; if
+  `<DATA>/checker/tsPlugin.cjs` is missing, start one Claude Code session with
+  the plugin loaded first.
+
+Windows (PowerShell; set `$art` to the artifacts root):
+
+```powershell
+$art = "C:/path/to/artifactsRoot"
+$data = "$HOME/.claude/plugins/data/centina-skills-dir"
+$plugin = ($data -replace '\\','/') + "/checker/tsPlugin.cjs"
+(Get-Content "$HOME/.claude/skills/centina/tsconfig.template.json" -Raw).Replace('<placeholder, substituted at generation time>', $plugin) | Set-Content -NoNewline "$art/tsconfig.json"
+```
+
+macOS, Linux and WSL:
+
+```sh
+CLAUDE_PLUGIN_ROOT="$HOME/.claude/skills/centina"
+CLAUDE_PLUGIN_DATA="$HOME/.claude/plugins/data/centina-skills-dir"
+sed "s#<placeholder, substituted at generation time>#$CLAUDE_PLUGIN_DATA/checker/tsPlugin.cjs#" \
+  "$CLAUDE_PLUGIN_ROOT/tsconfig.template.json" > /path/to/artifactsRoot/tsconfig.json
+```
+
+Don't use the `sh` form from Git Bash on Windows: it writes `/c/Users/...`,
+which Windows programs don't resolve.
+
+**The `plugins` entry does not load in at least one tsserver.** The checker
+CLI never reads `compilerOptions.plugins`, so `centina-check` is unaffected,
+and the stale path of a copied `tsconfig.json` breaks nothing there. Only an
+editor's tsserver reads it, and tsserver from TypeScript 6.0.3 declines it on
+Windows, in either slash spelling: its log reads `Skipped loading plugin
+<path> because only package name is allowed plugin name`. So the live in-editor
+diagnostics are not confirmed to work from this entry on that version, and an
+editor that bundles another TypeScript may differ. Check the editor's tsserver
+log before relying on them.
+
 ## Idempotency
 
 Steps 3 and 4 regenerate unconditionally every time this procedure runs,
@@ -105,6 +181,15 @@ If `pluginVersion` in the existing config doesn't match the currently
 loaded plugin, say so in one line ("stub tsconfig regenerated: plugin
 updated from 0.3.0 → 0.4.0"), then write the loaded version into the
 config. Without that write the same line reappears every session.
+
+**Migrating an older config.** If `hostRoot` or `artifactsRoot` in the existing
+config is an absolute path, rewrite it relative, keeping every other key:
+`artifactsRoot` becomes `"."`, and `hostRoot` the path from the artifacts root
+to the host root (usually `".."`), with forward slashes. When the absolute
+`hostRoot` does not exist on this machine the config came from another one:
+don't derive it from the dead path; offer the nearest ancestor of the artifacts
+root that holds a `.git` (Step 1, option 2) and ask the human to confirm. Say
+what changed in one line.
 
 Steps 1 and 2 never re-run once a config exists anywhere Step 0 or a fresh
 walk can find it.

@@ -18,8 +18,10 @@ description: Works behind a Centina spec's boundaries while the spec is still be
 5. Read or create the run frame, `specs/<system>/REALIZE-STATE.md`
    (`output-management.md`). It records the implementation root (where code
    lives), the contracts module path, the path build code uses to import
-   `<artifactsRoot>/conformance.ts`, the spike source tree, the current phase
-   and step, and session IDs. Ask the human for anything not yet recorded.
+   `<artifactsRoot>/conformance.ts`, the spike source tree, the label of the
+   current phase (not its steps), and session IDs. Ask the human for anything
+   not yet recorded, and add this session's ID to its session list now
+   (`output-management.md`, "Keep it current").
    If it already names a current phase, read that phase's view
    (`centina-check ledger --phase <label> <dir>`); otherwise (no phase yet,
    or between one closing and the next starting) read the system's
@@ -107,7 +109,7 @@ Scope names: component work uses the spec file's basename; a spike series not
 tied to one component gets a named scope such as `spike-propagation`.
 
 Status is `planned` until the human confirms the plan, then the phase becomes
-`active`.
+`active`: set the run frame's current phase to its label in the same edit.
 
 ## Working a step
 
@@ -317,7 +319,9 @@ such. Recording one as fact is not.
      remembers;
    - a pointer to `LEDGER-INDEX.md`'s open items (do not copy them) — by now
      none should still carry this phase.
-5. Set the phase `W` entry `done`.
+5. Set the phase `W` entry `done`, and in the same edit change the run
+   frame's current phase: to `none` until the next phase is confirmed. Steps
+   closed along the way never go in the run frame.
 
 ## Implementation plans (provisional)
 

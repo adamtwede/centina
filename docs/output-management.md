@@ -12,12 +12,25 @@ All in `<artifactsRoot>/specs/<system>/`:
    `ITERATE-STATE.md` for iterate, `REALIZE-STATE.md` for realize (which also
    records the implementation root, the contracts module, and the spike and
    build source trees). It holds only:
-   - the system name and `artifactsRoot`;
-   - the session IDs of runs so far;
-   - where the run is: current phase or gate, or current component;
+   - the system name, and `artifactsRoot` if you record it, as a path relative
+     to the host root (`.centina/config.json` holds the real one; an absolute
+     path in a committed file goes stale on another machine);
+   - the session IDs of runs so far: one line each, with the start date and a
+     few words on what the session was for. The `Session` header on each
+     ledger entry records what the session did, so never narrate it here;
+   - where the run is: the label of the current phase or gate, or the current
+     component, and nothing else. Not the steps done, the earlier phases or any
+     status: read those from `centina-check ledger --phase <label> <dir>` or
+     `LEDGER-INDEX.md`;
    - pointers: DAG files, and open threads by label.
 
    Keep it under ~100 lines. Never copy entry content or status into it.
+
+   **Keep it current.** Nothing generates the run frame, so it changes only
+   when the skill edits it: add this session's ID line at setup, and update
+   where the run is whenever the current phase or gate changes (a phase becomes
+   active; a phase closes). A run frame that names a closed phase sends the next
+   session to the wrong phase view.
 3. **Generated views:** `LEDGER-INDEX.md`, `LEDGER-LABELS.md`,
    `LEDGER.json` and `STANDING.md`.
 
