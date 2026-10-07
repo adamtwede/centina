@@ -1,6 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
+// The tests name paths as POSIX ('/w'); on Windows the engine hands the mocks 'C:\w'.
+const posix = (p: unknown) => String(p).replace(/^[A-Za-z]:/, '').split(String.fromCharCode(92)).join('/')
+
 const ledger = '## Open\n### sz:P1: first\ncites sz:P2\n### sz:P2: second\nbody'
 const json = JSON.stringify({ system: 'alpha', entries: [
   { key: 'sz:P1', title: 'first', status: 'open', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
@@ -74,8 +77,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -105,7 +108,7 @@ test('a shell cd into a subfolder does not hide the ledger', async ($, on) => {
   // The shell has moved into a folder under the project; the project root has not.
   on('session.cwd', async () => ({ value: '/w/sub' }) as never)
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: JSON.stringify({ system: 'alpha', entries: [
     { key: 'sz:W1', title: 'phase one', status: 'active', kind: 'phase', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
   ] }) }))
@@ -119,7 +122,7 @@ test('a reply that cites nothing still gets a band with TLDR THIS, once a ledger
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   const mount = () => $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
   await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
   const ui = await mount()
@@ -148,8 +151,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -187,7 +190,7 @@ test('Phase progress shows only while a ledger phase is active, and does not cal
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: json }))
   on('ui.open', async () => ({ value: { isOpen: true } as never }))
   on('model.complete', async (_$, e) => { asked.push(e); return { value: { isAnswered: false, reason: 'error' } as never } })
@@ -222,7 +225,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? itemJson : itemLedger }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
@@ -259,7 +262,7 @@ test('the band flags a long-running item against the closed items of its kind, a
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? json : itemLedger }))
   on('ui.open', async () => ({ value: { isOpen: true } as never }))
   on('model.complete', async (_$, e) => { asked.push(e); return { value: { isAnswered: true, text: 'ok', usage } as never } })
@@ -284,7 +287,7 @@ test('Item progress is not offered when no work item is active', async ($, on) =
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: json }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
@@ -311,8 +314,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -391,7 +394,7 @@ for (const c of trackerCases) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => {
       if (!String(e.path).endsWith('.centina-data')) return { value: trailJson }
       if (c.pointer === undefined) throw new Error('no such file')
@@ -433,7 +436,7 @@ test('/track-item pins the band to an item, shows it as pinned, and auto lets th
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: two }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
@@ -456,7 +459,7 @@ test('Tracker is not offered for a system with no trail', async ($, on) => {
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: trailJson }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
