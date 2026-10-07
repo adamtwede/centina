@@ -39,18 +39,85 @@ export function findConfig(startDir: string): CentinaConfig | undefined {
 }
 
 /**
- * A system's key in `systems`: its directory relative to `artifactsRoot`. Not
- * its name — a system lives wherever a LEDGER.md sits, spec trees nest, and
+ * A system's key in `systems`: its directory relative to the artifacts root.
+ * Not its name — a system lives wherever a LEDGER.md sits, spec trees nest, and
  * two systems can share a basename.
+ *
+ * The artifacts root is the directory holding `.centina/`, not the config's
+ * recorded `artifactsRoot`: setup writes the config at
+ * `<artifactsRoot>/.centina/config.json`, so the two are the same place, and the
+ * recorded absolute path is only right on the machine that wrote it. Resolved
+ * on another, it points nowhere and every key came out as `../../...` junk.
  */
 export function systemKey(config: CentinaConfig, systemDir: string): string {
-  const root = config.artifactsRoot ? path.resolve(config.artifactsRoot) : config.dir
-  return path.relative(root, path.resolve(systemDir)).split(path.sep).join("/")
+  return path.relative(config.dir, path.resolve(systemDir)).split(path.sep).join("/")
 }
 
-/** A system's build trees, resolved absolute against `hostRoot`. */
+/**
+ * The host project root. A relative `hostRoot` is relative to the directory
+ * holding `.centina/`, so a checkout works wherever it sits; an absolute one
+ * is used as written. Absent, the artifacts root stands in.
+ */
+export function hostDir(config: CentinaConfig): string {
+  return config.hostRoot ? path.resolve(config.dir, config.hostRoot) : config.dir
+}
+
+/** A system's build trees, resolved absolute against the host root. */
 export function buildRootsFor(config: CentinaConfig, systemDir: string): string[] {
   const roots = config.systems?.[systemKey(config, systemDir)]?.buildRoots ?? []
-  const host = config.hostRoot ? path.resolve(config.hostRoot) : config.dir
-  return roots.map((root) => path.resolve(host, root))
+  return roots.map((root) => path.resolve(hostDir(config), root))
+}
+
+// A config written on Windows may be read on a POSIX machine and the other way
+// round, so absoluteness is judged by either platform's rule, not this one's.
+const isAbsolute = (p: string) => path.posix.isAbsolute(p) || path.win32.isAbsolute(p)
+
+/** True when `hostRoot` is an absolute path this machine does not have. */
+export function hostRootMissing(config: CentinaConfig): boolean {
+  return config.hostRoot !== undefined && isAbsolute(config.hostRoot) && !existsSync(config.hostRoot)
+}
+
+export interface ConfigIssue {
+  severity: "error" | "warning"
+  message: string
+}
+
+/**
+ * Absolute `hostRoot`/`artifactsRoot` paths are machine-specific, and the
+ * config is committed. A `hostRoot` this machine does not have is an error when
+ * the system names build roots — they cannot be found, so build code is not
+ * being checked — and a warning otherwise. An absolute path that does exist
+ * still works, and is only a warning to make relative.
+ */
+export function portabilityIssues(config: CentinaConfig, systemDir: string): ConfigIssue[] {
+  const issues: ConfigIssue[] = []
+  const named = (config.systems?.[systemKey(config, systemDir)]?.buildRoots ?? []).length > 0
+  const relativeTo = (absolute: string) =>
+    path.relative(config.dir, absolute).split(path.sep).join("/") || "."
+  const advice = "relative to the directory holding .centina/, so every checkout of the project agrees"
+
+  for (const field of ["hostRoot", "artifactsRoot"] as const) {
+    const value = config[field]
+    if (value === undefined || !isAbsolute(value)) continue
+    if (existsSync(value)) {
+      issues.push({
+        severity: "warning",
+        message: `${field} is the absolute path ${value}; write it ${advice} (${JSON.stringify(relativeTo(value))})`,
+      })
+    } else if (field === "hostRoot") {
+      issues.push({
+        severity: named ? "error" : "warning",
+        message:
+          `hostRoot is the absolute path ${value}, which does not exist on this machine` +
+          (named ? "; the build roots cannot be found, so build code is not being checked" : "") +
+          `; write it ${advice} (usually "..")`,
+      })
+    } else {
+      issues.push({
+        severity: "warning",
+        message: `artifactsRoot is the absolute path ${value}, which does not exist on this machine; the checker uses the directory holding .centina/ instead, so write it "."`,
+      })
+    }
+  }
+  return issues
 }

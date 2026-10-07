@@ -3,7 +3,7 @@ import path from "node:path"
 import { printFindings } from "../report"
 import { Finding } from "../types"
 import { checkLedger, checkProposals } from "./check"
-import { buildRootsFor, findConfig, systemKey } from "./config"
+import { buildRootsFor, findConfig, hostRootMissing, portabilityIssues, systemKey } from "./config"
 import { renderIndex, renderJson, renderLabels, renderPhaseView, renderStanding } from "./generate"
 import {
   BuildFile,
@@ -33,11 +33,19 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
   const findings: Finding[] = []
   const files: BuildFile[] = []
   const config = findConfig(systemDir)
-  const roots = config ? buildRootsFor(config, systemDir) : []
+  // With a hostRoot this machine does not have, the roots cannot be resolved;
+  // portabilityIssues says so once, rather than a "does not exist" per root.
+  const hostMissing = config !== undefined && hostRootMissing(config)
+  const roots = config && !hostMissing ? buildRootsFor(config, systemDir) : []
   const report = (file: string, message: string) =>
     findings.push({ rule: "ledger-config", severity: "error", file, line: 1, message })
 
   if (config?.problem) report(config.file, config.problem)
+  if (config) {
+    for (const { severity, message } of portabilityIssues(config, systemDir)) {
+      findings.push({ rule: "ledger-config", severity, file: config.file, line: 1, message })
+    }
+  }
 
   for (const root of roots) {
     if (existsSync(root)) files.push(...scanBuildRoot(root))
@@ -45,7 +53,7 @@ function collectBuildFiles(systemDir: string): { files: BuildFile[]; findings: F
   }
 
   const realizeState = path.join(systemDir, REALIZE_STATE)
-  if (roots.length === 0 && existsSync(realizeState)) {
+  if (roots.length === 0 && !hostMissing && existsSync(realizeState)) {
     report(
       realizeState,
       config
@@ -146,7 +154,8 @@ export function runLedgerCommand(argv: string[]): number {
     ]
     for (const [name, content] of generated) {
       const target = path.join(systemDir, name)
-      const current = existsSync(target) ? readFileSync(target, "utf8") : undefined
+      // A CRLF checkout (git's autocrlf on Windows) is the same content, not a stale file.
+      const current = existsSync(target) ? readFileSync(target, "utf8").replace(/\r\n/g, "\n") : undefined
       if (current === content) continue
       if (checkOnly) {
         findings.push({
