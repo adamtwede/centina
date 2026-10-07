@@ -263,12 +263,19 @@ Centina ships as a self-contained Claude Code plugin. There is nothing to instal
 
    ```console
    git clone https://github.com/adamtwede/centina.git
-   cd centina && ./install.sh
+   cd centina && node install.mjs
    ```
+
+   `install.mjs` is plain Node, so the same command works on Windows
+   (PowerShell or cmd), macOS and Linux; `./install.sh` is a thin wrapper
+   around it for POSIX shells. It asks before overwriting an existing
+   install (`--yes` skips the question) and refuses a destination that
+   would delete the clone or your home directory.
 
    This copies the plugin (vocabulary, checker, skills, docs — see
    [docs/plugin-file-layout.md](docs/plugin-file-layout.md) for exactly
-   what) into `~/.claude/skills/centina/`, which Claude Code auto-loads
+   what) into `~/.claude/skills/centina/` (`%USERPROFILE%.claudeskillscentina`
+   on Windows; both follow `CLAUDE_CONFIG_DIR` if you set it), which Claude Code auto-loads
    every session with no flag needed. **You can delete the clone after
    this step.** Nothing in the installed copy references the clone's
    location — Claude Code loads the plugin from the install location
@@ -276,7 +283,7 @@ Centina ships as a self-contained Claude Code plugin. There is nothing to instal
    in-editor checking (the compiled checker) lives in Claude Code's own
    persistent per-plugin data directory, keyed by the plugin's name, not
    by any checkout's path. Keep the clone around only if you plan to pull
-   updates and re-run `install.sh` later — it's a frozen snapshot, not a
+   updates and re-run `install.mjs` later — it's a frozen snapshot, not a
    tracked link.
 
    `bin/centina-check` (the checker's CLI) ends up at
@@ -303,6 +310,21 @@ Centina ships as a self-contained Claude Code plugin. There is nothing to instal
      CLAUDE_PLUGIN_ROOT="$HOME/.claude/skills/centina" \
      CLAUDE_PLUGIN_DATA="$HOME/.claude/plugins/data/centina-skills-dir" \
      "$HOME/.claude/skills/centina/bin/centina-check" "$@"
+   }
+   ```
+
+   The PowerShell equivalent, for `$PROFILE`. It sets the variables inside
+   the function and restores them afterward, so nothing leaks into the
+   session:
+
+   ```powershell
+   function centina-check {
+     $claude = Join-Path $HOME '.claude'
+     $old = @($env:CLAUDE_PLUGIN_ROOT, $env:CLAUDE_PLUGIN_DATA)
+     $env:CLAUDE_PLUGIN_ROOT = Join-Path $claude 'skillscentina'
+     $env:CLAUDE_PLUGIN_DATA = Join-Path $claude 'pluginsdatacentina-skills-dir'
+     try { node (Join-Path $env:CLAUDE_PLUGIN_ROOT 'bincentina-check') @args }
+     finally { $env:CLAUDE_PLUGIN_ROOT, $env:CLAUDE_PLUGIN_DATA = $old }
    }
    ```
 
@@ -377,13 +399,13 @@ The [docs/plugin-setup-step.md](docs/plugin-setup-step.md)'s "Harness portabilit
 > Just start a session in this folder and tell your agent to set up Centina 
 > for use in other projects.
 
-1. **Get the plugin content on disk** — same `install.sh` as
+1. **Get the plugin content on disk** — same `install.mjs` as
    [Getting started (Claude Code)](#getting-started-claude-code) step 1. It
    has no Claude Code dependency itself, it's a plain copy script.
 
    ```console
    git clone https://github.com/adamtwede/centina.git
-   cd centina && ./install.sh ~/wherever/you/want/it
+   cd centina && node install.mjs ~/wherever/you/want/it
    ```
 
 2. **Install the checker's own dependencies once, by hand.** There's no
@@ -746,7 +768,7 @@ Working on Centina's own vocabulary, checker, or skills is the one case where yo
 claude --plugin-dir .
 ```
 
-Prefer `--plugin-dir .` over your `~/.claude/skills/centina/` install for this: that install is a frozen `install.sh` snapshot, so it won't reflect edits you're making in the checkout at all, and re-running `install.sh` to pick them up would also make every *other* session on the machine load in-progress or possibly-broken changes — fine for a stable daily-driver install, not for iterating on Centina itself.
+Prefer `--plugin-dir .` over your `~/.claude/skills/centina/` install for this: that install is a frozen `install.mjs` snapshot, so it won't reflect edits you're making in the checkout at all, and re-running `install.mjs` to pick them up would also make every *other* session on the machine load in-progress or possibly-broken changes — fine for a stable daily-driver install, not for iterating on Centina itself.
 
 This is also the path for verifying a packaging change actually works end-to-end, as opposed to the harness-level checks `npm run check` and `npm run typecheck` already cover. A first session in a freshly cloned or freshly reset checkout is a real test of the whole plugin lifecycle at once — the `SessionStart` hook, skill auto-discovery, and the [setup procedure](docs/plugin-setup-procedure.md)'s first-run path all fire for the first time. Worth checking for, in order:
 
@@ -764,7 +786,7 @@ This is also the path for verifying a packaging change actually works end-to-end
    sensible default rather than getting confused by the pre-existing
    layout.
 4. **The checker actually runs.** `bin/centina-check` (invoked by the
-   skill, or directly: `${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project
+   skill, or directly: `node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" --project
    <resolved tsconfig path> <a spec file>`) should produce the same
    findings `npm run check` does natively against the same file.
 5. **The generated `tsconfig.json`'s plugin path points at `DATA`, not
@@ -777,7 +799,7 @@ This is also the path for verifying a packaging change actually works end-to-end
    would silently reintroduce that fragility without any test above
    catching it, since 1–4 all still pass either way.
 
-`install.sh` is separate from the session-lifecycle checks above — it's a plain shell script, not something a Claude Code session exercises on its own. After changing it, run it against a scratch destination (`./install.sh /tmp/centina-install-test`) and diff the result against
+`install.mjs` is separate from the session-lifecycle checks above — it's a plain Node script (`scripts/bundle.test.mjs` exercises its copy logic), not something a Claude Code session exercises on its own. After changing it, run it against a scratch destination (`node install.mjs /tmp/centina-install-test`) and diff the result against
 `docs/plugin-file-layout.md`'s directory tree by hand; there's no automated check for it.
 
 Anything that doesn't match — a silent hook failure, a skill that doesn't surface, a setup prompt that behaves unexpectedly against this repo's own layout, a stale `ROOT` path back in the generated tsconfig — is exactly the kind of gap `npm run check`/`npm run typecheck` can't catch, since neither exercises the plugin machinery at all.

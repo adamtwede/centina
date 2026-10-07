@@ -149,7 +149,7 @@ Rule 0 allows it). Detail: the reference doc, "Starting from a fresh skeleton".
 1. **Run the check** against the target file:
 
    ```
-   ${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project <artifactsRoot>/tsconfig.json <file>
+   node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" --project <artifactsRoot>/tsconfig.json <file>
    ```
 
    (`artifactsRoot` is whatever the setup step above resolved.) Omitting

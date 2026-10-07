@@ -60,9 +60,12 @@ if (pluginRoot) {
   console.error(`centina-check: checker${version ? ` ${version}` : ""} from ${pluginRoot}`)
 }
 
+// Run tsx's loader under this same node rather than through `npx`: on Windows
+// `npx` is `npx.cmd`, which cannot be spawned without a shell (and a shell would
+// split user arguments containing spaces), and it saves npx's startup cost.
 const result = spawnSync(
-  "npx",
-  ["tsx", path.join(checkerDir, "cli.ts"), ...process.argv.slice(2)],
+  process.execPath,
+  ["--import", "tsx", path.join(checkerDir, "cli.ts"), ...process.argv.slice(2)],
   {
     cwd: checkerDir,
     stdio: "inherit",
@@ -71,4 +74,5 @@ const result = spawnSync(
   }
 )
 
+if (result.error) console.error(`centina-check: could not run the checker: ${result.error.message}`)
 process.exit(result.status ?? 1)

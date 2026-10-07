@@ -643,7 +643,13 @@ async function openTracker($: EngineInterface): Promise<void> {
     const ran = await $.process.run(argv).catch(() => undefined)
     return ran !== undefined && ran.exitCode === 0
   }
-  if (!(await via(["open", page])) && !(await via(["xdg-open", page])))
+  // macOS, Linux, then Windows (`start` is a cmd.exe builtin; its empty first
+  // argument is the window title, which it would otherwise take from the path).
+  if (
+    !(await via(["open", page])) &&
+    !(await via(["xdg-open", page])) &&
+    !(await via(["cmd.exe", "/c", "start", "", page]))
+  )
     $.ui.toast(`Could not open ${page}`)
   else if (why) $.ui.toast(`Opened the last generated tracker, not refreshed: ${why}`)
 }

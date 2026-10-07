@@ -1,0 +1,4 @@
+# Scripts run on Windows, macOS and Linux, and several are executed through a
+# shebang or `bash` (install.sh, bin/centina-check): a CRLF checkout breaks
+# them (`node\r: not found`), so the working tree is LF everywhere.
+* text=auto eol=lf
