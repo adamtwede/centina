@@ -376,10 +376,12 @@ const trailJson = JSON.stringify({ system: 'alpha', entries: [
   { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
 ] })
 
-const trackerCases = [
-  { name: 'regenerates the page with the checker, then opens it', env: '/data', pointer: undefined, runs: true, toast: undefined },
-  { name: 'finds the checker through the file the install hook left, when the mod cannot see the variable', env: undefined, pointer: '/data\n', runs: true, toast: undefined },
-  { name: 'opens the last page as it stands, and says why, when the checker cannot be found', env: undefined, pointer: undefined, runs: false, toast: 'not refreshed' },
+const trackerCases: { name: string; env?: string; pointer?: string; installs: boolean; installResult?: { exitCode: number; stderr: string }; runs: boolean; toast?: string }[] = [
+  { name: 'brings the install up to date, regenerates the page with the checker, then opens it', env: '/data', installs: true, runs: true },
+  { name: 'finds the checker through the file the install hook left, when the mod cannot see the variable', pointer: '/data\n', installs: true, runs: true },
+  { name: 'opens the last page as it stands, and says why, when the checker cannot be found', installs: false, runs: false, toast: 'not refreshed' },
+  { name: 'opens the last page, and says why, when the dependency install fails, without running the checker', env: '/data', installs: true, installResult: { exitCode: 0, stderr: 'centina: checker dependency install failed (see output above).' }, runs: false, toast: 'dependency install failed' },
+  { name: 'opens the last page, and says why, when the install does not finish', env: '/data', installs: true, installResult: { exitCode: 1, stderr: '' }, runs: false, toast: 'install did not finish' },
 ]
 for (const c of trackerCases) {
   test(`Tracker ${c.name}`, async ($, on) => {
@@ -398,7 +400,11 @@ for (const c of trackerCases) {
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))
     on('clock.now', async () => ({ value: 0 }) as never)
     on('env.get', async () => ({ value: c.env }) as never)
-    on('process.run', async (_$, e) => { ran.push({ argv: e.argv, env: e.init?.env }); return { value: { exitCode: 0, stdout: '', stderr: '' } } as never })
+    on('process.run', async (_$, e) => {
+      ran.push({ argv: e.argv, env: e.init?.env })
+      const install = e.argv.some((a) => a.endsWith('session-start-install.mjs'))
+      return { value: { exitCode: install ? (c.installResult?.exitCode ?? 0) : 0, stdout: '', stderr: install ? (c.installResult?.stderr ?? '') : '' } } as never
+    })
     on('ui.toast', async (_$, e) => { toasts.push(JSON.stringify(e)); return { value: undefined } as never })
     await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
     expect(store.get('centina/trailDir')).toBe('/w')
@@ -407,9 +413,13 @@ for (const c of trackerCases) {
     const argvs = ran.map((r) => r.argv.join(' '))
     // The page opens on the item the band is tracking.
     expect(argvs.some((a) => /^node .*bin\/centina-check trail --item sz:W3 \/w$/.test(a))).toBe(c.runs)
-    if (c.runs) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    // The install runs first, so an update or a first run does not wait for the next session.
+    expect(argvs.findIndex((a) => /scripts\/session-start-install\.mjs$/.test(a))).toBe(c.installs ? 0 : -1)
+    if (c.installs) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    if (c.runs) expect(ran[1].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
     expect(argvs).toContain('open /w/TRACKER.html')
     expect(toasts.some((t) => t.includes('not refreshed'))).toBe(c.toast !== undefined)
+    if (c.toast) expect(toasts.some((t) => t.includes(c.toast!))).toBe(true)
   })
 }
 

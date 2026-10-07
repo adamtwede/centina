@@ -495,8 +495,12 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   (labelled "Work item tracker", with a coloured marker, since `Button` takes
   no colour). It finds the checker's folder from `CLAUDE_PLUGIN_DATA` or, if the
   mod cannot see that, from `.centina-data` that the SessionStart hook leaves in
-  the plugin root; neither is confirmed live. If it can't build the page it
-  opens the last one and says why. A `/track-item <label>|auto` command pins the
+  the plugin root (`install.mjs` keeps that file across a reinstall); neither
+  is confirmed live. It first runs the SessionStart hook's install script
+  (a no-op when nothing changed), so a plugin update or a first run does not
+  wait for the next session; only the very first install still needs one
+  session start, which is when the data path is first recorded. If it can't
+  build the page it opens the last one and says why. A `/track-item <label>|auto` command pins the
   band and the tracker to one item, since a reply that cites an older item
   otherwise wins the band's pick. And a `waive`
   record (`docs/trail.md`) by which the human rules one warning for one item

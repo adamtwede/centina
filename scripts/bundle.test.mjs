@@ -123,6 +123,20 @@ describe("installer", () => {
     })
   })
 
+  it("keeps the plugin-data pointer the SessionStart hook left, so the tracker button still finds the checker", () => {
+    withScratch((scratch) => {
+      const src = fakeCheckout(path.join(scratch, "src"))
+      const dest = path.join(scratch, "dest")
+      stub(dest, ".centina-data", "/data/centina")
+      install(src, dest)
+      assert.equal(readFileSync(path.join(dest, ".centina-data"), "utf8"), "/data/centina")
+      assert.ok(existsSync(path.join(dest, "checker/keep")))
+      const fresh = path.join(scratch, "fresh")
+      install(src, fresh)
+      assert.ok(!existsSync(path.join(fresh, ".centina-data")), "no pointer is invented for a first install")
+    })
+  })
+
   it("refuses a destination that would delete or recurse into the checkout, or that contains home", () => {
     withScratch((scratch) => {
       const src = fakeCheckout(path.join(scratch, "src"))

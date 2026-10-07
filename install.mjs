@@ -13,7 +13,7 @@
 //                dir is $CLAUDE_CONFIG_DIR, else ~/.claude
 //   --yes, -y    overwrite a non-empty destination without asking
 
-import { cpSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync } from "node:fs"
+import { cpSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import path from "node:path"
 import { createInterface } from "node:readline/promises"
@@ -45,6 +45,9 @@ export const BUNDLE = {
 // CLAUDE_PLUGIN_DATA on first use — don't ship a stale copy. The engine lays
 // dev types into .claude-plugin/types for tsconfig.hooks.json; not the bundle.
 const EXCLUDED = new Set([".claude-plugin/types", "checker/package-lock.json"])
+
+/** Written beside the installed plugin by scripts/session-start-install.mjs; read by hooks/register.tsx. */
+const DATA_POINTER = ".centina-data"
 
 export function defaultDestination() {
   const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(homedir(), ".claude")
@@ -113,8 +116,16 @@ export function needsConfirmation(dest) {
 /** Replaces `dest` with the bundle from the checkout at `src`. */
 export function install(src, dest) {
   assertSafeDestination(src, dest)
+  // The SessionStart hook leaves the plugin-data path here for the Work item tracker button
+  // (hooks/register.tsx), which cannot see CLAUDE_PLUGIN_DATA itself. The path does not change
+  // when the plugin is reinstalled, and nothing else rewrites it until the next session starts.
+  let dataPointer
+  try {
+    dataPointer = readFileSync(path.join(dest, DATA_POINTER), "utf8")
+  } catch {}
   rmSync(dest, { recursive: true, force: true })
   mkdirSync(dest, { recursive: true })
+  if (dataPointer) writeFileSync(path.join(dest, DATA_POINTER), dataPointer)
 
   const filter = (source) => {
     const rel = path.relative(src, source).split(path.sep).join("/")

@@ -75,6 +75,7 @@ const TRACKER_FILE = "TRACKER.html"
 const DATA_POINTER = ".centina-data"
 const TRACK_COMMAND = "track-item"
 const TRACKER_TIMEOUT_MS = 60_000
+const INSTALL_TIMEOUT_MS = 300_000
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
 const MAX_DEPTH = 6
 const REWALK_MS = 30_000
@@ -592,8 +593,9 @@ async function pluginData($: EngineInterface): Promise<string | undefined> {
 }
 
 /**
- * Work item tracker: regenerates the system's TRACKER.html with `centina-check
- * trail`, for the item the band is tracking, and opens it. If the checker can't
+ * Work item tracker: brings the checker's install up to date, regenerates the
+ * system's TRACKER.html with `centina-check trail`, for the item the band is
+ * tracking, and opens it. If the checker can't
  * be run the last generated page is opened as it stands, and the toast says
  * why. The page is written even when the trail has errors, so the toast says
  * to read them.
@@ -604,34 +606,55 @@ async function openTracker($: EngineInterface): Promise<void> {
   const page = `${dir}/${TRACKER_FILE}`
   const item = (await read($, drift))?.key
   const data = await pluginData($)
+  const root = $.plugin.root
   let why = ""
   if (data === undefined) {
-    why = "the checker's folder is unknown (start a new session so the install hook records it)"
+    why =
+      "the checker's folder is not recorded yet; the first session started after installing the plugin records it"
   } else {
-    $.ui.toast("Building the tracker...")
-    const root = $.plugin.root
-    const ran = await $.process
-      .run(
-        [
-          "node",
-          `${root}/bin/centina-check`,
-          "trail",
-          ...(item ? ["--item", item] : []),
-          dir,
-        ],
-        {
-          env: { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data },
-          timeoutMs: TRACKER_TIMEOUT_MS,
-        },
-      )
+    const env = { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data }
+    // The SessionStart hook's install, run here too so that an update or a first run does not
+    // wait for the next session: a no-op when nothing changed, otherwise it syncs the
+    // checker's source and installs its dependencies.
+    const hasDeps = (await $.fs.list(`${data}/checker`).catch(() => [])).some(
+      (n) => n.name === "node_modules",
+    )
+    $.ui.toast(
+      hasDeps
+        ? "Building the tracker..."
+        : "Installing the checker's dependencies, then building the tracker (this can take a minute)...",
+    )
+    const installed = await $.process
+      .run(["node", `${root}/scripts/session-start-install.mjs`], {
+        env,
+        timeoutMs: INSTALL_TIMEOUT_MS,
+      })
       .catch(() => undefined)
-    if (ran === undefined) why = "the checker did not finish"
-    else if (ran.exitCode !== 0) {
-      // Exit 1 is also "the trail has errors", with the page still written
-      // and named on a "tracker:" line.
-      if (!ran.stdout.includes("tracker: "))
-        why = `the checker failed: ${ran.stderr.trim().split("\n").pop() ?? ""}`
-      else $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+    if (installed === undefined || installed.exitCode !== 0)
+      why = "the checker's install did not finish"
+    else if (installed.stderr.includes("dependency install failed"))
+      why = `the checker's dependency install failed; run npm install in ${data}/checker`
+    else {
+      const ran = await $.process
+        .run(
+          [
+            "node",
+            `${root}/bin/centina-check`,
+            "trail",
+            ...(item ? ["--item", item] : []),
+            dir,
+          ],
+          { env, timeoutMs: TRACKER_TIMEOUT_MS },
+        )
+        .catch(() => undefined)
+      if (ran === undefined) why = "the checker did not finish"
+      else if (ran.exitCode !== 0) {
+        // Exit 1 is also "the trail has errors", with the page still written
+        // and named on a "tracker:" line.
+        if (!ran.stdout.includes("tracker: "))
+          why = `the checker failed: ${ran.stderr.trim().split("\n").pop() ?? ""}`
+        else $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+      }
     }
   }
   const names = await $.fs.list(dir).catch(() => [])
