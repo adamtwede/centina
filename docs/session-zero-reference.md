@@ -146,10 +146,9 @@ resolution, formalized into a gated process with an output artifact.
   alignment against stated priorities, and alignment against established patterns
   (uniform reducer, event-sourcing, boundaries-as-affordances, etc.). The agent
   supplies the tradeoff matrix; the verdict stays yours (Rule 0 intact).
-- **Long-session output management.** When the ledger grows beyond ~1500
-  lines, split it into partitions per
-  `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. No permission needed, but
-  note it in the conversation so the human knows.
+- **Long-session output management.** Follow
+  `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. Ledger length is not a
+  reason to split it; split only when the human asks.
 - **Label references get explained, not just cited.** Labels are ledger labels
   (`sz:P4`). The first time one comes up in conversation, say what it is and
   give a one-clause summary ("sz:P4, cap escalation depth at 3 attempts," not

@@ -173,8 +173,9 @@ vocabulary, docs) — not as a new spec-writing session.
 
 ## Session-zero and iterate: managing long-running output
 
-The output-splitting rule for long `centina-session-zero`/`centina-iterate`
-ledgers now lives in `docs/output-management.md` (extracted so the plugin
+The output rules for long `centina-session-zero`/`centina-iterate`
+ledgers (the run frame, how to read a long ledger, optional splitting) live in
+`docs/output-management.md` (extracted so the plugin
 bundle has a file to point at — there's no `CLAUDE.md` inside the bundle).
 Read it before either skill produces a state file. This project's own
 skills reference it directly; a spec author using the packaged plugin gets

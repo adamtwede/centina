@@ -8,7 +8,7 @@ evidence behind it.
 
 One ledger per system, in `<artifactsRoot>/specs/<system>/`:
 
-- `LEDGER.md`, plus `LEDGER-<part>.md` partitions once it grows (see
+- `LEDGER.md`, plus `LEDGER-<part>.md` partitions if the human splits it (see
   `output-management.md`).
 - `LEDGER-INDEX.md`, `LEDGER-LABELS.md`, `LEDGER.json` and `STANDING.md`:
   generated. Never edit them. `LEDGER.json` is the machine-readable view
