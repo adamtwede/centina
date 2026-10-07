@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
+import { Script } from "node:vm"
 import { describe, it } from "node:test"
 import { readLedger } from "../ledger/parse"
 import { analyze, checkTrail } from "./check"
@@ -143,9 +145,37 @@ describe("the tracker model", () => {
     const m = model([HEADER, decision(1), choice(1, [1]), decision(2, { from: "demo/d1.1" }), choice(2, [1]), decision(3, { from: "demo/d1.2", options: [{ n: 1, label: "Return to the earlier approach", kind: "branch", revives: "demo/d1.2" }, { n: 2, label: "Stop and record", kind: "close" }] }), choice(3, [1])])
     assert.deepEqual(m.nodes.map((n) => n.chose), [[1], [1], [1]])
     assert.equal(m.nodes[1].jump, undefined)
-    assert.deepEqual(m.nodes[2].jump, { from: "demo/d1.2" })
+    assert.equal(m.nodes[1].together, undefined, "an only child just continues")
+    assert.equal(m.nodes[2].jump?.from, "demo/d1.2")
+    assert.equal(m.nodes[2].together, undefined)
+    assert.equal(typeof m.nodes[2].jump?.optionLabel, "string", "the page can name the option it returns to")
     assert.equal(m.nodes[0].options.find((o) => o.n === 2)!.takenLaterBy, "demo/d3")
     assert.equal(m.nodes[0].options.find((o) => o.n === 3)!.state, "unexplored")
+  })
+
+  it("gives every decision of a fork, the first included, the others it was asked with", () => {
+    const two = model([HEADER, decision(1), choice(1, [1]), decision(2, { from: "demo/d1.1" }), choice(2, [1]), decision(3, { from: "demo/d1.1" })])
+    assert.equal(two.nodes[0].together, undefined, "the parent is not part of the fork")
+    assert.deepEqual(two.nodes[1].together?.with, ["demo/d3"], "the first child is drawn too")
+    assert.deepEqual(two.nodes[2].together?.with, ["demo/d2"])
+    assert.equal(two.nodes[1].together?.from, "demo/d1.1")
+    assert.equal(typeof two.nodes[2].together?.optionLabel, "string", "the page can name the option they follow")
+    assert.equal(two.nodes[1].jump, undefined, "a fork member is not also a return")
+    assert.equal(two.nodes[2].jump, undefined)
+
+    const three = model([HEADER, decision(1), choice(1, [1]), decision(2, { from: "demo/d1.1" }), decision(3, { from: "demo/d1.1" }), decision(4, { from: "demo/d1.1" })])
+    assert.deepEqual(three.nodes.map((n) => n.together?.with), [undefined, ["demo/d3", "demo/d4"], ["demo/d2", "demo/d4"], ["demo/d2", "demo/d3"]])
+  })
+
+  it("keeps a decision that comes back to an option after other work a return, not part of the fork", () => {
+    const m = model([HEADER, decision(1), choice(1, [1]), decision(2, { from: "demo/d1.1" }), choice(2, [1]), decision(3, { from: "demo/d2.1" }), choice(3, [1]), decision(4, { from: "demo/d1.1" })])
+    assert.equal(m.nodes[3].together, undefined)
+    assert.equal(m.nodes[3].jump?.from, "demo/d1.1")
+    assert.equal(m.nodes[1].together, undefined, "d2 was alone when it was asked, so the later return does not turn it into a fork")
+  })
+
+  it("says whether the trail has more than one scope, so the page knows whether it may drop it from ids", () => {
+    assert.equal(model([HEADER, decision(1), choice(1, [1])]).multiScope, false)
   })
 
   it("merges an alternative offered again, by revives or by its words, into one standing alternative", () => {
@@ -328,6 +358,18 @@ describe("centina-check trail", () => {
     const html = readFileSync(path.join(dir, TRACKER_FILE), "utf8")
     assert.match(html, /demo\/d1/)
     assert.doesNotMatch(html, /__DATA__/)
+  })
+
+  it("ships a page whose script parses, as generated and as the bare template", () => {
+    const dir = system([HEADER, decision(1), choice(1, [1])])
+    runTrailCommand([dir])
+    const generated = readFileSync(path.join(dir, TRACKER_FILE), "utf8")
+    const template = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "tracker.html"), "utf8")
+    for (const html of [generated, template]) {
+      const scripts = [...html.matchAll(/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)]
+      assert.ok(scripts.length > 0)
+      for (const [, code] of scripts) assert.doesNotThrow(() => new Script(code))
+    }
   })
 
   it("--check validates and writes nothing; an error makes the exit code 1", () => {

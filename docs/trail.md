@@ -214,7 +214,12 @@ so it catches the pattern, not the instance.
 offered and not (stubs: grey, orange for a stop or return, blue when taken up
 later, dashed with a label when parked, struck through when abandoned, a tick
 when done); a diamond for a checkpoint; a ring for a decision still awaiting an
-answer; an arc where the work returned to an earlier option; and the cited
+answer; a purple arrow from a decision to the decision whose option it follows,
+when that is not simply the decision just above it (dashed: the work went back
+to an earlier option; dotted: one arrow from each of several consecutive
+decisions asked together from the same option, the first included; hover one for what it follows,
+and it thickens along with its target); each decision's id (`d14`, its options `d14.1`) beside its node, so
+the ids in a hover can be found; and the cited
 ledger entries as links that open in VS Code. Segment length is the weight of
 the work after a decision, switchable between active time and output tokens.
 Collapsed below it: **standing alternatives** (options offered and never taken,
