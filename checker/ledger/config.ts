@@ -70,7 +70,7 @@ export function buildRootsFor(config: CentinaConfig, systemDir: string): string[
 
 // A config written on Windows may be read on a POSIX machine and the other way
 // round, so absoluteness is judged by either platform's rule, not this one's.
-const isAbsolute = (p: string) => path.posix.isAbsolute(p) || path.win32.isAbsolute(p)
+export const isAbsolute = (p: string) => path.posix.isAbsolute(p) || path.win32.isAbsolute(p)
 
 /** True when `hostRoot` is an absolute path this machine does not have. */
 export function hostRootMissing(config: CentinaConfig): boolean {

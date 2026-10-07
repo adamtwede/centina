@@ -1,6 +1,7 @@
 import { SourceFile } from "ts-morph"
 import { getSpecSourceFiles, loadProject, resolveScope } from "./harness"
 import { runLedgerCommand } from "./ledger/command"
+import { runSetupCommand } from "./setup/command"
 import { runTrailCommand } from "./trail/command"
 import { printFindings } from "./report"
 import { assumptionBookkeepingRule } from "./rules/assumptionBookkeeping"
@@ -54,6 +55,9 @@ function parseArgs(argv: string[]): { tsConfigFilePath?: string; requestedPaths:
 function main(): void {
   if (process.argv[2] === "ledger") {
     process.exit(runLedgerCommand(process.argv.slice(3)))
+  }
+  if (process.argv[2] === "setup") {
+    process.exit(runSetupCommand(process.argv.slice(3)))
   }
   if (process.argv[2] === "trail") {
     process.exit(runTrailCommand(process.argv.slice(3)))
