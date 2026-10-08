@@ -23,7 +23,7 @@ export type Row = {
 
 /**
  * The explanation pane's content, asked for, arrived, or failed: one entry's ELI5
- * (`cite` is its citation), or the TLDR of the latest reply, the phase's
+ * (`cite` is its citation), or the breakdown of the latest reply, the phase's
  * progress or a second opinion on the reply (`cite` is a heading). `isSendable`
  * is set on an answer the pane offers to send on to the main session.
  */
@@ -52,7 +52,7 @@ export type Drift = {
 declare module 'claude-code' {
   interface PluginState {
     /**
-     * `reply` is the text of the latest main-agent reply, for TLDR THIS and Second
+     * `reply` is the text of the latest main-agent reply, for Break it down and Second
      * opinion; `request` is the reader's last typed prompt, for Second opinion.
      * `hasPhase` is whether a ledger has an active phase, which is what Phase
      * progress needs; `hasItem` is whether a work item is active, which is what

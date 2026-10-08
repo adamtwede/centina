@@ -19,6 +19,8 @@ centina-plugin/
 ├── hooks/
 │   ├── hooks.json
 │   ├── register.tsx
+│   ├── budget.ts
+│   ├── budget.test.ts
 │   ├── ledger-cite.ts
 │   ├── ledger-cite.test.ts
 │   ├── eli5.test.tsx

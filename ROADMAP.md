@@ -383,14 +383,23 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   heading is no longer at the line `LEDGER.json` recorded, caches by prompt,
   and a newer press supersedes an older one. Mocked-model test in
   `hooks/eli5.test.tsx`; not yet tried against the real model.
-  The band's header also has a **TLDR THIS** button, for the latest main-agent
+  The band's header also has a **Break it down** button (once **TLDR THIS**), for the latest main-agent
   reply as a whole (kept in the `reply` state atom): same Haiku call, same pane,
   but the prompt is the reply plus the active phase (`Kind: phase`, `active`),
   the active goals (`G`, `active`) and the entries the reply cites, each in full
   while a 20k-character budget lasts (cited first, then phase, then goals) and
-  by title after that. It asks for a plain summary and, where the reply offers
-  options, each option's meaning, benefits, tradeoffs and risks against the
-  phase and the project goals. "Full text if necessary" is the budget, not a
+  by title after that. It asks for up to three parts, each only when the reply
+  gives occasion for it: a Gist, a Terms gloss of jargon the reader would not
+  know, and, where the reply offers options, each option's meaning, benefits,
+  tradeoffs and risks against the phase and the project goals. Length is sized
+  in `hooks/budget.ts`, not by a fixed word or token limit: the prompt gives
+  per-part word guides (the gist grows with the square root of the reply; terms
+  and options are counted), and `maxTokens` is a worst-case ceiling for those
+  parts plus a thinking allowance, so a four-option reply is not cut off. ELI5
+  is sized the same way from the entry; Second opinion has no word limit and a
+  16k ceiling. The constants are untuned first guesses, and the term and option
+  counters are regexes (blind to everyday words used in a special sense), so
+  they only raise the ceiling; the model decides what to define. "Full text if necessary" is the budget, not a
   model decision: one call cannot fetch mid-answer. The band now also shows,
   with just this button, for a reply that cites nothing, once a `LEDGER.json`
   has been found. Mocked-model tests only; not yet tried against the real model.
@@ -411,7 +420,7 @@ tag `aisl-v0-standalone-language` — it is deliberately not carried here.
   titles only. Mocked-model tests only; not yet tried against the real model.
   A fourth button, **Second opinion ($$$)**, asks **Opus** (high effort, 8k
   tokens, 180s) to review the latest reply for errors and flaws, gaps and
-  risks, and improvements. Its prompt is TLDR's (reply, phase, goals, cited
+  risks, and improvements. Its prompt is Break it down's (reply, phase, goals, cited
   entries, same budget) plus the reader's last typed prompt (the `request`
   atom, kept by the mod's own `prompt.submit` hook for `composer` and `bridge`
   origins only, so a plugin's, a peer's or a scheduled prompt never replaces

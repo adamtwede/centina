@@ -61,8 +61,8 @@ test('the citation never shrinks, so a narrow row cuts the title and not the lab
 })
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`${surface}: TLDR THIS asks haiku with the reply, the goals and the cited entry's text`, async ($, on) => {
-    // TLDR THIS only shows for a reply of over 150 words.
+  test(`${surface}: Break it down asks haiku with the reply, the goals and the cited entry's text`, async ($, on) => {
+    // Break it down only shows for a reply of over 150 words.
     const reply = `Choose A or B for sz:P1. ${'It holds up against the goal. '.repeat(30)}`
     const files: Record<string, string> = {
       '/w/LEDGER.json': JSON.stringify({ system: 'alpha', entries: [
@@ -88,14 +88,14 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('clock.now', async () => ({ value: 0 }) as never)
     await $.session.start({ cwd: '/w', surface, isInteractive: true })
     const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
-    await ui.press({ key: 'tldr' })
+    await ui.press({ key: 'break-it-down' })
     expect(asked).toHaveLength(1)
     const { prompt } = asked[0] as { prompt: string }
     expect(prompt).toContain(reply)
     expect(prompt).toContain('cites sz:P2')
     expect(prompt).toContain('the phase body')
     expect(prompt).toContain('the goal body')
-    expect(store.get('centina/eli5')).toEqual({ cite: 'TLDR of the latest reply', status: 'answered', text: 'Short version.' })
+    expect(store.get('centina/eli5')).toEqual({ cite: 'Break it down: the latest reply', status: 'answered', text: 'Short version.' })
   })
 }
 
@@ -116,7 +116,7 @@ test('a shell cd into a subfolder does not hide the ledger', async ($, on) => {
   expect(store.get('centina/hasPhase')).toBe(true)
 })
 
-test('a reply that cites nothing still gets a band with TLDR THIS, once a ledger is known', async ($, on) => {
+test('a reply that cites nothing still gets a band with Break it down, once a ledger is known', async ($, on) => {
   const store = new Map<string, unknown>([['centina/cited', []], ['centina/reply', `Pick A or B. ${'It holds up against the goal. '.repeat(30)}`]])
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
@@ -126,12 +126,12 @@ test('a reply that cites nothing still gets a band with TLDR THIS, once a ledger
   const mount = () => $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
   await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
   const ui = await mount()
-  expect(await ui.find({ key: 'tldr' })).toBeDefined()
+  expect(await ui.find({ key: 'break-it-down' })).toBeDefined()
   expect(await ui.find({ key: 'review' })).toBeDefined()
   // A short reply is worth neither.
   store.set('centina/reply', 'Pick A or B.')
   const short = await mount()
-  expect(await short.find({ key: 'tldr' })).toBeUndefined()
+  expect(await short.find({ key: 'break-it-down' })).toBeUndefined()
   expect(await short.find({ key: 'review' })).toBeUndefined()
 })
 
@@ -164,7 +164,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     // The phase is known from the ledger alone: no reply has been written yet.
     expect(store.get('centina/hasPhase')).toBe(true)
     const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
-    expect(await ui.find({ key: 'tldr' })).toBeUndefined()
+    expect(await ui.find({ key: 'break-it-down' })).toBeUndefined()
     await ui.press({ key: 'progress' })
     expect(asked).toHaveLength(1)
     expect(asked[0]).toMatchObject({ model: 'sonnet' })
@@ -295,6 +295,34 @@ test('Item progress is not offered when no work item is active', async ($, on) =
   expect(store.get('centina/hasItem')).toBe(false)
 })
 
+test('an answer that used its whole token allowance is shown with a note that it was cut off', async ($, on) => {
+  const reply = `Use sz:P1 as written. ${'It holds up against the goal. '.repeat(40)}`
+  const store = new Map<string, unknown>([['centina/cited', [row]], ['centina/reply', reply]])
+  let cap = 0
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: JSON.stringify({ system: 'alpha', entries: [] }) }))
+  on('ui.open', async () => ({ value: { isOpen: true } as never }))
+  on('model.complete', async (_$, e) => {
+    cap = e.maxTokens ?? 0
+    return { value: { isAnswered: true, text: 'Gist: the reply says to', usage: { ...usage, output_tokens: cap } } as never }
+  })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  await ui.press({ key: 'break-it-down' })
+  expect(cap).toBeGreaterThan(0)
+  expect(store.get('centina/eli5')).toMatchObject({
+    status: 'answered',
+    text: `Gist: the reply says to
+
+[Cut off: the answer used all ${cap} tokens it was allowed.]`,
+  })
+})
+
 const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
 for (const surface of ['terminal', 'desktop'] as const) {
@@ -353,7 +381,7 @@ const paneOf = ($: Engine) =>
   $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'Pane', requestId: 'centina-eli5', props: {} as never, viewport: { columns: 80, rows: 24 } })
 
 test('only a second opinion\'s answer offers Send to session', async ($, on) => {
-  const store = new Map<string, unknown>([['centina/eli5', { cite: 'TLDR of the latest reply', status: 'answered', text: 'Short.' }]])
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'Break it down: the latest reply', status: 'answered', text: 'Short.' }]])
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   expect(await (await paneOf($)).find({ key: 'send' })).toBeUndefined()
 })
