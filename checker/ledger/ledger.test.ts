@@ -550,6 +550,25 @@ describe("ledger command", () => {
     }
   })
 
+  it("does not call generated files stale for CRLF line endings, but still catches a real edit", () => {
+    const dir = system({ "LEDGER.md": VALID })
+    const log = console.log
+    console.log = () => {}
+    try {
+      assert.equal(runLedgerCommand([dir]), 0)
+      // What a Windows checkout with core.autocrlf=true does to the committed files.
+      for (const name of ["LEDGER-INDEX.md", "LEDGER-LABELS.md", "LEDGER.json", "STANDING.md"]) {
+        const file = path.join(dir, name)
+        writeFileSync(file, readFileSync(file, "utf8").replace(/\n/g, "\r\n"))
+      }
+      assert.equal(runLedgerCommand(["--check", dir]), 0)
+      writeFileSync(path.join(dir, "LEDGER.md"), `${VALID}\n### sz:G2: second goal\n- Status: active\n`)
+      assert.equal(runLedgerCommand(["--check", dir]), 1)
+    } finally {
+      console.log = log
+    }
+  })
+
   it("prints a phase view on --phase and writes no phase-specific file to disk", () => {
     const dir = system({ "LEDGER.md": VALID })
     const log = console.log
@@ -823,7 +842,7 @@ describe("ledger settings", () => {
       mkdirSync(path.join(root, ".centina"), { recursive: true })
       writeFileSync(
         path.join(root, ".centina", "config.json"),
-        JSON.stringify({ hostRoot: root, artifactsRoot: root, ...(config as object) }),
+        JSON.stringify({ hostRoot: ".", artifactsRoot: ".", ...(config as object) }),
       )
     }
     return systemDir
@@ -880,6 +899,89 @@ describe("ledger settings", () => {
     const { code, output } = run(dir)
     assert.equal(code, 1)
     assert.match(output, /which does not exist/)
+  })
+
+  // The config is committed and read on other machines, so its recorded
+  // absolute paths cannot be what locates anything.
+  describe("a config written on another machine", () => {
+    const elsewhere = "/Users/nobody/Projects/demo"
+    const builtRegistry =
+      "export class R implements Registry {\n  go(): void {\n    throw new Error('owned by matcher:W3')\n  }\n}\n"
+
+    it("still keys the system and finds its build roots by where the config sits", () => {
+      const dir = project(
+        { hostRoot: ".", artifactsRoot: elsewhere, systems: { "specs/demo": { buildRoots: ["prototype/src"] } } },
+        {
+          "specs/demo/LEDGER.md": BUILD_LEDGER,
+          "specs/demo/REALIZE-STATE.md": "# Run frame\n",
+          "prototype/src/registry.ts": builtRegistry,
+        },
+      )
+      const { code, output } = run(dir)
+      assert.equal(code, 1)
+      assert.match(output, /matcher:W3, which is done/, "the build root was scanned")
+      assert.doesNotMatch(output, /buildRoots is unset/)
+      assert.match(output, /\[warning\] ledger-config.*artifactsRoot is the absolute path/)
+    })
+
+    it("says so when the host root is missing and build roots are named", () => {
+      const dir = project(
+        { hostRoot: elsewhere, systems: { "specs/demo": { buildRoots: ["prototype/src"] } } },
+        { "specs/demo/LEDGER.md": BUILD_LEDGER, "specs/demo/REALIZE-STATE.md": "# Run frame\n" },
+      )
+      const { code, output } = run(dir)
+      assert.equal(code, 1)
+      assert.match(output, /\[error\] ledger-config.*hostRoot .* does not exist on this machine.*not being checked/)
+      assert.doesNotMatch(output, /buildRoots is unset|buildRoots names/)
+    })
+
+    it("only warns when the system has no build roots to lose", () => {
+      const dir = project({ hostRoot: elsewhere }, { "specs/demo/LEDGER.md": BUILD_LEDGER })
+      const { code, output } = run(dir)
+      assert.equal(code, 0)
+      assert.match(output, /\[warning\] ledger-config.*hostRoot/)
+    })
+
+    it("treats a Windows-style absolute path as absolute on any platform", () => {
+      const dir = project(
+        { hostRoot: "C:\\Users\\nobody\\demo", systems: { "specs/demo": { buildRoots: ["prototype/src"] } } },
+        { "specs/demo/LEDGER.md": BUILD_LEDGER, "specs/demo/REALIZE-STATE.md": "# Run frame\n" },
+      )
+      assert.match(run(dir).output, /\[error\] ledger-config.*hostRoot .* does not exist on this machine/)
+    })
+
+    it("suggests the relative spelling of an absolute path that does exist", () => {
+      const dir = project({}, { "specs/demo/LEDGER.md": BUILD_LEDGER })
+      const root = path.dirname(path.dirname(dir))
+      writeFileSync(path.join(root, ".centina", "config.json"), JSON.stringify({ hostRoot: root }))
+      const { code, output } = run(dir)
+      assert.equal(code, 0)
+      assert.match(output, /hostRoot is the absolute path .*write it relative to the directory holding \.centina\/.*"\."/)
+    })
+  })
+
+  it("resolves a relative hostRoot against the config's directory, not the working directory", () => {
+    // Config in <root>/centina/.centina, host project at <root>: hostRoot "..".
+    const root = mkdtempSync(path.join(tmpdir(), "project-"))
+    const files: Record<string, string> = {
+      "centina/specs/demo/LEDGER.md": BUILD_LEDGER,
+      "centina/specs/demo/REALIZE-STATE.md": "# Run frame\n",
+      "centina/.centina/config.json": JSON.stringify({
+        hostRoot: "..",
+        artifactsRoot: ".",
+        systems: { "specs/demo": { buildRoots: ["prototype/src"] } },
+      }),
+      "prototype/src/registry.ts":
+        "export class R implements Registry {\n  go(): void {\n    throw new Error('owned by matcher:W3')\n  }\n}\n",
+    }
+    for (const [name, content] of Object.entries(files)) {
+      mkdirSync(path.dirname(path.join(root, name)), { recursive: true })
+      writeFileSync(path.join(root, name), content)
+    }
+    const { code, output } = run(path.join(root, "centina", "specs", "demo"))
+    assert.equal(code, 1)
+    assert.match(output, /matcher:W3, which is done/)
+    assert.doesNotMatch(output, /ledger-config/)
   })
 })
 

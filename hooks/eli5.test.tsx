@@ -1,6 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
+// The tests name paths as POSIX ('/w'); on Windows the engine hands the mocks 'C:\w'.
+const posix = (p: unknown) => String(p).replace(/^[A-Za-z]:/, '').split(String.fromCharCode(92)).join('/')
+
 const ledger = '## Open\n### sz:P1: first\ncites sz:P2\n### sz:P2: second\nbody'
 const json = JSON.stringify({ system: 'alpha', entries: [
   { key: 'sz:P1', title: 'first', status: 'open', file: 'LEDGER.md', line: 2, parts: [], obsoletedBy: [] },
@@ -58,8 +61,8 @@ test('the citation never shrinks, so a narrow row cuts the title and not the lab
 })
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`${surface}: TLDR THIS asks haiku with the reply, the goals and the cited entry's text`, async ($, on) => {
-    // TLDR THIS only shows for a reply of over 150 words.
+  test(`${surface}: Break it down asks haiku with the reply, the goals and the cited entry's text`, async ($, on) => {
+    // Break it down only shows for a reply of over 150 words.
     const reply = `Choose A or B for sz:P1. ${'It holds up against the goal. '.repeat(30)}`
     const files: Record<string, string> = {
       '/w/LEDGER.json': JSON.stringify({ system: 'alpha', entries: [
@@ -74,8 +77,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -85,14 +88,14 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('clock.now', async () => ({ value: 0 }) as never)
     await $.session.start({ cwd: '/w', surface, isInteractive: true })
     const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
-    await ui.press({ key: 'tldr' })
+    await ui.press({ key: 'break-it-down' })
     expect(asked).toHaveLength(1)
     const { prompt } = asked[0] as { prompt: string }
     expect(prompt).toContain(reply)
     expect(prompt).toContain('cites sz:P2')
     expect(prompt).toContain('the phase body')
     expect(prompt).toContain('the goal body')
-    expect(store.get('centina/eli5')).toEqual({ cite: 'TLDR of the latest reply', status: 'answered', text: 'Short version.' })
+    expect(store.get('centina/eli5')).toEqual({ cite: 'Break it down: the latest reply', status: 'answered', text: 'Short version.' })
   })
 }
 
@@ -105,7 +108,7 @@ test('a shell cd into a subfolder does not hide the ledger', async ($, on) => {
   // The shell has moved into a folder under the project; the project root has not.
   on('session.cwd', async () => ({ value: '/w/sub' }) as never)
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: JSON.stringify({ system: 'alpha', entries: [
     { key: 'sz:W1', title: 'phase one', status: 'active', kind: 'phase', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
   ] }) }))
@@ -113,22 +116,22 @@ test('a shell cd into a subfolder does not hide the ledger', async ($, on) => {
   expect(store.get('centina/hasPhase')).toBe(true)
 })
 
-test('a reply that cites nothing still gets a band with TLDR THIS, once a ledger is known', async ($, on) => {
+test('a reply that cites nothing still gets a band with Break it down, once a ledger is known', async ($, on) => {
   const store = new Map<string, unknown>([['centina/cited', []], ['centina/reply', `Pick A or B. ${'It holds up against the goal. '.repeat(30)}`]])
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   const mount = () => $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
   await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
   const ui = await mount()
-  expect(await ui.find({ key: 'tldr' })).toBeDefined()
+  expect(await ui.find({ key: 'break-it-down' })).toBeDefined()
   expect(await ui.find({ key: 'review' })).toBeDefined()
   // A short reply is worth neither.
   store.set('centina/reply', 'Pick A or B.')
   const short = await mount()
-  expect(await short.find({ key: 'tldr' })).toBeUndefined()
+  expect(await short.find({ key: 'break-it-down' })).toBeUndefined()
   expect(await short.find({ key: 'review' })).toBeUndefined()
 })
 
@@ -148,8 +151,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -161,7 +164,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     // The phase is known from the ledger alone: no reply has been written yet.
     expect(store.get('centina/hasPhase')).toBe(true)
     const ui = await $.ui.mount({ plugin: 'centina', surface, component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
-    expect(await ui.find({ key: 'tldr' })).toBeUndefined()
+    expect(await ui.find({ key: 'break-it-down' })).toBeUndefined()
     await ui.press({ key: 'progress' })
     expect(asked).toHaveLength(1)
     expect(asked[0]).toMatchObject({ model: 'sonnet' })
@@ -187,7 +190,7 @@ test('Phase progress shows only while a ledger phase is active, and does not cal
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: json }))
   on('ui.open', async () => ({ value: { isOpen: true } as never }))
   on('model.complete', async (_$, e) => { asked.push(e); return { value: { isAnswered: false, reason: 'error' } as never } })
@@ -222,7 +225,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? itemJson : itemLedger }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
@@ -259,7 +262,7 @@ test('the band flags a long-running item against the closed items of its kind, a
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async (_$, e) => ({ value: String(e.path).endsWith('.json') ? json : itemLedger }))
   on('ui.open', async () => ({ value: { isOpen: true } as never }))
   on('model.complete', async (_$, e) => { asked.push(e); return { value: { isAnswered: true, text: 'ok', usage } as never } })
@@ -284,12 +287,40 @@ test('Item progress is not offered when no work item is active', async ($, on) =
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: json }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
   await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
   expect(store.get('centina/hasItem')).toBe(false)
+})
+
+test('an answer that used its whole token allowance is shown with a note that it was cut off', async ($, on) => {
+  const reply = `Use sz:P1 as written. ${'It holds up against the goal. '.repeat(40)}`
+  const store = new Map<string, unknown>([['centina/cited', [row]], ['centina/reply', reply]])
+  let cap = 0
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
+  on('session.root', async () => ({ value: '/w' }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.read', async () => ({ value: JSON.stringify({ system: 'alpha', entries: [] }) }))
+  on('ui.open', async () => ({ value: { isOpen: true } as never }))
+  on('model.complete', async (_$, e) => {
+    cap = e.maxTokens ?? 0
+    return { value: { isAnswered: true, text: 'Gist: the reply says to', usage: { ...usage, output_tokens: cap } } as never }
+  })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('clock.now', async () => ({ value: 0 }) as never)
+  await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10 } as never })
+  await ui.press({ key: 'break-it-down' })
+  expect(cap).toBeGreaterThan(0)
+  expect(store.get('centina/eli5')).toMatchObject({
+    status: 'answered',
+    text: `Gist: the reply says to
+
+[Cut off: the answer used all ${cap} tokens it was allowed.]`,
+  })
 })
 
 const usage = { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
@@ -311,8 +342,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
-    on('fs.read', async (_$, e) => ({ value: files[String(e.path)] ?? '' }))
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+    on('fs.read', async (_$, e) => ({ value: files[posix(e.path)] ?? '' }))
     on('ui.open', async () => ({ value: { isOpen: true } as never }))
     on('model.complete', async (_$, e) => {
       asked.push(e)
@@ -350,7 +381,7 @@ const paneOf = ($: Engine) =>
   $.ui.mount({ plugin: 'centina', surface: 'terminal', component: 'Pane', requestId: 'centina-eli5', props: {} as never, viewport: { columns: 80, rows: 24 } })
 
 test('only a second opinion\'s answer offers Send to session', async ($, on) => {
-  const store = new Map<string, unknown>([['centina/eli5', { cite: 'TLDR of the latest reply', status: 'answered', text: 'Short.' }]])
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'Break it down: the latest reply', status: 'answered', text: 'Short.' }]])
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   expect(await (await paneOf($)).find({ key: 'send' })).toBeUndefined()
 })
@@ -376,10 +407,12 @@ const trailJson = JSON.stringify({ system: 'alpha', entries: [
   { key: 'sz:W3', title: 'the spike', status: 'active', kind: 'spike', file: 'LEDGER.md', line: 6, parts: [], obsoletedBy: [] },
 ] })
 
-const trackerCases = [
-  { name: 'regenerates the page with the checker, then opens it', env: '/data', pointer: undefined, runs: true, toast: undefined },
-  { name: 'finds the checker through the file the install hook left, when the mod cannot see the variable', env: undefined, pointer: '/data\n', runs: true, toast: undefined },
-  { name: 'opens the last page as it stands, and says why, when the checker cannot be found', env: undefined, pointer: undefined, runs: false, toast: 'not refreshed' },
+const trackerCases: { name: string; env?: string; pointer?: string; installs: boolean; installResult?: { exitCode: number; stderr: string }; runs: boolean; toast?: string }[] = [
+  { name: 'brings the install up to date, regenerates the page with the checker, then opens it', env: '/data', installs: true, runs: true },
+  { name: 'finds the checker through the file the install hook left, when the mod cannot see the variable', pointer: '/data\n', installs: true, runs: true },
+  { name: 'opens the last page as it stands, and says why, when the checker cannot be found', installs: false, runs: false, toast: 'not refreshed' },
+  { name: 'opens the last page, and says why, when the dependency install fails, without running the checker', env: '/data', installs: true, installResult: { exitCode: 0, stderr: 'centina: checker dependency install failed (see output above).' }, runs: false, toast: 'dependency install failed' },
+  { name: 'opens the last page, and says why, when the install does not finish', env: '/data', installs: true, installResult: { exitCode: 1, stderr: '' }, runs: false, toast: 'install did not finish' },
 ]
 for (const c of trackerCases) {
   test(`Tracker ${c.name}`, async ($, on) => {
@@ -389,7 +422,7 @@ for (const c of trackerCases) {
     on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
     on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
     on('session.root', async () => ({ value: '/w' }) as never)
-    on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
+    on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }, { name: 'TRAIL.jsonl', kind: 'file' }, { name: 'TRACKER.html', kind: 'file' }] : [] }) as never)
     on('fs.read', async (_$, e) => {
       if (!String(e.path).endsWith('.centina-data')) return { value: trailJson }
       if (c.pointer === undefined) throw new Error('no such file')
@@ -398,7 +431,11 @@ for (const c of trackerCases) {
     on('session.start', async (_$, e) => ({ cwd: e.cwd }))
     on('clock.now', async () => ({ value: 0 }) as never)
     on('env.get', async () => ({ value: c.env }) as never)
-    on('process.run', async (_$, e) => { ran.push({ argv: e.argv, env: e.init?.env }); return { value: { exitCode: 0, stdout: '', stderr: '' } } as never })
+    on('process.run', async (_$, e) => {
+      ran.push({ argv: e.argv, env: e.init?.env })
+      const install = e.argv.some((a) => a.endsWith('session-start-install.mjs'))
+      return { value: { exitCode: install ? (c.installResult?.exitCode ?? 0) : 0, stdout: '', stderr: install ? (c.installResult?.stderr ?? '') : '' } } as never
+    })
     on('ui.toast', async (_$, e) => { toasts.push(JSON.stringify(e)); return { value: undefined } as never })
     await $.session.start({ cwd: '/w', surface: 'terminal', isInteractive: true })
     expect(store.get('centina/trailDir')).toBe('/w')
@@ -407,9 +444,13 @@ for (const c of trackerCases) {
     const argvs = ran.map((r) => r.argv.join(' '))
     // The page opens on the item the band is tracking.
     expect(argvs.some((a) => /^node .*bin\/centina-check trail --item sz:W3 \/w$/.test(a))).toBe(c.runs)
-    if (c.runs) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    // The install runs first, so an update or a first run does not wait for the next session.
+    expect(argvs.findIndex((a) => /scripts\/session-start-install\.mjs$/.test(a))).toBe(c.installs ? 0 : -1)
+    if (c.installs) expect(ran[0].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
+    if (c.runs) expect(ran[1].env).toMatchObject({ CLAUDE_PLUGIN_DATA: '/data' })
     expect(argvs).toContain('open /w/TRACKER.html')
     expect(toasts.some((t) => t.includes('not refreshed'))).toBe(c.toast !== undefined)
+    if (c.toast) expect(toasts.some((t) => t.includes(c.toast!))).toBe(true)
   })
 }
 
@@ -423,7 +464,7 @@ test('/track-item pins the band to an item, shows it as pinned, and auto lets th
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: two }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)
@@ -446,7 +487,7 @@ test('Tracker is not offered for a system with no trail', async ($, on) => {
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
   on('state.set', async (_$, e) => { store.set(`${e.plugin}/${e.key}`, e.value); return { value: { isSet: true, version: 2 } } })
   on('session.root', async () => ({ value: '/w' }) as never)
-  on('fs.list', async (_$, e) => ({ value: e.path === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
+  on('fs.list', async (_$, e) => ({ value: posix(e.path) === '/w' ? [{ name: 'LEDGER.json', kind: 'file' }] : [] }) as never)
   on('fs.read', async () => ({ value: trailJson }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('clock.now', async () => ({ value: 0 }) as never)

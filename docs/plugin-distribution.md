@@ -40,7 +40,7 @@ other people or other machines:
      failure shape `docs/plugin-setup-step.md` already worried about for a
      generated project's `tsconfig.json`, except here it's the plugin's
      own load that breaks, not one project's checking).
-   - **A real copy, via the checkout's `install.sh`.** Copies exactly the
+   - **A real copy, via the checkout's `install.mjs`.** Copies exactly the
      plugin-bundle subset (the tree in `docs/plugin-file-layout.md`) into
      the destination as a standalone directory — no symlink, no reference
      back to the checkout. Verified the copy contains no hardcoded path to
@@ -51,7 +51,7 @@ other people or other machines:
      `docs/plugin-setup-step.md`'s Step 4). Once run, **the checkout is
      genuinely disposable.** Trade-off to know: this is a frozen snapshot,
      not a live link — pulling an update in the checkout does nothing
-     until `install.sh` is re-run, matching how `claude plugin update`
+     until `install.mjs` is re-run, matching how `claude plugin update`
      already works for marketplace installs (an explicit action, not
      automatic git-tracking).
 
@@ -76,7 +76,7 @@ process and public listing now is more machinery than the project needs,
 the same reasoning already applied to deferring the raw-TS-vs-precompiled
 decision in `plugin-file-layout.md`. Concretely:
 
-- **Now, for your own use:** `install.sh` into `~/.claude/skills/<name>/` —
+- **Now, for your own use:** `install.mjs` into `~/.claude/skills/<name>/` —
   same zero-ceremony directory install as `--plugin-dir`, without
   re-typing the flag every session, and without keeping the checkout
   around afterward. The symlink variant is fine for a quick look, but the

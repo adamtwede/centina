@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { activePhases, bearings, currentItem, driftLine, pickItem, eli5Prompt, extractCites, findingsOf, headOutlineTail, itemDrift, itemProgressPrompt, progressPrompt, references, resolve, reviewPrompt, sectionAt, tldrPrompt } from './ledger-cite'
+import { activePhases, bearings, currentItem, driftLine, pickItem, eli5Prompt, extractCites, findingsOf, headOutlineTail, itemDrift, itemProgressPrompt, progressPrompt, breakItDownSystem, eli5System, REVIEW_SYSTEM, references, resolve, reviewPrompt, sectionAt, breakItDownPrompt } from './ledger-cite'
 import type { System } from './ledger-cite'
 
 const entry = (key: string, extra = {}) => ({
@@ -100,8 +100,8 @@ test('finds the active phase and active goals, and no others', () => {
   expect(found.goals.map(e => e.key)).toEqual(['sz:G1'])
 })
 
-test('builds the TLDR prompt from the reply, phase, goals and cited entries', () => {
-  const prompt = tldrPrompt(
+test('builds the Break it down prompt from the reply, phase, goals and cited entries', () => {
+  const prompt = breakItDownPrompt(
     'Pick A or B (sz:Q1).',
     [{ key: 'sz:Q1', title: 'which one', status: 'open', text: '### sz:Q1: which one\nbody' }],
     [{ key: 'sz:W1', title: 'phase one', status: 'active' }],
@@ -114,10 +114,10 @@ test('builds the TLDR prompt from the reply, phase, goals and cited entries', ()
   expect(prompt.indexOf('Active phase')).toBeLessThan(prompt.indexOf('Ledger entries the reply cites'))
 })
 
-test('TLDR spends entry text on cited entries first and lists the rest by title', () => {
+test('Break it down spends entry text on cited entries first and lists the rest by title', () => {
   const big = (key: string) => ({ key, title: `t ${key}`, status: 'open', text: `### ${key}: t\n${'x'.repeat(2_900)}` })
   const cited = ['sz:Q1', 'sz:Q2', 'sz:Q3', 'sz:Q4', 'sz:Q5', 'sz:Q6', 'sz:Q7', 'sz:Q8'].map(big)
-  const prompt = tldrPrompt('r', cited, [{ key: 'sz:W1', title: 'phase one', status: 'active', text: '### sz:W1: phase one\nfull' }], [])
+  const prompt = breakItDownPrompt('r', cited, [{ key: 'sz:W1', title: 'phase one', status: 'active', text: '### sz:W1: phase one\nfull' }], [])
   expect(prompt).toContain('- sz:Q8 (open): t sz:Q8')
   expect(prompt).toContain('- sz:W1 (active): phase one')
   expect(prompt).not.toContain('\nfull')
@@ -168,7 +168,7 @@ test('the review prompt leads with the reader\'s request, cut when long, and TLD
   expect(prompt).toContain('### sz:Q1: which one\nbody')
   expect(prompt.trimEnd().endsWith('Review the latest reply.')).toBe(true)
   expect(reviewPrompt('x'.repeat(10_000), 'r', [], [], []).length).toBeLessThan(4_200)
-  expect(tldrPrompt('r', [], [], [])).not.toContain("last request")
+  expect(breakItDownPrompt('r', [], [], [])).not.toContain("last request")
 })
 
 const chain: System = {
@@ -308,4 +308,18 @@ test('pickItem takes a full label, or a bare number when only one ledger has it,
   expect(pickItem([chain], 'sz:W9')).toMatchObject({ problem: expect.stringContaining('No work item') })
   expect(pickItem([chain], 'sz:F1')).toMatchObject({ problem: expect.stringContaining('not a work item') })
   expect(pickItem([chain], 'sz:W1')).toEqual({ problem: expect.any(String) })
+})
+
+test('the system prompts state the word guides they are given and no fixed limit', () => {
+  const system = breakItDownSystem({ gist: 120, perTerm: 30, perOption: 100, maxTokens: 1 })
+  expect(system).toContain("'Gist'")
+  expect(system).toContain('in about 120 words')
+  expect(system).toContain('in about 30 words')
+  expect(system).toContain('in about 100 words')
+  expect(system).not.toMatch(/summary|at most/)
+  expect(system).toContain('"- "')
+  expect(system).toMatch(/Never list a ledger entry or its key/)
+  expect(eli5System(250)).toContain('about 250 words')
+  expect(eli5System(250)).not.toContain('at most')
+  expect(REVIEW_SYSTEM).not.toMatch(/\d+ words/)
 })

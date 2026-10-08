@@ -42,11 +42,16 @@ if (currentHash === installedHash(pluginData)) {
   process.exit(0)
 }
 
-const result = spawnSync("npm", ["install"], {
+// `npm` is `npm.cmd` on Windows, which Node will not spawn directly (and its
+// `shell` option prints a deprecation warning), so go through cmd.exe.
+const [npm, npmArgs] =
+  process.platform === "win32" ? ["cmd.exe", ["/d", "/s", "/c", "npm", "install"]] : ["npm", ["install"]]
+const result = spawnSync(npm, npmArgs, {
   cwd: dataCheckerDir,
   stdio: "inherit",
 })
 
+if (result.error) console.error(`centina: could not run npm: ${result.error.message}`)
 if (result.status !== 0) {
   console.error(
     "centina: checker dependency install failed (see output above). " +

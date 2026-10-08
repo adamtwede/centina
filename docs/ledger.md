@@ -8,7 +8,7 @@ evidence behind it.
 
 One ledger per system, in `<artifactsRoot>/specs/<system>/`:
 
-- `LEDGER.md`, plus `LEDGER-<part>.md` partitions once it grows (see
+- `LEDGER.md`, plus `LEDGER-<part>.md` partitions if the human splits it (see
   `output-management.md`).
 - `LEDGER-INDEX.md`, `LEDGER-LABELS.md`, `LEDGER.json` and `STANDING.md`:
   generated. Never edit them. `LEDGER.json` is the machine-readable view
@@ -311,13 +311,14 @@ ledger write, which is when a status moves.
 ## The checker
 
 ```
-${CLAUDE_PLUGIN_ROOT}/bin/centina-check ledger <artifactsRoot>/specs/<system>
+node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" ledger <artifactsRoot>/specs/<system>
 ```
 
 It validates entries and every label citation in the system directory
 (markdown files and `.ts` comments; `archive/` and `transcripts/` are
 skipped), then regenerates `LEDGER-INDEX.md` and `STANDING.md`. `--check`
-reports stale generated files without writing. `--contracts <file>` also
+reports stale generated files without writing; CRLF line endings, as a Windows
+checkout produces, do not count as stale. `--contracts <file>` also
 lists the `@proposal` overrides in a `centina-realize` contracts module and
 reports any whose change request is closed.
 
@@ -331,8 +332,8 @@ entry per system:
 
 ```json
 {
-  "hostRoot": "<absolute path>",
-  "artifactsRoot": "<absolute path>",
+  "hostRoot": "..",
+  "artifactsRoot": ".",
   "pluginVersion": "<version>",
   "ledgerHook": "block",
   "systems": {
@@ -341,7 +342,16 @@ entry per system:
 }
 ```
 
-A system is keyed by its directory's path relative to `artifactsRoot`, not by
+`hostRoot` and `artifactsRoot` are relative to the directory holding
+`.centina/` (which is the artifacts root), so the committed file is right on
+every machine; `hostRoot` is the host project root, `..` when artifacts live in
+a `centina/` folder at its top. An absolute path still works on the machine that
+has it and draws a warning; one that machine lacks is an error when the system
+names `buildRoots` (they cannot be found, so build code is not being checked).
+The checker keys systems from where the config sits and does not read
+`artifactsRoot`.
+
+A system is keyed by its directory's path relative to the artifacts root, not by
 its name: a system lives wherever a `LEDGER.md` sits, spec trees nest, and two
 systems can share a basename.
 
@@ -361,7 +371,7 @@ every status change, at every gate, and before every derived-doc write.
 
 1. **At setup, if the run frame (`ITERATE-STATE.md`/`REALIZE-STATE.md`) names
    a current phase, run**
-   `${CLAUDE_PLUGIN_ROOT}/bin/centina-check ledger --phase <label> <dir>`
+   `node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" ledger --phase <label> <dir>`
    **and read that instead of the full index.** It prints the phase's own
    items plus what their `Depends-on`/`Premises`/`Constraints` reach —
    computed on demand from the ledger's citation graph, never written to

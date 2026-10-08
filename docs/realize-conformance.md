@@ -120,7 +120,7 @@ _identity_:
 List open overrides and catch stale ones with:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/bin/centina-check ledger <artifactsRoot>/specs/<system> --contracts <contracts module>
+node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" ledger <artifactsRoot>/specs/<system> --contracts <contracts module>
 ```
 
 An override whose change request is `done`, `withdrawn` or `superseded` is an

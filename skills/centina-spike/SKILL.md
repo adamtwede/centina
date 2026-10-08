@@ -98,7 +98,7 @@ what was decided. Append one JSON object per line, never edit a line, and
 correct with a later record carrying `"corrects":"<id>"`. Take times from
 `date -u +%Y-%m-%dT%H:%M:%SZ`. The first line of a new file is
 `{"type":"trail","version":1,"system":"<system>"}`. Follow the formats exactly,
-then run `${CLAUDE_PLUGIN_ROOT}/bin/centina-check trail specs/<system>` at every
+then run `node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" trail specs/<system>` at every
 checkpoint and when closing the spike: it reports what is malformed, unresolved,
 unanswered or missing (a close option, a ruled gate) and writes `TRACKER.html`
 beside the trail, the picture the human reads. Fix its errors, and tell the

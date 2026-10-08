@@ -149,7 +149,7 @@ Rule 0 allows it). Detail: the reference doc, "Starting from a fresh skeleton".
 1. **Run the check** against the target file:
 
    ```
-   ${CLAUDE_PLUGIN_ROOT}/bin/centina-check --project <artifactsRoot>/tsconfig.json <file>
+   node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check" --project <artifactsRoot>/tsconfig.json <file>
    ```
 
    (`artifactsRoot` is whatever the setup step above resolved.) Omitting
@@ -207,9 +207,8 @@ Rule 0 allows it). Detail: the reference doc, "Starting from a fresh skeleton".
 ## Long-session output management
 
 Follow `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`: decisions go in the
-ledger, `ITERATE-STATE.md` is only a run frame, and a ledger past ~1500 lines
-is split into partitions. No permission needed to split, but note it in the
-conversation so the human knows.
+ledger, `ITERATE-STATE.md` is only a run frame, and ledger length is not a
+reason to split it: split only when the human asks.
 
 ## Reference labels and formula explanations
 

@@ -230,9 +230,8 @@ practices"; read it the first time one applies.
   at every gate; never open a session transcript without asking, and warn about
   concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` live in
   `specs/<system>/` beside `ARCHITECTURE.md`, never directly in `specs/` or at
-  the repo root; the state file is only a run frame, and a ledger past ~1500
-  lines is split per `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md` (no
-  permission needed, but say so). Use the system name the human gave; if none,
+  the repo root; the state file is only a run frame, and ledger length is not a
+  reason to split it (`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). Use the system name the human gave; if none,
   ask before the first write to disk.
 - **Explain labels and formula terms.** The first time a ledger label comes up,
   say what it is in one clause ("sz:P4, cap escalation depth at 3 attempts");

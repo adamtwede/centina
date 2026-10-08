@@ -1,8 +1,9 @@
 // Claude Code mod: a band above the prompt listing the Centina ledger entries
 // the current turn's replies cite, with status, an "open in VS Code" button and an
 // "ELI5" button (a one-off Haiku explanation, outside the session, in a pane). A
-// "TLDR THIS" button does the same for the latest reply as a whole, weighing any
-// options in it against the active phase and the project's goals. While a ledger
+// "Break it down" button does the same for the latest reply as a whole: a gist, a
+// plain-words gloss of its jargon, and any options in it weighed against the
+// active phase and the project's goals. While a ledger
 // phase is active, a "Phase progress ($$)" button has Sonnet report on how far
 // the phase has got and which of its open items matter most; while a work item
 // is active, an "Item progress ($$)" button does the same for that one line of
@@ -19,17 +20,19 @@
 import { atom, read, update } from "claude-code"
 import type { EngineInterface, Register } from "claude-code"
 
+import { breakItDownBudget, eli5Budget } from "./budget"
 import {
-  ELI5_SYSTEM,
   ITEM_PROGRESS_SYSTEM,
   PROGRESS_SYSTEM,
   REVIEW_SYSTEM,
-  TLDR_SYSTEM,
   activePhases,
   bearings,
+  breakItDownPrompt,
+  breakItDownSystem,
   currentItem,
   driftLine,
   eli5Prompt,
+  eli5System,
   extractCites,
   findingsOf,
   itemDrift,
@@ -40,7 +43,6 @@ import {
   resolve,
   reviewPrompt,
   sectionAt,
-  tldrPrompt,
 } from "./ledger-cite"
 import type {
   Cite,
@@ -64,7 +66,7 @@ const latestRequest = atom({ plugin: "centina", key: "request" } as const, "")
 
 const ELI5_PANE = "centina-eli5"
 const ELI5_TIMEOUT_MS = 20_000
-const TLDR_TIMEOUT_MS = 45_000
+const BREAK_IT_DOWN_TIMEOUT_MS = 45_000
 const PROGRESS_TIMEOUT_MS = 90_000
 const REVIEW_TIMEOUT_MS = 180_000
 
@@ -75,6 +77,7 @@ const TRACKER_FILE = "TRACKER.html"
 const DATA_POINTER = ".centina-data"
 const TRACK_COMMAND = "track-item"
 const TRACKER_TIMEOUT_MS = 60_000
+const INSTALL_TIMEOUT_MS = 300_000
 const SKIP_DIRS = new Set(["node_modules", "archive", "transcripts"])
 const MAX_DEPTH = 6
 const REWALK_MS = 30_000
@@ -211,7 +214,10 @@ async function trackReply($: EngineInterface, text: string): Promise<void> {
   await refreshPhase($)
 }
 
-type Question = { prompt: string } | { failure: string }
+/** What to ask and how much it may say: the system prompt and token cap belong with the prompt, since both are sized from the input. */
+type Question =
+  | { prompt: string; system: string; maxTokens: number }
+  | { failure: string }
 
 /**
  * Asks a model, with no session history and nothing written to the transcript, one
@@ -225,8 +231,6 @@ async function ask(
     heading: string
     model: "haiku" | "sonnet" | "opus"
     effort: "low" | "medium" | "high"
-    system: string
-    maxTokens: number
     timeoutMs: number
     unreadable: string
     /** Whether the pane offers to send an answer on to the main session. */
@@ -251,17 +255,17 @@ async function ask(
   try {
     const question = await o.build()
     if ("failure" in question) return show("failed", question.failure)
-    const { prompt } = question
-    const key = `${o.model}\n${prompt}`
+    const { prompt, system, maxTokens } = question
+    const key = `${o.model}\n${system}\n${prompt}`
     const cached = answers.get(key)
     if (cached !== undefined) return show("answered", cached)
     const reply = await $.model.complete(
       {
         model: o.model,
-        system: o.system,
+        system,
         prompt,
         effort: o.effort,
-        maxTokens: o.maxTokens,
+        maxTokens,
         timeoutMs: o.timeoutMs,
       },
       { signal: stop.signal },
@@ -272,6 +276,13 @@ async function ask(
         reply.reason === "aborted"
           ? "Timed out."
           : `The ${o.model} call failed (${reply.reason}).`,
+      )
+    }
+    // Reasoning is spent from the same cap as the answer, so reaching it means the text stops short.
+    if (reply.usage.output_tokens >= maxTokens) {
+      return show(
+        "answered",
+        `${reply.text}\n\n[Cut off: the answer used all ${maxTokens} tokens it was allowed.]`,
       )
     }
     answers.set(key, reply.text)
@@ -295,8 +306,6 @@ async function explain($: EngineInterface, row: Row): Promise<void> {
     heading: row.cite,
     model: "haiku",
     effort: "low",
-    system: ELI5_SYSTEM,
-    maxTokens: 800,
     timeoutMs: ELI5_TIMEOUT_MS,
     unreadable: `Could not read ${row.cite} from the ledger.`,
     build: async () => {
@@ -308,8 +317,11 @@ async function explain($: EngineInterface, row: Row): Promise<void> {
             "The ledger changed since LEDGER.json was written; re-run `centina-check ledger`.",
         }
       }
+      const { words, maxTokens } = eli5Budget(section)
       return {
         prompt: eli5Prompt(section, references(section, key, system), row.part),
+        system: eli5System(words),
+        maxTokens,
       }
     },
   })
@@ -394,30 +406,37 @@ async function replyContext(
   return { reply, cites, phase, goals }
 }
 
-/** TLDR of the latest reply, by Haiku. */
-async function tldr($: EngineInterface): Promise<void> {
+/**
+ * Break it down: Haiku explains the latest reply in plain words. Sized by
+ * `breakItDownBudget`, whose cap is a worst-case ceiling so an answer is not cut
+ * off, while the prompt's word counts keep it from being padded.
+ */
+async function breakItDown($: EngineInterface): Promise<void> {
   await ask($, {
-    title: "TLDR",
-    heading: "TLDR of the latest reply",
+    title: "Break it down",
+    heading: "Break it down: the latest reply",
     model: "haiku",
     effort: "medium",
-    system: TLDR_SYSTEM,
-    maxTokens: 1_200,
-    timeoutMs: TLDR_TIMEOUT_MS,
+    timeoutMs: BREAK_IT_DOWN_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     build: async () => {
       const context = await replyContext($)
       if (context === undefined)
-        return { failure: "There is no reply to explain yet." }
+        return { failure: "There is no reply to break down yet." }
       const { reply, cites, phase, goals } = context
-      return { prompt: tldrPrompt(reply, cites, phase, goals) }
+      const budget = breakItDownBudget(reply)
+      return {
+        prompt: breakItDownPrompt(reply, cites, phase, goals),
+        system: breakItDownSystem(budget),
+        maxTokens: budget.maxTokens,
+      }
     },
   })
 }
 
 /**
  * Second opinion: Opus gets the reader's last request, the latest reply and the
- * same ledger context as TLDR, and reviews the reply for errors, gaps and
+ * same ledger context as Break it down, and reviews the reply for errors, gaps and
  * improvements. It has no tools, so it reasons about what it is shown and can't
  * check the reply against the code. The answer is shown, not sent: the pane's
  * "Send to session" button does that, so the reader decides what the main
@@ -429,9 +448,6 @@ async function secondOpinion($: EngineInterface): Promise<void> {
     heading: "Second opinion on the latest reply",
     model: "opus",
     effort: "high",
-    system: REVIEW_SYSTEM,
-    // Thinking at high effort counts against the cap as well as the 400 words.
-    maxTokens: 16_000,
     timeoutMs: REVIEW_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     isSendable: true,
@@ -441,7 +457,13 @@ async function secondOpinion($: EngineInterface): Promise<void> {
         return { failure: "There is no reply to review yet." }
       const { reply, cites, phase, goals } = context
       const request = await read($, latestRequest)
-      return { prompt: reviewPrompt(request, reply, cites, phase, goals) }
+      return {
+        prompt: reviewPrompt(request, reply, cites, phase, goals),
+        system: REVIEW_SYSTEM,
+        // A ceiling, not a length: the review is as long as the flaws it finds, and
+        // thinking at high effort counts against the cap too.
+        maxTokens: 16_000,
+      }
     },
   })
 }
@@ -472,7 +494,7 @@ async function sendToSession($: EngineInterface): Promise<void> {
  * Phase progress: Sonnet gets each active phase's own entry (goal, definition of
  * done, scope), its open items in full while there is room, its closed items by
  * title, and the active goals, and says how far the phase has got, what is left
- * and which of that matters most. Costlier than the ELI5 and TLDR buttons, hence the
+ * and which of that matters most. Costlier than the ELI5 and Break it down buttons, hence the
  * bigger budget and the guard against paying for an empty answer.
  */
 async function progress($: EngineInterface): Promise<void> {
@@ -481,8 +503,6 @@ async function progress($: EngineInterface): Promise<void> {
     heading: "Phase progress",
     model: "sonnet",
     effort: "high",
-    system: PROGRESS_SYSTEM,
-    maxTokens: 8_000,
     timeoutMs: PROGRESS_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     build: async () => {
@@ -515,7 +535,11 @@ async function progress($: EngineInterface): Promise<void> {
             "No items point at the active phase. If some do, re-run `centina-check ledger` to refresh LEDGER.json.",
         }
       }
-      return { prompt: progressPrompt(phases, goals) }
+      return {
+        prompt: progressPrompt(phases, goals),
+        system: PROGRESS_SYSTEM,
+        maxTokens: 8_000,
+      }
     },
   })
 }
@@ -535,8 +559,6 @@ async function itemProgress($: EngineInterface): Promise<void> {
     heading: "Item progress",
     model: "sonnet",
     effort: "high",
-    system: ITEM_PROGRESS_SYSTEM,
-    maxTokens: 8_000,
     timeoutMs: PROGRESS_TIMEOUT_MS,
     unreadable: "Could not read the ledger.",
     build: async () => {
@@ -572,6 +594,8 @@ async function itemProgress($: EngineInterface): Promise<void> {
             bearings([system]).goals.map((e) => contextOf(system.dir, e)),
           ),
         }),
+        system: ITEM_PROGRESS_SYSTEM,
+        maxTokens: 8_000,
       }
     },
   })
@@ -592,8 +616,9 @@ async function pluginData($: EngineInterface): Promise<string | undefined> {
 }
 
 /**
- * Work item tracker: regenerates the system's TRACKER.html with `centina-check
- * trail`, for the item the band is tracking, and opens it. If the checker can't
+ * Work item tracker: brings the checker's install up to date, regenerates the
+ * system's TRACKER.html with `centina-check trail`, for the item the band is
+ * tracking, and opens it. If the checker can't
  * be run the last generated page is opened as it stands, and the toast says
  * why. The page is written even when the trail has errors, so the toast says
  * to read them.
@@ -604,34 +629,55 @@ async function openTracker($: EngineInterface): Promise<void> {
   const page = `${dir}/${TRACKER_FILE}`
   const item = (await read($, drift))?.key
   const data = await pluginData($)
+  const root = $.plugin.root
   let why = ""
   if (data === undefined) {
-    why = "the checker's folder is unknown (start a new session so the install hook records it)"
+    why =
+      "the checker's folder is not recorded yet; the first session started after installing the plugin records it"
   } else {
-    $.ui.toast("Building the tracker...")
-    const root = $.plugin.root
-    const ran = await $.process
-      .run(
-        [
-          "node",
-          `${root}/bin/centina-check`,
-          "trail",
-          ...(item ? ["--item", item] : []),
-          dir,
-        ],
-        {
-          env: { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data },
-          timeoutMs: TRACKER_TIMEOUT_MS,
-        },
-      )
+    const env = { CLAUDE_PLUGIN_ROOT: root, CLAUDE_PLUGIN_DATA: data }
+    // The SessionStart hook's install, run here too so that an update or a first run does not
+    // wait for the next session: a no-op when nothing changed, otherwise it syncs the
+    // checker's source and installs its dependencies.
+    const hasDeps = (await $.fs.list(`${data}/checker`).catch(() => [])).some(
+      (n) => n.name === "node_modules",
+    )
+    $.ui.toast(
+      hasDeps
+        ? "Building the tracker..."
+        : "Installing the checker's dependencies, then building the tracker (this can take a minute)...",
+    )
+    const installed = await $.process
+      .run(["node", `${root}/scripts/session-start-install.mjs`], {
+        env,
+        timeoutMs: INSTALL_TIMEOUT_MS,
+      })
       .catch(() => undefined)
-    if (ran === undefined) why = "the checker did not finish"
-    else if (ran.exitCode !== 0) {
-      // Exit 1 is also "the trail has errors", with the page still written
-      // and named on a "tracker:" line.
-      if (!ran.stdout.includes("tracker: "))
-        why = `the checker failed: ${ran.stderr.trim().split("\n").pop() ?? ""}`
-      else $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+    if (installed === undefined || installed.exitCode !== 0)
+      why = "the checker's install did not finish"
+    else if (installed.stderr.includes("dependency install failed"))
+      why = `the checker's dependency install failed; run npm install in ${data}/checker`
+    else {
+      const ran = await $.process
+        .run(
+          [
+            "node",
+            `${root}/bin/centina-check`,
+            "trail",
+            ...(item ? ["--item", item] : []),
+            dir,
+          ],
+          { env, timeoutMs: TRACKER_TIMEOUT_MS },
+        )
+        .catch(() => undefined)
+      if (ran === undefined) why = "the checker did not finish"
+      else if (ran.exitCode !== 0) {
+        // Exit 1 is also "the trail has errors", with the page still written
+        // and named on a "tracker:" line.
+        if (!ran.stdout.includes("tracker: "))
+          why = `the checker failed: ${ran.stderr.trim().split("\n").pop() ?? ""}`
+        else $.ui.toast(`The trail has errors; run centina-check trail ${dir}`)
+      }
     }
   }
   const names = await $.fs.list(dir).catch(() => [])
@@ -643,7 +689,13 @@ async function openTracker($: EngineInterface): Promise<void> {
     const ran = await $.process.run(argv).catch(() => undefined)
     return ran !== undefined && ran.exitCode === 0
   }
-  if (!(await via(["open", page])) && !(await via(["xdg-open", page])))
+  // macOS, Linux, then Windows (`start` is a cmd.exe builtin; its empty first
+  // argument is the window title, which it would otherwise take from the path).
+  if (
+    !(await via(["open", page])) &&
+    !(await via(["xdg-open", page])) &&
+    !(await via(["cmd.exe", "/c", "start", "", page]))
+  )
     $.ui.toast(`Could not open ${page}`)
   else if (why) $.ui.toast(`Opened the last generated tracker, not refreshed: ${why}`)
 }
@@ -743,7 +795,7 @@ export const register: Register = (on) => {
     if (state === null)
       return (
         <Text dimColor>
-          Press ELI5 on a ledger entry, TLDR THIS, Second opinion, Phase
+          Press ELI5 on a ledger entry, Break it down, Second opinion, Phase
           progress or Item progress.
         </Text>
       )
@@ -766,11 +818,11 @@ export const register: Register = (on) => {
 
   on("ui.render", { component: "AbovePrompt" }, async ($, e, next) => {
     const rows = await read($, cited)
-    // TLDR THIS needs a reply to explain and a ledger to weigh it against, so the
+    // Break it down needs a reply to explain and a ledger to weigh it against, so the
     // band also shows, with just that button, for a reply that cites nothing.
     const reply = await read($, latestReply)
     const secondOpinionWorthy = reply.split(/\s+/).length > 50
-    const tldrWorthy = reply.split(/\s+/).length > 150
+    const breakDownWorthy = reply.split(/\s+/).length > 150
     const isExplainable = dirs.length > 0 && reply !== ""
     // Phase progress needs an active phase in the ledger, whatever the reply cites.
     const isPhaseActive = await read($, hasPhase)
@@ -789,8 +841,12 @@ export const register: Register = (on) => {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const buttons = [
-      isExplainable && tldrWorthy && (
-        <Button key="tldr" label="TLDR THIS ($)" onPress={() => tldr($)} />
+      isExplainable && breakDownWorthy && (
+        <Button
+          key="break-it-down"
+          label="Break it down ($)"
+          onPress={() => breakItDown($)}
+        />
       ),
       isPhaseActive && (
         <Button

@@ -19,6 +19,8 @@ centina-plugin/
 ├── hooks/
 │   ├── hooks.json
 │   ├── register.tsx
+│   ├── budget.ts
+│   ├── budget.test.ts
 │   ├── ledger-cite.ts
 │   ├── ledger-cite.test.ts
 │   ├── eli5.test.tsx
@@ -71,14 +73,14 @@ centina-plugin/
     └── iterate-reference.md
 ```
 
-This tree is exactly what `install.sh` (at the checkout's own root,
+This tree is exactly what `install.mjs` (at the checkout's own root,
 alongside but not part of this tree) copies into a durable install
 location — see "Installing without keeping the checkout" below. The
 checkout also carries dev-repo-only content this tree omits deliberately:
 `specs/` (Centina's own dogfood specs), `README.md`, `CLAUDE.md`,
 `ROADMAP.md`, root `package.json`/`package-lock.json` (the npm workspace
 wrapper around `checker/`'s own `package.json`), `editors/vscode/`, and
-`install.sh` itself.
+`install.mjs` itself (and `install.sh`, a one-line POSIX wrapper around it).
 
 `.claude-plugin/` holds only `plugin.json` — every other component
 (`skills/`, `hooks/`, `bin/`) lives at plugin root, per the documented
@@ -187,7 +189,8 @@ is the doc that surfaces the plugin's own file layout.
 
 ## Installing without keeping the checkout
 
-**Implemented.** `install.sh` at the checkout root copies exactly the
+**Implemented.** `install.mjs` at the checkout root (plain Node, so the same
+on Windows, macOS and Linux) copies exactly the
 directory tree above into a destination (default
 `~/.claude/skills/centina`) as a real, standalone directory — not a
 symlink. Once it's run, the checkout is disposable: nothing in the copied
@@ -203,11 +206,11 @@ a moved-not-deleted checkout would have before that fix).
 
 This is a frozen-snapshot install, not a tracked one: pulling an update in
 a separate checkout, or re-cloning a newer version, does nothing to an
-already-installed copy until `install.sh` runs again. That's a deliberate
+already-installed copy until `install.mjs` runs again. That's a deliberate
 match to how `claude plugin update` already behaves for a marketplace
 install (an explicit action, not automatic), not a gap to close.
 
-`install.sh` also strips `checker/node_modules` and
+`install.mjs` also strips `checker/node_modules` and
 `checker/package-lock.json` from the copy if present from local dev use —
 those are install-time artifacts the `SessionStart` hook regenerates
 inside `${CLAUDE_PLUGIN_DATA}` on first use ( `docs/plugin-checker-install.md`),
@@ -218,9 +221,11 @@ wrong at worst.
 
 - **`bin/` file convention is undocumented** — extension, shebang
   requirement, and Windows compatibility aren't specified in the current
-  plugin reference docs. Needs empirical verification (test a trivial
-  `bin/` script across platforms) before relying on any particular
-  shebang/extension choice for `centina-check`.
+  plugin reference docs. Until verified, nothing here relies on the shebang:
+  hooks, skills and the mod all run `node "${CLAUDE_PLUGIN_ROOT}/bin/centina-check"`
+  explicitly (a shebang script cannot be executed directly on Windows), and
+  `.gitattributes` pins LF so a CRLF checkout cannot break the shebang on
+  the platforms where it is used.
 - **`hooks/hooks.json`'s exact matcher semantics for `SessionStart`** —
   the example above uses `"matcher": "*"` by analogy with other hook
   types; whether `SessionStart` matchers support/require anything more

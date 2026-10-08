@@ -46,8 +46,17 @@ export interface ModelNode {
   other?: string
   quote?: string
   from?: string
-  /** Set when the work did not continue from the previous decision's chosen option. */
-  jump?: { from: string }
+  /**
+   * Set when the work went back to an earlier option, not the one chosen at the decision just
+   * above. Not set on a member of a fork, which has `together` instead.
+   */
+  jump?: { from: string; optionLabel?: string }
+  /**
+   * Set on every member of a fork: two or more consecutive decisions that follow the same
+   * option, so were asked together. `with` names the others. A decision that is the only
+   * one to follow its option has neither this nor `jump`.
+   */
+  together?: { from: string; with: string[]; optionLabel?: string }
   cites: Cite[]
   pending: boolean
   activeMin?: number
@@ -118,6 +127,8 @@ export interface ItemInfo {
 export interface TrackerModel {
   system: string
   now: number
+  /** True when the trail's ids span more than one scope, so the page cannot drop the scope from `d14`. */
+  multiScope: boolean
   items: string[]
   weighted: boolean
   /** Sessions the trail names that have no transcript copy and no stored weights. */
@@ -169,6 +180,11 @@ export function buildModel(
   const takenLater = new Map<string, string>()
   for (const d of live) if (d.from) takenLater.set(d.from, d.id)
 
+  const optionLabelAt = (ref: string): string | undefined => {
+    const m = OPTION_REF.exec(ref)
+    return m ? byId.get(m[1])?.options.find((o) => o.n === Number(m[2]))?.label : undefined
+  }
+
   const sorted = [...live].sort((a, b) => a.t - b.t || a.line - b.line)
   const nodes: ModelNode[] = sorted.map((d, i) => {
     const choice = state.choices.get(d.id)
@@ -176,6 +192,16 @@ export function buildModel(
     const prev = sorted[i - 1]
     const prevChose = prev ? (state.choices.get(prev.id)?.chose ?? []) : []
     const continues = !d.from || (prev && OPTION_REF.exec(d.from)?.[1] === prev.id && prevChose.includes(Number(OPTION_REF.exec(d.from)?.[2])))
+    // The run of consecutive decisions that follow the same option as this one.
+    const sameFrom = (other: Decision | undefined) => d.from !== undefined && other?.from === d.from
+    let lo = i
+    let hi = i
+    while (sameFrom(sorted[lo - 1])) lo--
+    while (sameFrom(sorted[hi + 1])) hi++
+    const fork = sorted.slice(lo, hi + 1)
+    const together: ModelNode["together"] =
+      fork.length > 1 ? { from: d.from!, with: fork.filter((o) => o.id !== d.id).map((o) => o.id), optionLabel: optionLabelAt(d.from!) } : undefined
+    const jump: ModelNode["jump"] = continues || together ? undefined : { from: d.from!, optionLabel: optionLabelAt(d.from!) }
     return {
       id: d.id,
       t: d.t,
@@ -199,7 +225,8 @@ export function buildModel(
       other: choice?.other,
       quote: choice?.quote,
       from: d.from,
-      jump: continues ? undefined : { from: d.from! },
+      jump,
+      together,
       cites: d.options.filter((o) => chose.includes(o.n)).flatMap((o) => o.cites).map(cite),
       pending: !choice,
       tEnd: now,
@@ -321,6 +348,7 @@ export function buildModel(
   return {
     system: trail.system ?? "",
     now,
+    multiScope: new Set(state.decisions.map((d) => d.id.split("/")[0])).size > 1,
     items,
     weighted: timed.length > 0,
     missingTranscripts: options.missingTranscripts ?? [],

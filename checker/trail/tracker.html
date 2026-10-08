@@ -8,19 +8,19 @@
 :root{
   color-scheme: light;
   --surface:#fcfcfb; --panel:#f3f2ef; --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974; --grid:#e3e2dd;
-  --taken:#2a78d6; --stop:#eb6834; --other:#9a9993; --pass:#1baf7a; --fail:#e34948;
+  --taken:#2a78d6; --stop:#eb6834; --other:#9a9993; --pass:#1baf7a; --fail:#e34948; --link:#8a4fd0;
 }
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
     color-scheme: dark;
     --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
-    --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767;
+    --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767; --link:#a77de8;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
   --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
-  --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767;
+  --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767; --link:#a77de8;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -72,7 +72,7 @@ th{color:var(--ink2);font-weight:600}
 <div class="bar">
   <span class="seg" id="seg" role="group" aria-label="Segment length"><button data-m="activeMin" aria-pressed="true">Active time</button><button data-m="tokens" aria-pressed="false">Output tokens</button></span>
   <label>Work item <select id="item"></select></label>
-  <span class="legend">
+  <span class="legend" id="legend">
     <span><i style="border-color:var(--taken)"></i>path taken</span>
     <span><span class="stub" style="border-color:var(--other)"></span>offered, not taken</span>
     <span><span class="stub" style="border-color:var(--stop)"></span>stop / return, not taken</span>
@@ -88,13 +88,22 @@ th{color:var(--ink2);font-weight:600}
 <div class="tip" id="tip"></div>
 <script id="data" type="application/json">__DATA__</script>
 <script>
-const M = JSON.parse(document.getElementById('data').textContent);
+// Opened from the source folder, the page still holds the placeholder where `centina-check trail` puts the data.
+const RAW = document.getElementById('data').textContent;
+const TEMPLATE = !/^\s*\{/.test(RAW);
+const M = TEMPLATE
+  ? {system:'',now:0,multiScope:false,items:[],weighted:false,missingTranscripts:[],nodes:[],focus:undefined,itemInfo:{},views:{},gates:[],standing:[],
+     tiles:{decisions:0,closeDeclined:0,closeOffered:0,standing:0,checkpoints:0,readOf:0,chosenOf:0,sinceReading:0},
+     problems:{errors:0,warnings:0},waived:[],hiddenSuperseded:0}
+  : JSON.parse(RAW);
 const $ = id => document.getElementById(id);
 const fmtT = t => new Date(t*1000).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
 const fmtDur = m => m>=60 ? (m/60).toFixed(1)+' h' : Math.round(m)+' min';
 const fmtTok = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : Math.round(n/1e3)+'k';
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const trunc = (s,n) => s.length>n ? s.slice(0,n-1)+'…' : s;
+// A decision or option id as the page shows it: `d14`, `d14.1`; the scope stays only when the trail has several.
+const sid = r => M.multiScope ? String(r) : String(r).replace(/^[^/]*\//,'');
 let metric = 'activeMin', item = M.focus || '';
 const V = () => (item && M.views[item]) || M;
 const itemName = i => i || 'All items';
@@ -110,11 +119,16 @@ function heading(){
     : (M.items.length>1?'Every item in this trail, in one history.':'');
   document.title = (short?short+' — ':'')+'Work item tracker';
 }
-$('sub').textContent = 'Each node is a point where the agent offered options. The line is the path taken; the stubs are what was offered and not taken. Segment length is the weight of the work after that decision.';
+$('sub').textContent = 'Each node is a point where the agent offered options, labelled with its decision id (d14); an option is d14.1. The line is the path taken; the stubs are what was offered and not taken. A purple arrow points from a decision to the decision whose option it follows, when that is not simply the decision just above it: dashed if it goes back to an earlier option, dotted for each of several decisions asked together from one option. Segment length is the weight of the work after that decision.';
 
 function summary(){
   const T = V().tiles;
   const notes = [];
+  if (TEMPLATE) {
+    $('notes').innerHTML = '<div class="note bad">This is the page template, not a tracker: it holds no data. Run <b>centina-check trail &lt;system-dir&gt;</b>, or press the Work item tracker button, to generate the TRACKER.html for a system.</div>';
+    $('tiles').innerHTML = '';
+    return;
+  }
   if (!M.weighted) notes.push(['bad','No transcript copy or stored weights were found for '+(M.missingTranscripts.join(', ')||'any session')+', so segments are not weighted by time or tokens.']);
   else if (M.missingTranscripts.length) notes.push(['bad','No transcript copy or stored weights for '+M.missingTranscripts.join(', ')+'; work in those sessions is not counted.']);
   if (M.problems.errors+M.problems.warnings) notes.push(['bad',M.problems.errors+' errors and '+M.problems.warnings+' warnings in the trail (all items); run centina-check trail to see them.']);
@@ -146,6 +160,28 @@ function hover(nodes,text){for(const n of nodes){n.addEventListener('mousemove',
 const NS='http://www.w3.org/2000/svg';
 function el(name,attrs,parent,text){const e=document.createElementNS(NS,name);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e}
 
+// The two purple arrows. The map and the legend both draw from this, so a swatch is the line it names.
+// An arrow runs from a decision to the decision whose option it follows.
+const LINKS = {
+  return:    {dash:'8 4',     cap:'butt',  title:'goes back',       legend:'goes back: follows an option from earlier, not from the decision above it'},
+  alongside: {dash:'0.1 4.5', cap:'round', title:'asked together',  legend:'asked together: decisions that follow the same option, an arrow from each'},
+};
+function arrowHead(svg,id){
+  const head=el('marker',{id:id,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto'},el('defs',{},svg));
+  el('path',{d:'M0,0 L10,5 L0,10 z',fill:'var(--link)'},head);
+}
+function linkStyle(kind,id){return {fill:'none',stroke:'var(--link)','stroke-width':1.5,'stroke-dasharray':LINKS[kind].dash,'stroke-linecap':LINKS[kind].cap,'marker-end':'url(#'+id+')'}}
+(function legendLinks(){
+  for (const kind of Object.keys(LINKS)) {
+    const s=el('svg',{width:46,height:14,viewBox:'0 0 46 14','aria-hidden':'true'}), id='legend-arrow-'+kind;
+    s.style.cssText='display:inline-block;vertical-align:middle;margin-right:6px';
+    arrowHead(s,id);
+    el('path',{d:'M2,7 L44,7',...linkStyle(kind,id)},s);
+    const label=document.createElement('span'); label.appendChild(s); label.appendChild(document.createTextNode(LINKS[kind].legend));
+    $('legend').appendChild(label);
+  }
+})();
+
 function stubStyle(o){
   if (o.state==='abandoned') return {col:'var(--other)',dash:'1 3',mark:'×'};
   if (o.state==='done') return {col:'var(--pass)',dash:'3 3',mark:'✓'};
@@ -156,8 +192,8 @@ function stubStyle(o){
 function draw(){
   const svg=$('svg'); svg.innerHTML='';
   const nodes=M.nodes.filter(n=>!item||n.item===item);
-  if(!nodes.length){svg.setAttribute('height',60);svg.setAttribute('width',600);el('text',{x:12,y:30,class:'muted'},svg,'No decisions recorded yet.');return}
-  const SP=270, ROW=17, TOP=40, W=1120;
+  if(!nodes.length){svg.setAttribute('height',60);svg.setAttribute('width',600);el('text',{x:12,y:30,class:'muted'},svg,TEMPLATE?'No data: this is the template.':'No decisions recorded yet.');return}
+  const SP=320, ROW=17, TOP=40, W=1170;
   const val=n=>M.weighted?(n[metric]||0):0;
   const vmax=Math.max(1,...nodes.map(val));
   const K=M.weighted?300/vmax:0;
@@ -180,12 +216,32 @@ function draw(){
     el('line',{x1:SP,x2:SP,y1:y0,y2:y1,stroke:'var(--taken)','stroke-width':3,'stroke-linecap':'round'},svg);
     if(M.weighted && val(n)*K>26) el('text',{x:SP-12,y:(pos[i].y+pos[i].need+pos[i].end)/2+4,'text-anchor':'end',class:'muted'},svg,metric==='activeMin'?fmtDur(n.activeMin):fmtTok(n.tokens));
   });
-  // returns to an earlier option
+  // An arrow from a decision to the decision whose option it follows: for a decision that went back to an
+  // earlier option (`jump`), and for each decision of a fork, several asked together from one option (`together`).
+  arrowHead(svg,'arrow');
+  const lanes=[]; // vertical spans already taken, per lane, so arrows that overlap in height do not share a track
   nodes.forEach((n,i)=>{
-    if(!n.jump) return; const m=/^(.+)\.(\d+)$/.exec(n.jump.from); const j=m&&at.get(m[1]); if(j===undefined||j===null) return;
-    const y0=pos[i].y+9, yo=pos[j].y+9+ROW*(1+n.options.length>0?1:1);
-    el('path',{d:'M'+(SP-8)+','+y0+' L'+(SP-90)+','+y0+' L'+(SP-90)+','+(pos[j].y+9)+' L'+(SP-8)+','+(pos[j].y+9),fill:'none',stroke:'var(--taken)','stroke-width':1.5,'stroke-dasharray':'4 3'},svg);
-    el('text',{x:SP-96,y:y0-4,'text-anchor':'end',class:'faint'},svg,'returns to '+n.jump.from);
+    const J=n.together||n.jump; if(!J) return;
+    const kind=n.together?'alongside':'return';
+    const m=/^(.+)\.(\d+)$/.exec(J.from); const j=m&&at.get(m[1]); if(j===undefined||j===null) return;
+    const y0=pos[i].y+9, yt=pos[j].y+9, from=sid(J.from), target=sid(m[1]);
+    let lane=0; while((lanes[lane]||[]).some(sp=>yt<=sp[1]&&y0>=sp[0])) lane++;
+    (lanes[lane]=lanes[lane]||[]).push([yt,y0]);
+    const X=SP-80-lane*18; // clear of the weight figure drawn left of the line
+    const d='M'+(SP-9)+','+y0+' L'+X+','+y0+' L'+X+','+yt+' L'+(SP-9)+','+yt;
+    const g=el('g',{},svg);
+    const ring=el('circle',{cx:SP,cy:yt,r:10,fill:'none',stroke:'var(--link)','stroke-width':1.5},g);
+    const line=el('path',{d:d,...linkStyle(kind,'arrow')},g);
+    const hit=el('path',{d:d,fill:'none',stroke:'transparent','stroke-width':12},g);
+    // No text on the map: what an arrow says is in its hover, so a crowded page stays readable.
+    // Hovering thickens the arrow and its target, to follow one arrow among many.
+    hit.addEventListener('mouseenter',()=>{line.setAttribute('stroke-width',3.5);ring.setAttribute('stroke-width',3.5)});
+    hit.addEventListener('mouseleave',()=>{line.setAttribute('stroke-width',1.5);ring.setAttribute('stroke-width',1.5)});
+    const what='option '+from+(J.optionLabel?' “'+J.optionLabel+'”':'');
+    hover([hit],
+      kind==='alongside'
+        ? sid(n.id)+' was asked together with '+J.with.map(sid).join(', ')+': they all follow '+what+'.\nThe arrow points at '+target+', the decision that option belongs to.'
+        : sid(n.id)+' goes back to '+what+', not to the option chosen at the decision just above it.\nThe arrow points at '+target+', the decision that option belongs to.');
   });
   nodes.forEach((n,i)=>{
     const y0=pos[i].y, g=el('g',{},svg);
@@ -197,24 +253,26 @@ function draw(){
     const chosen=n.options.filter(o=>n.chose.includes(o.n));
     let lab = chosen.length ? chosen.map(o=>o.n+'. '+trunc(o.label,64)).join('  +  ') : n.pending ? 'awaiting an answer: '+trunc(n.question,60) : (n.other?'other: '+trunc(n.other,60):'no option taken');
     if(n.backfilled) lab+='  (reconstructed)';
-    const ct=el('text',{x:SP+30,y:y0+13,class:n.pending?'muted bold':'bold'},g,lab);
-    let tx=SP+30+Math.min(lab.length*6.6,520)+12;
+    const idw=sid(n.id).length*7.2+10;
+    const idt=el('text',{x:SP+30,y:y0+13,style:'fill:var(--ink2);font-weight:700;font-variant-numeric:tabular-nums'},g,sid(n.id));
+    const ct=el('text',{x:SP+30+idw,y:y0+13,class:n.pending?'muted bold':'bold'},g,lab);
+    let tx=SP+30+idw+Math.min(lab.length*6.6,520)+12;
     el('text',{x:tx,y:y0+13,class:'faint'},g,fmtT(n.t)+(n.checkpoint?'  · checkpoint: '+n.checkpoint:'')); tx+=150+(n.checkpoint?(n.checkpoint.length+16)*6.2:0);
     n.cites.slice(0,6).forEach(c=>{
       const a=el(c.url?'a':'g',c.url?{href:c.url}:{},g); const t=el('text',{x:tx,y:y0+13,class:'faint'},a,c.label.replace(/^[a-z0-9-]+:/,'')); tx+=c.label.replace(/^[a-z0-9-]+:/,'').length*6.6+10;
       hover([t],c.label+(c.status?' ('+c.status+')':'')+(c.title?'\n'+c.title:''));
     });
-    hover([ct,dot],fmtT(n.t)+(n.item?'\n'+n.item:'')+'\n'+n.question+(n.quote?'\n\nHuman: '+n.quote:'')+'\n\nOffered:\n'+n.options.map(o=>(n.chose.includes(o.n)?'▶ ':'   ')+o.n+'. '+o.label+(o.kind==='close'?'  [stop/return]':'')+(o.recommended?'  [agent recommended]':'')+(o.note?'\n      '+o.note:'')).join('\n'));
+    hover([idt,ct,dot],sid(n.id)+' · '+fmtT(n.t)+(n.item?' · '+n.item:'')+(n.from?'\nfollows option '+sid(n.from):'')+'\n'+n.question+(n.quote?'\n\nHuman: '+n.quote:'')+'\n\nOffered:\n'+n.options.map(o=>(n.chose.includes(o.n)?'▶ ':'   ')+sid(n.id)+'.'+o.n+'  '+o.label+(o.kind==='close'?'  [stop/return]':'')+(o.recommended?'  [agent recommended]':'')+(o.note?'\n      '+o.note:'')).join('\n'));
     let r=1;
     n.options.filter(o=>!n.chose.includes(o.n)).forEach(o=>{
       const sy=y0+9+r*ROW; r++;
       const s=stubStyle(o);
       el('path',{d:'M'+SP+','+(y0+9)+' L'+(SP+22)+','+(y0+9)+' L'+(SP+22)+','+sy+' L'+(SP+44)+','+sy,fill:'none',stroke:s.col,'stroke-width':1.5,'stroke-dasharray':s.dash},g);
       const mk=el('circle',{cx:SP+50,cy:sy,r:4.5,fill:'var(--surface)',stroke:s.col,'stroke-width':2},g);
-      const text=o.n+'. '+trunc(o.label,92)+(o.recommended?'  ★':'')+(s.mark&&s.mark.length>1?'  ('+s.mark+')':s.mark?'  '+s.mark:'')+(o.takenLaterBy?'  → '+o.takenLaterBy:'');
+      const text=o.n+'. '+trunc(o.label,92)+(o.recommended?'  ★':'')+(s.mark&&s.mark.length>1?'  ('+s.mark+')':s.mark?'  '+s.mark:'')+(o.takenLaterBy?'  → '+sid(o.takenLaterBy):'');
       const t=el('text',{x:SP+60,y:sy+4,class:o.kind==='close'?'':'muted'},g,text);
       if(o.state==='abandoned') t.setAttribute('text-decoration','line-through');
-      hover([mk,t],'Offered, not taken ('+fmtT(n.t)+') — '+o.state+(o.why?': '+o.why:'')+'\n'+o.label+(o.note?'\n'+o.note:''));
+      hover([mk,t],'Offered, not taken — '+sid(n.id)+'.'+o.n+' ('+fmtT(n.t)+') — '+o.state+(o.why?': '+o.why:'')+'\n'+o.label+(o.note?'\n'+o.note:''));
     });
   });
   const last=pos[pos.length-1];
@@ -258,8 +316,8 @@ $('gatesBody').innerHTML = G.length ? G.map(g=>'<div class="gate"><h3>'+esc(g.id
 }
 
 function table(){
-$('tbl').innerHTML='<tr><th>When</th><th>Item</th><th>Question</th><th>Taken</th><th>Not taken</th><th>Active</th><th>Output tokens</th></tr>'+
- M.nodes.filter(n=>!item||n.item===item).map(n=>'<tr><td>'+fmtT(n.t)+'</td><td>'+esc(n.item||'')+'</td><td>'+esc(n.question)+'</td><td>'+(n.options.filter(o=>n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)).join('<br>')||(n.pending?'(pending)':esc(n.other||'—')))+'</td><td>'+n.options.filter(o=>!n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)+' ('+o.state+')').join('<br>')+'</td><td>'+(n.activeMin!==undefined?fmtDur(n.activeMin):'—')+'</td><td>'+(n.tokens!==undefined?fmtTok(n.tokens):'—')+'</td></tr>').join('');
+$('tbl').innerHTML='<tr><th>Id</th><th>Follows</th><th>When</th><th>Item</th><th>Question</th><th>Taken</th><th>Not taken</th><th>Active</th><th>Output tokens</th></tr>'+
+ M.nodes.filter(n=>!item||n.item===item).map(n=>'<tr><td><b>'+esc(sid(n.id))+'</b></td><td>'+(n.from?esc(sid(n.from)):'—')+(n.together?' <span class="muted">(with '+esc(n.together.with.map(sid).join(', '))+')</span>':n.jump?' <span class="muted">(goes back)</span>':'')+'</td><td>'+fmtT(n.t)+'</td><td>'+esc(n.item||'')+'</td><td>'+esc(n.question)+'</td><td>'+(n.options.filter(o=>n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)).join('<br>')||(n.pending?'(pending)':esc(n.other||'—')))+'</td><td>'+n.options.filter(o=>!n.chose.includes(o.n)).map(o=>o.n+'. '+esc(o.label)+' ('+o.state+')').join('<br>')+'</td><td>'+(n.activeMin!==undefined?fmtDur(n.activeMin):'—')+'</td><td>'+(n.tokens!==undefined?fmtTok(n.tokens):'—')+'</td></tr>').join('');
 }
 
 function refresh(){heading();summary();draw();standing();gates();table()}

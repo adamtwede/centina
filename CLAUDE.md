@@ -139,14 +139,15 @@ vocabulary, docs) — not as a new spec-writing session.
   work, and the author may explicitly invoke a development-purposes override
   for minor spec edits (as happened settling `Score.MAX_ESCALATED` on
   `hill-climbing-loop.centina.ts`).
-- **Never run `install.sh` yourself.** It overwrites `~/.claude/skills/centina/`
+- **Never run `install.mjs` (or its wrapper `install.sh`) yourself** unless
+  the author says so for that session. It overwrites `~/.claude/skills/centina/`
   (or whatever destination the author gives it) with the checkout's current
   content, and that destination is what every Claude Code session on the
   machine loads as `${CLAUDE_PLUGIN_ROOT}` — not just this one. A commit
   landing in this checkout does not reach a running session until the author
   runs it; `bin/centina-check`'s own re-sync (`docs/plugin-checker-install.md`,
   "Source freshness") only ever copies from `ROOT` to `DATA`, never refreshes
-  `ROOT` itself. The author runs `install.sh` explicitly and does not want an
+  `ROOT` itself. The author runs `install.mjs` explicitly and does not want an
   agent running it on their behalf.
 - `docs/boundaries.md` — boundary design (affordances-not-transports, the
   three roles, direction-from-returns, drawing guidelines) carries over from
@@ -172,8 +173,9 @@ vocabulary, docs) — not as a new spec-writing session.
 
 ## Session-zero and iterate: managing long-running output
 
-The output-splitting rule for long `centina-session-zero`/`centina-iterate`
-ledgers now lives in `docs/output-management.md` (extracted so the plugin
+The output rules for long `centina-session-zero`/`centina-iterate`
+ledgers (the run frame, how to read a long ledger, optional splitting) live in
+`docs/output-management.md` (extracted so the plugin
 bundle has a file to point at — there's no `CLAUDE.md` inside the bundle).
 Read it before either skill produces a state file. This project's own
 skills reference it directly; a spec author using the packaged plugin gets
