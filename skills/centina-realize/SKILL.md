@@ -50,8 +50,8 @@ next phase.
 **Rules of engagement:**
 
 1. **The human makes every edit to `.centina.ts` files.** Including comment
-   corrections. The skill guides the human through each change instead (see
-   "Contract changes"). A human who hands every spec edit to an agent loses
+   corrections. The skill guides the human through each change instead,
+   handing the edit over verbatim, not described (see "Contract changes"). A human who hands every spec edit to an agent loses
    track of the spec, and drift follows.
 2. **Code is the agent's job; meaning is the human's.** Write implementation
    and harness code freely. Stop for the human on anything that decides what
@@ -231,8 +231,10 @@ different return shape). So:
    the human actually wrote. A spec edit that differs from the proposal
    fails at that moment — which nothing else catches.
 
-3. **Guide the human through the spec edit.** Show the change, file by file.
-   Do not make it.
+3. **Guide the human through the spec edit.** Show the change, file by file,
+   verbatim: the file, an anchor, and the exact text to remove and to add in
+   a code fence, in the file's own formatting. Not a prose description,
+   unless the human asks for one. Do not make it.
 4. After the human edits the spec, run the checker. Confirm it reports what
    the change request predicted, and work through the dependents with the
    human (this is `centina-iterate`'s loop).

@@ -38,7 +38,8 @@ question it began with. This skill exists to keep that comparison alive.
    fill in.
 2. **Code is the agent's job; meaning is the human's.** Spike code stays
    outside the contracts and never becomes build code. The human makes every
-   edit to `.centina.ts` files.
+   edit to `.centina.ts` files; hand each over verbatim (file, anchor, exact
+   text in a code fence), not described in prose, unless the human asks.
 3. **Ledger entries and the trail are the agent's job** as scribe. The human
    decides every status that means a decision.
 

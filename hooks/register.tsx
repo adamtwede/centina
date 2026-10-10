@@ -83,6 +83,11 @@ const MAX_DEPTH = 6
 const REWALK_MS = 30_000
 const MAX_ROWS = 6
 
+// Space between neighbouring buttons. Gaps count in whole cells on a terminal, where one
+// cell is the least there is; the desktop app lays out in pixels, where a whole cell
+// reads as too much beside a button's own padding.
+const buttonGap = (surface: RenderSurface) => (surface === "desktop" ? 0.5 : 1)
+
 let dirs: string[] = []
 let walkedAt = -Infinity
 let isNewTurn = true
@@ -832,18 +837,20 @@ export const register: Register = (on) => {
         {state.status === "failed" && <Text color="red">{state.text}</Text>}
         {state.status === "answered" && <Text>{state.text}</Text>}
         {state.status === "answered" && (
-          <Button
-            key="copy"
-            label="Copy response"
-            onPress={(press) => copyAnswer($, press.surface)}
-          />
-        )}
-        {state.status === "answered" && state.isSendable && (
-          <Button
-            key="send"
-            label="Send to session"
-            onPress={() => sendToSession($)}
-          />
+          <Box columnGap={buttonGap(e.surface)}>
+            <Button
+              key="copy"
+              label="Copy response"
+              onPress={(press) => copyAnswer($, press.surface)}
+            />
+            {state.isSendable && (
+              <Button
+                key="send"
+                label="Send to session"
+                onPress={() => sendToSession($)}
+              />
+            )}
+          </Box>
         )}
       </Box>
     )
@@ -905,7 +912,7 @@ export const register: Register = (on) => {
       // Button takes no colour, so the marker beside it carries the emphasis.
       isTrailKept && (
         <Text key="tracker-mark" color="cyan" bold>
-          {" ◆ "}
+          ◆
         </Text>
       ),
       isTrailKept && (
@@ -921,8 +928,8 @@ export const register: Register = (on) => {
     // brought back; the next reply unfolds it again.
     if (await read($, isHidden)) {
       return (
-        <Box>
-          <Text dimColor>Ledger entries cited this turn ({rows.length}) </Text>
+        <Box columnGap={buttonGap(e.surface)}>
+          <Text dimColor>Ledger entries cited this turn ({rows.length})</Text>
           <Button
             key="show"
             label="Show"
@@ -950,13 +957,13 @@ export const register: Register = (on) => {
 
     return (
       <Box flexDirection="column">
-        <Box>
+        <Box columnGap={buttonGap(e.surface)}>
           <Text dimColor>
             {rows.length > 0
-              ? "Ledger entries cited this turn "
+              ? "Ledger entries cited this turn"
               : isExplainable
-                ? "Latest reply cites no ledger entries "
-                : "Ledger "}
+                ? "Latest reply cites no ledger entries"
+                : "Ledger"}
           </Text>
           <Button
             key="hide"
@@ -1009,18 +1016,18 @@ export const register: Register = (on) => {
               </Text>
             )}
             {row.path !== undefined && (
-              <Button
-                key={`open:${row.system ?? ""}/${row.cite}`}
-                label="Open"
-                onPress={() => open(row)}
-              />
-            )}
-            {row.path !== undefined && (
-              <Button
-                key={`eli5:${row.system ?? ""}/${row.cite}`}
-                label="ELI5"
-                onPress={() => explain($, row)}
-              />
+              <Box flexShrink={0} columnGap={buttonGap(e.surface)}>
+                <Button
+                  key={`open:${row.system ?? ""}/${row.cite}`}
+                  label="Open"
+                  onPress={() => open(row)}
+                />
+                <Button
+                  key={`eli5:${row.system ?? ""}/${row.cite}`}
+                  label="ELI5"
+                  onPress={() => explain($, row)}
+                />
+              </Box>
             )}
           </Box>
         ))}
