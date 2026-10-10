@@ -149,6 +149,20 @@ vocabulary, docs) — not as a new spec-writing session.
   "Source freshness") only ever copies from `ROOT` to `DATA`, never refreshes
   `ROOT` itself. The author runs `install.mjs` explicitly and does not want an
   agent running it on their behalf.
+- **Validate a mod change before handing it over.** After any change to the
+  ledger mod (`hooks/register.tsx` and its siblings) or any future mod, run
+  all of these and report the results before asking the human to verify it:
+  `claude plugin validate .` (must exit 0; the warnings it already carries
+  are not new failures, but say if the change adds one), `claude plugin test .`
+  and `npm run typecheck`. Validate only reads manifests and source, so it
+  never replaces the tests or a look at the rendered mod. Caveats: `claude
+  plugin test .` also picks up `checker/**/*.test.ts`, which fail to load
+  there ("cannot import node:assert/strict") — judge only the `hooks/` tests,
+  and compare against a clean checkout of `HEAD` before calling a failure
+  yours; `npm run typecheck` needs the engine-written `.claude-plugin/types/`
+  (gitignored, absent until the engine has loaded the mod), so without it
+  typecheck `hooks/` against the `claude-code.d.ts` the plugin-authoring skill
+  names.
 - `docs/boundaries.md` — boundary design (affordances-not-transports, the
   three roles, direction-from-returns, drawing guidelines) carries over from
   AISL unchanged; only its concrete syntax section is AISL-era.

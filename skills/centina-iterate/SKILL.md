@@ -170,9 +170,10 @@ Rule 0 allows it). Detail: the reference doc, "Starting from a fresh skeleton".
      given everything already established in the document and the
      conversation (a typo matching an existing identifier, a missing `as`
      cast whose target type is unambiguous, a scope reference that clearly
-     meant a different in-scope name). Propose the fix in one or two
-     sentences and let the human apply it — see Rule 0a below on why the
-     agent doesn't reach for the edit itself, even for a fix this small.
+     meant a different in-scope name). Give the fix verbatim (see "Hand
+     edits over verbatim" below) and let the human apply it — see Rule 0a
+     below on why the agent doesn't reach for the edit itself, even for a
+     fix this small.
 
    - **Genuine ambiguity** — the diagnostic reveals that the pseudocode's
      _intent_ isn't actually settled (e.g. an undefined identifier that
@@ -275,6 +276,15 @@ then, in this order:
   author may explicitly invoke a development-purposes override for this
   policy, especially for minor edits — treat that as sufficient to proceed
   without further pushback for the edit in question.
+- **Hand edits over verbatim.** When the human is to make an edit to a
+  `.centina.ts` file, give them the edit itself, not a description of it:
+  the file, an anchor (the nearest existing declaration or line), and the
+  exact text to remove and to add, in a code fence, in the file's own
+  formatting (`semi: false`). "Change `f` to take a `Y`" is a description;
+  the changed signature is the edit. This is the default; the human can ask
+  for prose instead. It applies only once the decision behind the edit is
+  settled — verbatim text for an open fork is the agent authoring meaning
+  (Rule 0), so an unsettled fork stays a question, not a snippet.
 - Don't silently resolve a genuine ambiguity just to make the check pass. A
   diagnostic is a tool for _finding_ underspecified intent, not a target to
   satisfy by any available typing trick (e.g. don't just loosen a param's

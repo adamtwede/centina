@@ -272,7 +272,11 @@ or terminal source changes.
   spec write is the skeleton at phase 5. Ledger entries, ARCHITECTURE.md and
   the run frame are records, not spec files; writing them is the scribe's job
   throughout. From handoff onward, don't volunteer to
-  edit the spec files; surface decisions and let the human write them. If asked
+  edit the spec files; surface decisions and let the human write them. Once a
+  decision is settled, hand the edit over verbatim (file, anchor, exact text
+  in a code fence, in the file's own formatting) rather than describing it in
+  prose, unless the human asks for prose; an unsettled fork stays a question,
+  never a snippet (Rule 0). If asked
   to edit anyway, push back once (name the risk: they may be offloading
   thinking meant to stay theirs), then comply if they persist **for that one edit only**.
   After that edit, return to the default position of push-back-once-then-comply.
