@@ -392,6 +392,35 @@ test('a second opinion\'s answer offers Send to session', async ($, on) => {
   expect(await (await paneOf($)).find({ key: 'send' })).toBeDefined()
 })
 
+test('an answer offers Copy response, which puts its text on the clipboard of the surface pressed', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'Break it down: the latest reply', status: 'answered', text: 'Short.' }]])
+  const copies: unknown[] = []
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('ui.copy', async (_$, e) => { copies.push(e); return { value: { isCopied: true } } })
+  const pane = await paneOf($)
+  expect(await pane.find({ key: 'copy' })).toBeDefined()
+  await pane.press({ key: 'copy' })
+  expect(copies).toHaveLength(1)
+  expect(copies[0]).toMatchObject({ text: 'Short.' })
+})
+
+test('Copy response appends the text to the prompt box when the clipboard is out of reach', async ($, on) => {
+  const store = new Map<string, unknown>([['centina/eli5', { cite: 'x', status: 'answered', text: 'Short.' }]])
+  const fills: unknown[] = []
+  on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
+  on('ui.copy', async () => ({ value: { isCopied: false, reason: 'no-clipboard' } }))
+  on('prompt.fill', async (_$, e) => { fills.push(e); return { value: { isFilled: true } } as never })
+  await (await paneOf($)).press({ key: 'copy' })
+  expect(fills).toHaveLength(1)
+  expect(fills[0]).toMatchObject({ mode: 'append' })
+  expect(String((fills[0] as { text: string }).text)).toContain('Short.')
+})
+
+test('a pane with no answer offers no Copy response', async ($, on) => {
+  on('state.get', async (_$, e) => ({ value: { value: e.key === 'eli5' ? { cite: 'x', status: 'asking', text: '' } : null, version: 1 } }))
+  expect(await (await paneOf($)).find({ key: 'copy' })).toBeUndefined()
+})
+
 test('a prompt the reader typed is kept as the last request; a plugin\'s own is not', async ($, on) => {
   const store = new Map<string, unknown>()
   on('state.get', async (_$, e) => ({ value: { value: store.get(`${e.plugin}/${e.key}`), version: 1 } }))
