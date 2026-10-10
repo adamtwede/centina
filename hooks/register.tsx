@@ -18,7 +18,7 @@
 // markdown ledger. Display only: nothing here is load-bearing for the skills.
 
 import { atom, read, update } from "claude-code"
-import type { EngineInterface, Register } from "claude-code"
+import type { EngineInterface, Register, RenderSurface } from "claude-code"
 
 import { breakItDownBudget, eli5Budget } from "./budget"
 import {
@@ -491,6 +491,32 @@ async function sendToSession($: EngineInterface): Promise<void> {
 }
 
 /**
+ * Puts the pane's answer on the clipboard of the surface the press came from,
+ * for surfaces (the desktop app's side window) where the text can't be selected;
+ * where the clipboard can't be reached, appends it to the prompt box instead.
+ */
+async function copyAnswer(
+  $: EngineInterface,
+  surface: RenderSurface | undefined,
+): Promise<void> {
+  const state = await read($, eli5)
+  if (state === null || state.status !== "answered") return
+  const copied = await $.ui.copy({ text: state.text, surface })
+  if (copied.isCopied) return $.ui.toast("Copied the response")
+  // No clipboard on this surface: leave the text in the prompt box, where it can be cut or copied.
+  const { text } = await $.prompt.read()
+  const filled = await $.prompt.fill({
+    text: (text === "" ? "" : "\n\n") + state.text,
+    mode: "append",
+  })
+  $.ui.toast(
+    filled.isFilled
+      ? "No clipboard here; added the response to the prompt box"
+      : "Could not copy the response",
+  )
+}
+
+/**
  * Phase progress: Sonnet gets each active phase's own entry (goal, definition of
  * done, scope), its open items in full while there is room, its closed items by
  * title, and the active goals, and says how far the phase has got, what is left
@@ -805,6 +831,13 @@ export const register: Register = (on) => {
         {state.status === "asking" && <Text dimColor>Asking...</Text>}
         {state.status === "failed" && <Text color="red">{state.text}</Text>}
         {state.status === "answered" && <Text>{state.text}</Text>}
+        {state.status === "answered" && (
+          <Button
+            key="copy"
+            label="Copy response"
+            onPress={(press) => copyAnswer($, press.surface)}
+          />
+        )}
         {state.status === "answered" && state.isSendable && (
           <Button
             key="send"
