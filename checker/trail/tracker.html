@@ -4,23 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Work item tracker</title>
+<script>
+// Before first paint, so a saved light theme does not flash dark. Dark is the default; storage can throw (private window, blocked file:// storage).
+(function(){var t='dark';try{var s=localStorage.getItem('centina-tracker-theme');if(s==='light'||s==='dark'||s==='system')t=s}catch(e){}document.documentElement.setAttribute('data-theme',t)})();
+</script>
 <style>
 :root{
+  color-scheme: dark;
+  --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
+  --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767; --link:#a77de8;
+}
+:root[data-theme="light"]{
   color-scheme: light;
   --surface:#fcfcfb; --panel:#f3f2ef; --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974; --grid:#e3e2dd;
   --taken:#2a78d6; --stop:#eb6834; --other:#9a9993; --pass:#1baf7a; --fail:#e34948; --link:#8a4fd0;
 }
-@media (prefers-color-scheme: dark){
-  :root:where(:not([data-theme="light"])){
-    color-scheme: dark;
-    --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
-    --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767; --link:#a77de8;
+@media (prefers-color-scheme: light){
+  :root[data-theme="system"]{
+    color-scheme: light;
+    --surface:#fcfcfb; --panel:#f3f2ef; --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974; --grid:#e3e2dd;
+    --taken:#2a78d6; --stop:#eb6834; --other:#9a9993; --pass:#1baf7a; --fail:#e34948; --link:#8a4fd0;
   }
-}
-:root[data-theme="dark"]{
-  color-scheme: dark;
-  --surface:#1a1a19; --panel:#242423; --ink:#ffffff; --ink2:#c3c2b7; --ink3:#97968c; --grid:#383836;
-  --taken:#3987e5; --stop:#d95926; --other:#7d7c76; --pass:#199e70; --fail:#e66767; --link:#a77de8;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--surface);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -37,7 +41,10 @@ h1{font-size:22px;margin:2px 0 2px}
 .tile.warn b{color:var(--stop)}
 .bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:0 0 8px;color:var(--ink2);font-size:13px}
 .seg button,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--grid);padding:4px 10px;cursor:pointer}
-.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0;border-left:0}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button+button{border-left:0}
+.theme{margin-left:auto}
 .seg button[aria-pressed="true"]{background:var(--taken);color:#fff;border-color:var(--taken)}
 select{border-radius:6px}
 .legend{display:flex;gap:16px;flex-wrap:wrap}
@@ -78,6 +85,7 @@ th{color:var(--ink2);font-weight:600}
     <span><span class="stub" style="border-color:var(--stop)"></span>stop / return, not taken</span>
     <span><span class="stub" style="border-color:var(--taken)"></span>taken up later</span>
   </span>
+  <span class="seg theme" id="theme" role="group" aria-label="Color theme"><button data-t="dark">Dark</button><button data-t="light">Light</button><button data-t="system">System</button></span>
 </div>
 <div class="chart"><svg id="svg" role="img" aria-label="Decision history tree for the work item"></svg></div>
 <details id="standing"><summary id="standingTitle"></summary><div id="standingBody"></div></details>
@@ -152,6 +160,15 @@ if (M.items.length) {
 $('item').addEventListener('change',e=>{item=e.target.value;refresh()});
 document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
   metric=b.dataset.m; document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); draw();
+}));
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.querySelectorAll('#theme button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.t===t));
+}
+setTheme(document.documentElement.getAttribute('data-theme')||'dark');
+document.querySelectorAll('#theme button').forEach(b=>b.addEventListener('click',()=>{
+  setTheme(b.dataset.t);
+  try{localStorage.setItem('centina-tracker-theme',b.dataset.t)}catch(e){}
 }));
 const tip=$('tip');
 function showTip(e,text){tip.textContent=text;tip.style.display='block';tip.style.left=Math.max(8,Math.min(e.clientX+14,innerWidth-440))+'px';tip.style.top=Math.min(e.clientY+14,innerHeight-120)+'px'}

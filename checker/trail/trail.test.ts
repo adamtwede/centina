@@ -372,6 +372,20 @@ describe("centina-check trail", () => {
     }
   })
 
+  it("defaults to the dark theme, offers Dark / Light / System, and sets the theme before first paint", () => {
+    const dir = system([HEADER, decision(1), choice(1, [1])])
+    runTrailCommand([dir])
+    const html = readFileSync(path.join(dir, TRACKER_FILE), "utf8")
+    // Dark is the unconditional base palette: no attribute (no script) and no saved choice both land on it.
+    assert.match(html, /:root\{\s*color-scheme: dark;/)
+    assert.match(html, /var t='dark'/)
+    for (const t of ["dark", "light", "system"]) assert.match(html, new RegExp(`<button data-t="${t}">`))
+    // The theme script sits in <head>, ahead of the stylesheet, so a saved light choice does not flash dark.
+    const head = html.slice(0, html.indexOf("</head>"))
+    assert.ok(head.indexOf("setAttribute('data-theme'") !== -1)
+    assert.ok(head.indexOf("setAttribute('data-theme'") < head.indexOf("<style>"))
+  })
+
   it("--check validates and writes nothing; an error makes the exit code 1", () => {
     const dir = system([HEADER, decision(1), choice(1, [9])])
     assert.equal(runTrailCommand(["--check", dir]), 1)
@@ -388,6 +402,7 @@ describe("centina-check trail", () => {
     const evil = line({ type: "decision", id: "demo/d1", at: "2026-10-01T10:00:00Z", question: "</script><b>x", options: [{ n: 1, label: "</script>", kind: "refine" }, { n: 2, label: "stop", kind: "close" }] })
     const dir = system([HEADER, evil, choice(1, [1])])
     runTrailCommand([dir])
-    assert.equal((readFileSync(path.join(dir, TRACKER_FILE), "utf8").match(/<\/script>/g) ?? []).length, 2)
+    // The page's own three script blocks (theme, data, page); none added by the label.
+    assert.equal((readFileSync(path.join(dir, TRACKER_FILE), "utf8").match(/<\/script>/g) ?? []).length, 3)
   })
 })
