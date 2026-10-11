@@ -86,7 +86,7 @@ const MAX_ROWS = 6
 // Space between neighbouring buttons. Gaps count in whole cells on a terminal, where one
 // cell is the least there is; the desktop app lays out in pixels, where a whole cell
 // reads as too much beside a button's own padding.
-const buttonGap = (surface: RenderSurface) => (surface === "desktop" ? 0.5 : 1)
+const buttonGap = (surface: RenderSurface) => (surface === "desktop" ? 0.25 : 1)
 
 let dirs: string[] = []
 let walkedAt = -Infinity
