@@ -1,4 +1,5 @@
 import { SourceFile } from "ts-morph"
+import { CheckArgs, parseCheckArgs } from "./cliArgs"
 import { getSpecSourceFiles, loadProject, resolveScope } from "./harness"
 import { runLedgerCommand } from "./ledger/command"
 import { runSetupCommand } from "./setup/command"
@@ -33,25 +34,6 @@ function cycleFindings(cycles: string[][]): Finding[] {
   }))
 }
 
-function parseArgs(argv: string[]): { tsConfigFilePath?: string; requestedPaths: string[] } {
-  const requestedPaths: string[] = []
-  let tsConfigFilePath: string | undefined
-
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--project") {
-      tsConfigFilePath = argv[++i]
-      if (!tsConfigFilePath) {
-        console.error("--project requires a path argument")
-        process.exit(1)
-      }
-    } else {
-      requestedPaths.push(argv[i])
-    }
-  }
-
-  return { tsConfigFilePath, requestedPaths }
-}
-
 function main(): void {
   if (process.argv[2] === "ledger") {
     process.exit(runLedgerCommand(process.argv.slice(3)))
@@ -63,7 +45,15 @@ function main(): void {
     process.exit(runTrailCommand(process.argv.slice(3)))
   }
 
-  const { tsConfigFilePath, requestedPaths } = parseArgs(process.argv.slice(2))
+  const baseDir = process.env.CENTINA_CALLER_CWD ?? process.cwd()
+  let args: CheckArgs
+  try {
+    args = parseCheckArgs(process.argv.slice(2), baseDir)
+  } catch (error) {
+    console.error((error as Error).message)
+    process.exit(1)
+  }
+  const { tsConfigFilePath, requestedPaths } = args
   const project = loadProject(tsConfigFilePath)
 
   let targetSourceFiles: SourceFile[]
@@ -85,9 +75,7 @@ function main(): void {
   const diagnostics =
     requestedPaths.length === 0
       ? project.getPreEmitDiagnostics()
-      : targetSourceFiles.flatMap((sourceFile) =>
-          project.getPreEmitDiagnostics(sourceFile),
-        )
+      : targetSourceFiles.flatMap((sourceFile) => sourceFile.getPreEmitDiagnostics())
 
   if (diagnostics.length > 0) {
     console.log(project.formatDiagnosticsWithColorAndContext(diagnostics))
