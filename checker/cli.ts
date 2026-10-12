@@ -1,5 +1,6 @@
 import { SourceFile } from "ts-morph"
 import { CheckArgs, parseCheckArgs } from "./cliArgs"
+import { diagnosticsForScope } from "./diagnostics"
 import { getSpecSourceFiles, loadProject, resolveScope } from "./harness"
 import { runLedgerCommand } from "./ledger/command"
 import { runSetupCommand } from "./setup/command"
@@ -72,10 +73,10 @@ function main(): void {
     }
   }
 
-  const diagnostics =
-    requestedPaths.length === 0
-      ? project.getPreEmitDiagnostics()
-      : targetSourceFiles.flatMap((sourceFile) => sourceFile.getPreEmitDiagnostics())
+  const diagnostics = diagnosticsForScope(
+    project,
+    requestedPaths.length === 0 ? undefined : targetSourceFiles,
+  )
 
   if (diagnostics.length > 0) {
     console.log(project.formatDiagnosticsWithColorAndContext(diagnostics))
