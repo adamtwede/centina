@@ -25,6 +25,9 @@ harness-config.json
 .serena/
 .tokensave/
 
+# Git worktrees created by Claude Code sessions (see `git worktree list`)
+.claude/worktrees/
+
 # Harness / token-optimization state (not project content)
 .claude/.headroom_wrap_marker.json
 
