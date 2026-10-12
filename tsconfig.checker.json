@@ -1,0 +1,21 @@
+{
+	// Typechecks the checker itself (checker/**). The checker runs under tsx, which
+	// strips types without checking them, so nothing else would catch a type error
+	// in it. Strict, because the checker is the program that decides correctness.
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ES2022",
+		"moduleResolution": "Bundler",
+		"types": ["node"],
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"noEmit": true
+	},
+	// tsPluginImpl.ts is excluded: it is CommonJS by design (`export =`), loaded by
+	// checker/tsPlugin.cjs through require(). This config is ESM (module ES2022),
+	// which rejects `export =`, so it is not typechecked here. Revisit when that
+	// file's module format is settled.
+	"include": ["checker/**/*.ts"],
+	"exclude": ["checker/tsPluginImpl.ts"]
+}

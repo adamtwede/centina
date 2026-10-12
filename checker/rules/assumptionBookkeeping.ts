@@ -8,7 +8,7 @@ function isOpaqueSource(type: Type): boolean {
 
 /** `unknown`/`any` targets are never a shape assumption — they opacify a value, they don't fabricate one. */
 function isOpaqueTarget(cast: AsExpression): boolean {
-  const text = cast.getTypeNode().getText()
+  const text = cast.getTypeNodeOrThrow().getText()
   return text === "unknown" || text === "any"
 }
 
@@ -31,7 +31,7 @@ export const assumptionBookkeepingRule: Rule = {
       )) {
         if (isOpaqueTarget(cast)) continue
 
-        const targetTypeText = cast.getTypeNode().getText()
+        const targetTypeText = cast.getTypeNodeOrThrow().getText()
         const line = cast.getStartLineNumber()
         const realOperand = realOperandOf(cast)
         const realOperandType = realOperand.getType()

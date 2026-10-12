@@ -198,7 +198,7 @@ export function checkLedger(ledger: Ledger, scanned: ScannedFile[], build: Build
   for (const entry of ledger.entries) checkLedgerLines(entry.file, entry.body, entry.fields.get("Date")?.value)
   for (const { file, lines } of ledger.looseLines) checkLedgerLines(file, lines)
 
-  const allScanned = [...scanned, ...build.map((buildFile) => ({ file: buildFile.file, lines: buildFile.comments }))]
+  const allScanned: ScannedFile[] = [...scanned, ...build.map((buildFile) => ({ file: buildFile.file, lines: buildFile.comments }))]
   for (const scannedFile of allScanned) {
     // `@agent:` notes are spec-authoring metadata, so the rule covers specs only.
     const isSpec = scannedFile.file.endsWith(".centina.ts")
