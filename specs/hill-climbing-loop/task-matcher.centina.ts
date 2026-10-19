@@ -15,8 +15,6 @@
 
 import { Agent, deferred, Skill } from "../../centina"
 import { ModelId } from "./shared.centina"
-
-import { taskCorpusStore } from "./task-corpus.centina"
 import type {
   TaskCorpusRecord,
   Task,
@@ -26,7 +24,9 @@ import type {
   TaskCorpusPredicate,
   FeedbackChannelCode,
   Feedback,
-} from "./task-corpus.centina"
+} from "./shared.centina"
+
+import { taskCorpusStore } from "./task-corpus.centina"
 
 // @agent: proposed skill that an agent uses to essentially tag pieces of feedback with "channels," either at the time of encoding or upon returning a task match, which are what the agent making the evaluation determines as the best place for the feedback to "live," either permanently (such as in project/agent docs) or during specific implementation runs of future tasks (such as in the task prompt itself) or possibly both (a specific model's system prompt, temporarily or persistently, depending on various constraints). the second input (TaskRunRecord[]?) represents precedents that may inform routing decisions. this input is required, but sending an empty array signals no precedents were found, so the skill would need to generate routing data from scratch.
 const feedbackRoutingSkill: Skill<
