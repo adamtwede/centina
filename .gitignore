@@ -25,6 +25,9 @@ harness-config.json
 .serena/
 .tokensave/
 
+# Git worktrees created by Claude Code sessions (see `git worktree list`)
+.claude/worktrees/
+
 # Harness / token-optimization state (not project content)
 .claude/.headroom_wrap_marker.json
 
@@ -34,3 +37,20 @@ harness-config.json
 
 # Written by the SessionStart hook when the plugin is loaded from the checkout
 /.centina-data
+
+# Docs site: pages generated from README.md and CONTRIBUTING.md (scripts/build-site-pages.mjs),
+# and VitePress build output
+/docs/index.md
+/docs/why.md
+/docs/concepts.md
+/docs/install-claude-code.md
+/docs/install-other-harnesses.md
+/docs/quickstart.md
+/docs/core-mechanism.md
+/docs/vocabulary.md
+/docs/using-it.md
+/docs/reference.md
+/docs/contributing.md
+/docs/.vitepress/cache/
+/docs/.vitepress/dist/
+/docs/public/

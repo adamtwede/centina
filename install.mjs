@@ -205,8 +205,8 @@ async function main() {
   console.log()
   console.log("Claude Code skills invoke the checker via ${CLAUDE_PLUGIN_ROOT} — nothing to")
   console.log("do there. To run it yourself from a terminal it needs CLAUDE_PLUGIN_ROOT and")
-  console.log("CLAUDE_PLUGIN_DATA set, which only Claude Code sets; see README.md, \"Claude")
-  console.log("Code setup\" (\"Running it yourself from a terminal\").")
+  console.log("CLAUDE_PLUGIN_DATA set, which only Claude Code sets; see docs/plugin-setup-procedure.md,")
+  console.log("\"Running it without a session\".")
   return 0
 }
 

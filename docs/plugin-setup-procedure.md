@@ -171,7 +171,20 @@ node "$CLAUDE_PLUGIN_ROOT/bin/centina-check" setup /path/to/artifactsRoot
 
 The wrapper needs the checker's `node_modules` in `CLAUDE_PLUGIN_DATA`, which the
 `SessionStart` hook puts there; if the directory is missing, start one Claude
-Code session with the plugin loaded first.
+Code session with the plugin loaded first. Claude Code names that directory, not
+Centina, so if it differs on your machine, run `ls ~/.claude/plugins/data/` and
+use the real name. The wrapper refuses to run while the dependencies are out of
+date for the installed plugin version, rather than report from stale ones; the
+next Claude Code session start reinstalls them.
+
+To run a check rather than setup, the same variables apply:
+
+```sh
+node "$CLAUDE_PLUGIN_ROOT/bin/centina-check" --project ./tsconfig.json path/to/spec.centina.ts
+```
+
+Relative paths resolve against the directory you ran the command from, not
+against the checker's own install location.
 
 ## A limit to know about
 

@@ -103,9 +103,17 @@ vocabulary, docs) — not as a new spec-writing session.
 
 ## Commands
 
-- `npm run typecheck` — tsc over the vocabulary + all `*.centina.ts` specs.
-  Expect zero errors; any diagnostic is a real regression to raise with the
-  author, not something to fix unilaterally (see Rule 0).
+- `npm run typecheck` — three tsc passes, in order:
+  1. the root (`tsconfig.json`): the vocabulary + all `*.centina.ts` specs;
+  2. the checker (`tsconfig.checker.json`, strict): `checker/**/*.ts`, which
+     tsx runs without typechecking. `checker/tsPluginImpl.ts` is excluded
+     because its `export =` is CommonJS-only and this config is ESM;
+  3. `hooks/` (`tsconfig.hooks.json`): needs the engine-written
+     `.claude-plugin/types/` (see the `claude plugin validate` note below).
+  Expect zero errors from passes 1 and 2. A diagnostic there is a real
+  regression to raise with the author, not something to fix unilaterally
+  (see Rule 0). Checker code is not spec content, so a checker type error may
+  be fixed once raised, but still ask first.
 - `npm run check` — the Centina checker (`checker/cli.ts`): `tsc` plus the
   spec-plane rules. Accepts `-- <file...>` to scope to specific specs and
   their transitive local-spec dependencies; no arguments checks the whole

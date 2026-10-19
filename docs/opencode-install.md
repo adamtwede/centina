@@ -2,12 +2,12 @@
 
 Covers a one-time, correct-the-first-time install of Centina for
 [Opencode](https://github.com/anomalyco/opencode), which requires different steps from what is
-detailed in [Getting started (Claude Code)](../README.md#getting-started-claude-code), or even in [Using Centina without Claude Code](../README.md#using-centina-without-claude-code)
+detailed in [Claude Code setup](https://github.com/adamtwede/centina/blob/main/README.md#claude-code-setup), or even in [Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
 as presently written, which covers a more general (but less turnkey) setup.
 
 ## Why the generic "without Claude Code" instructions aren't enough
 
-[Using Centina without Claude Code](../README.md#using-centina-without-claude-code)
+[Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
 already covers running the checker with no Claude Code environment variables
 set. That's necessary but not sufficient for OpenCode specifically, because of
 one additional constraint that doesn't exist for a human running commands by
@@ -78,46 +78,49 @@ only used to produce the install and to source updates from later.
    `package-lock.json` — those are install-time artifacts, not something to
    ship stale.
 
-2. **Install the checker's own dependencies, standalone, at the install
-   path.** There's no `SessionStart` hook here to do this on first use the
-   way the Claude Code plugin does (`docs/plugin-checker-install.md`), so do
-   it once by hand. `checker/package.json` is self-contained (`ts-morph`,
-   `tsx`), so this doesn't need or use the dev checkout's npm workspace:
+2. **Install the checker's own dependencies into the data dir, once, with the bundled SessionStart hook.** The checker runs from `centina-data/checker/`, the only copy with `node_modules`. This is the same split as Claude Code's `${CLAUDE_PLUGIN_DATA}`. The hook copies the checker source there and runs `npm install`, gated by a hash of `checker/package.json`. Running it again is also how updates are applied (see "Updating the install"):
 
    ```console
-   cd ~/.config/opencode/centina/checker
-   npm install
+   CLAUDE_PLUGIN_ROOT=~/.config/opencode/centina \
+   CLAUDE_PLUGIN_DATA=~/.config/opencode/centina-data \
+   node ~/.config/opencode/centina/scripts/session-start-install.mjs
    ```
 
-   Verify `~/.config/opencode/centina/checker/node_modules/.bin/tsx` exists
-   afterward — that binary is what the adapted `centina-iterate` skill
-   invokes directly in place of Claude Code's `bin/centina-check` (which
-   hard-requires `CLAUDE_PLUGIN_DATA` and refuses to run without it).
+   Verify `~/.config/opencode/centina-data/checker/node_modules/.bin/tsx` exists afterward. That binary is what the adapted `centina-iterate` skill invokes directly in place of Claude Code's `bin/centina-check` (which hard-requires `CLAUDE_PLUGIN_DATA` and refuses to run without it).
 
 3. **Create a persistent data directory, separate from the install root.**
-   This is the OpenCode stand-in for `${CLAUDE_PLUGIN_DATA}` — it holds only
-   the cross-project registry (`known-projects.json`) and the OpenCode-adapted
-   setup procedure doc (below). It must be a **different** directory from
-   step 1's install root, because `install.mjs` does `rm -rf` and recreates
-   that root wholesale on every run (including future updates) — anything
-   written inside it that isn't part of the shipped bundle is destroyed on
-   the next refresh.
+   This is the OpenCode stand-in for `${CLAUDE_PLUGIN_DATA}`. It holds the
+   checker's synced source and `node_modules` (step 2), the cross-project
+   registry (`known-projects.json`), and the adapted setup procedure (step 4).
+   It must be a **different** directory from step 1's install root, because
+   `install.mjs` does `rm -rf` and recreates that root wholesale on every run.
+   Anything written inside it, including the checker's `node_modules`, would be
+   destroyed on the next refresh. (Step 2 creates it if missing, so this is a
+   no-op after step 2.)
 
    ```console
    mkdir -p ~/.config/opencode/centina-data
    ```
 
 4. **Write the OpenCode-adapted setup procedure** to
-   `~/.config/opencode/centina-data/setup-procedure.md`. This is
-   `docs/plugin-setup-procedure.md` with every `${CLAUDE_PLUGIN_ROOT}`
-   resolved to the install root (step 1) and every `${CLAUDE_PLUGIN_DATA}`
-   resolved to the data dir (step 3) — see [Appendix: adapted
-   setup-procedure.md template](#appendix-adapted-setup-proceduremd-template)
-   for the exact substitutions and full text to write. It additionally notes,
-   inline, that the host-project-root directory walk in the original
-   procedure's Step 1 will generally find nothing past `$CWD` under this
-   sandbox (parent directories aren't readable), which is expected, not a
-   bug — the walk should degrade gracefully rather than error.
+   `~/.config/opencode/centina-data/setup-procedure.md`: a copy of
+   `~/.config/opencode/centina/docs/plugin-setup-procedure.md` with these
+   substitutions applied throughout, using absolute, `~`-expanded paths in the
+   written file:
+
+   | In the procedure | Replace with |
+   |---|---|
+   | `${CLAUDE_PLUGIN_ROOT}` | `~/.config/opencode/centina` |
+   | `${CLAUDE_PLUGIN_DATA}` | `~/.config/opencode/centina-data` |
+   | `node "<root>/bin/centina-check" ...` | `CLAUDE_PLUGIN_ROOT=<root> CLAUDE_PLUGIN_DATA=<data> node "<root>/bin/centina-check" ...`, the environment set inline on the same command |
+
+   The last row is needed because `centina-check` refuses to run without both
+   variables, and no session sets them here. It is the same form the procedure's
+   own "Running it without a session" section shows.
+
+   The procedure's Step 1 directory walk will generally find nothing past `$CWD`
+   under this sandbox, because parent directories aren't readable. That is
+   expected, not a bug, and the walk should degrade gracefully rather than error.
 
 5. **Install the two skills into OpenCode's global skill directory,**
    `~/.config/opencode/skill/centina-session-zero/SKILL.md` and
@@ -131,10 +134,9 @@ only used to produce the install and to source updates from later.
      resolved instead to the OpenCode-adapted copy from step 4,
      `~/.config/opencode/centina-data/setup-procedure.md`.
    - `centina-iterate`'s `${CLAUDE_PLUGIN_ROOT}/bin/centina-check` invocation
-     replaced with a direct call to the install's own checker binaries:
-     `~/.config/opencode/centina/checker/node_modules/.bin/tsx
-     ~/.config/opencode/centina/checker/cli.ts --project
-     <artifactsRoot>/tsconfig.json <file>`.
+     replaced with a direct call to the data dir's checker, which is the copy
+     that has `node_modules`. The install root's copy does not:
+     `~/.config/opencode/centina-data/checker/node_modules/.bin/tsx ~/.config/opencode/centina-data/checker/cli.ts --project <artifactsRoot>/tsconfig.json <file>`.
 
    **Before writing there by hand**, confirm your OpenCode config's global
    skill directory isn't itself managed by an automated vendoring/sync tool
@@ -158,8 +160,10 @@ session from the wrong place. Concretely, this covers:
 - `docs/boundaries.md`, `docs/fit-validation.md`, `docs/plan-organization.md`,
   `docs/output-management.md`
 - `tsconfig.template.json`
-- `checker/cli.ts`, `checker/tsPlugin.cjs`,
-  `checker/node_modules/.bin/tsx`
+- `~/.config/opencode/centina-data/checker/cli.ts`,
+  `~/.config/opencode/centina-data/checker/tsPlugin.cjs`,
+  `~/.config/opencode/centina-data/checker/node_modules/.bin/tsx` (the checker
+  runs from the data dir; see step 2)
 - `.claude-plugin/plugin.json` (only its `version` field, if a skill
   surfaces it)
 
@@ -169,15 +173,16 @@ The dev checkout (`$CENTINA_CHECKOUT`) is only ever needed again for
 ## Updating the install after a `git pull`
 
 `install.mjs` overwrites the install root wholesale and deliberately strips
-`checker/node_modules`/`package-lock.json` on every run (a fresh dependency
-set, not a stale carried-over one), so steps 1–2 above repeat verbatim on
-every update:
+`checker/node_modules`/`package-lock.json` on every run. The root's dependencies
+are never carried over, and the data dir's `node_modules` lives outside the
+root, so it survives. Step 2's hook re-syncs the checker source and reinstalls
+dependencies only if `checker/package.json` changed:
 
 ```console
 cd $CENTINA_CHECKOUT
 git pull
 node install.mjs ~/.config/opencode/centina
-cd ~/.config/opencode/centina/checker && npm install
+CLAUDE_PLUGIN_ROOT=~/.config/opencode/centina CLAUDE_PLUGIN_DATA=~/.config/opencode/centina-data node ~/.config/opencode/centina/scripts/session-start-install.mjs
 ```
 
 The two installed `SKILL.md` copies (step 5) and the adapted setup procedure
@@ -199,7 +204,7 @@ actually proves it:
 ```console
 mkdir -p /tmp/centina-install-check/specs
 cp ~/.config/opencode/centina/tsconfig.template.json /tmp/centina-install-check/tsconfig.json
-# substitute compilerOptions.plugins[0].name -> ~/.config/opencode/centina/checker/tsPlugin.cjs
+# substitute compilerOptions.plugins[0].name -> ~/.config/opencode/centina-data/checker/tsPlugin.cjs
 cp ~/.config/opencode/centina/centina.ts /tmp/centina-install-check/
 cat > /tmp/centina-install-check/specs/demo.centina.ts <<'EOF'
 import { deferred } from "../centina"
@@ -207,14 +212,15 @@ export function add(a: number, b: number): number {
   return deferred<(a: number, b: number) => number>()(a, b)
 }
 EOF
-~/.config/opencode/centina/checker/node_modules/.bin/tsx \
-  ~/.config/opencode/centina/checker/cli.ts \
+~/.config/opencode/centina-data/checker/node_modules/.bin/tsx \
+  ~/.config/opencode/centina-data/checker/cli.ts \
   --project /tmp/centina-install-check/tsconfig.json \
   /tmp/centina-install-check/specs/demo.centina.ts
 ```
 
-Expect `tsc: clean` plus one `hole-enumeration` warning on the `deferred`
-call — that's a correctly-working checker, not a failure. Clean up
+Expect `tsc: clean`, then warnings only, with a `hole-enumeration` warning on the
+`deferred` call and a `spec-explanation` warning on the file. Warnings are a
+correctly-working checker, not a failure. Exit code is 0. Clean up
 `/tmp/centina-install-check` afterward.
 
 ## Uninstalling
@@ -237,14 +243,14 @@ this procedure).
    `~/.config/opencode/skill/`, remove them from wherever that override
    actually placed them instead.
 
-2. **The standalone install (includes the checker's own `node_modules`):**
+2. **The standalone install (the checker source and the skills' reference docs):**
 
    ```console
    rm -rf ~/.config/opencode/centina
    ```
 
-3. **The OpenCode-specific data dir** (the adapted setup procedure and the
-   cross-project registry):
+3. **The OpenCode-specific data dir** (the checker's `node_modules`, the adapted
+   setup procedure, and the cross-project registry):
 
    ```console
    rm -rf ~/.config/opencode/centina-data
@@ -271,70 +277,3 @@ Steps 1–3 alone fully remove the tool (skills stop being discoverable, and
 even a stale skill invocation fails cleanly — every path it reads lives
 under `~/.config/opencode/centina*`, which is now gone). Step 4 is optional
 and separate, since it deletes project-owned content, not install state.
-
-## Appendix: adapted setup-procedure.md template
-
-The file to write to `~/.config/opencode/centina-data/setup-procedure.md` in
-step 4, with `<INSTALL_ROOT>` = `~/.config/opencode/centina` and
-`<DATA_DIR>` = `~/.config/opencode/centina-data` substituted throughout (use
-absolute, `~`-expanded paths in the actual file, not the literal
-placeholders):
-
-```markdown
-# Plugin setup procedure (OpenCode adaptation)
-
-Run this before anything else in `centina-session-zero` or `centina-iterate`.
-This is an OpenCode-native adaptation of Centina's own
-`docs/plugin-setup-procedure.md`, with Claude Code's plugin environment
-variables resolved to concrete paths, since no such variables exist in this
-harness.
-
-- Centina install root (stands in for `${CLAUDE_PLUGIN_ROOT}`): <INSTALL_ROOT>
-- Centina data dir (stands in for `${CLAUDE_PLUGIN_DATA}`): <DATA_DIR>
-
-## Step 0 — registry fast path
-
-Read `<DATA_DIR>/known-projects.json` (a flat list of `artifactsRoot`
-paths). If CWD is a descendant of any entry, bind to that project and stop.
-If the file doesn't exist or nothing matches, continue to Step 1.
-
-## Step 1 — resolve the host project root (first run only)
-
-Ask the human to pick CWD, a directory found by walking up toward `$HOME`
-collecting `.git` directories (expect this to find nothing past CWD itself
-under OpenCode's sandbox — parent directories generally aren't readable; treat
-that as expected, not an error, and fall back to CWD or a user-supplied
-path), or a user-supplied path (verify readable immediately, re-prompt on
-failure).
-
-## Step 2 — resolve the artifacts root
-
-Ask where Centina's files should live (default `./centina/` under CWD).
-Write `<artifactsRoot>/.centina/config.json` with `hostRoot`,
-`artifactsRoot`, and `pluginVersion` (from
-`<INSTALL_ROOT>/.claude-plugin/plugin.json`). Append `artifactsRoot` to
-`<DATA_DIR>/known-projects.json` (create it as a JSON array if absent).
-
-## Step 3 — create the directory shape
-
-At `artifactsRoot`, create `specs/`, a copy of `<INSTALL_ROOT>/centina.ts`,
-and a copy of `<INSTALL_ROOT>/conformance.ts`. No docs are copied — Centina's
-design reference isn't bundled at all; a human who wants it reads it in the
-Centina repository.
-
-## Step 4 — write the stub tsconfig
-
-At `artifactsRoot`, write `tsconfig.json`: copy
-`<INSTALL_ROOT>/tsconfig.template.json`, substituting
-`compilerOptions.plugins[0].name` with the literal absolute path
-`<INSTALL_ROOT>/checker/tsPlugin.cjs`.
-
-## Idempotency
-
-Steps 3–4 regenerate unconditionally every run. Steps 1–2 never re-run once
-a config exists anywhere Step 0 or a fresh walk can find it.
-
-## Updating the install
-
-See `docs/opencode-install.md` in the Centina repo checkout.
-```
