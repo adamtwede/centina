@@ -7,9 +7,8 @@
     "check": "tsx checker/cli.ts",
     "test": "tsx --test \"checker/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
     "bump-version": "node scripts/bump-version.mjs",
-    "docs:generate": "node scripts/build-site-pages.mjs",
-    "docs:dev": "npm run docs:generate && vitepress dev docs",
-    "docs:build": "npm run docs:generate && vitepress build docs && node scripts/check-site-anchors.mjs"
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs && node scripts/check-site-anchors.mjs"
   },
   "keywords": [],
   "author": "",

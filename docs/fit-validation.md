@@ -30,8 +30,8 @@ hypothesis" below.
 
 These were the **only** invariant this session tested against — everything
 else, including "AISL never manufactures data," was a *means* under test,
-kept only insofar as it served these. Canonical current wording is README's
-"The goals"; restated here at label length, since G1–G4 are cited by label
+kept only insofar as it served these. Canonical current wording is the "The goals"
+section of `docs/why.md`; restated here at label length, since G1–G4 are cited by label
 throughout the rest of this log:
 
 - **G1** — easier for a human to describe/understand a task than prose.

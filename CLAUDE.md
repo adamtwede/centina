@@ -11,7 +11,7 @@ arbiter of correctness. A spec is done when every gap in it is deliberate,
 typed, and *routed* (deferred to the human, delegated to an agent, referenced
 from external code, or quarantined behind a boundary) — not when it compiles.
 
-The four goals in `README.md` ("The goals") are the project's only invariant;
+The four goals in `docs/why.md` ("The goals") are the project's only invariant;
 every rule and primitive is a means under test against them. Notably,
 "provenance" here means *bookkeeping* (names must resolve; every `as` cast is
 a recorded assumption), not prohibition — the AISL-era `Unprivileged`

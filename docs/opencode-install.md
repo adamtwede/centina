@@ -2,12 +2,12 @@
 
 Covers a one-time, correct-the-first-time install of Centina for
 [Opencode](https://github.com/anomalyco/opencode), which requires different steps from what is
-detailed in [Claude Code setup](https://github.com/adamtwede/centina/blob/main/README.md#claude-code-setup), or even in [Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
+detailed in [Claude Code setup](install-claude-code.md), or even in [Using Centina without Claude Code](install-other-harnesses.md)
 as presently written, which covers a more general (but less turnkey) setup.
 
 ## Why the generic "without Claude Code" instructions aren't enough
 
-[Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
+[Using Centina without Claude Code](install-other-harnesses.md)
 already covers running the checker with no Claude Code environment variables
 set. That's necessary but not sufficient for OpenCode specifically, because of
 one additional constraint that doesn't exist for a human running commands by

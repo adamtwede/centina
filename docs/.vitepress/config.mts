@@ -4,6 +4,8 @@ import { defineConfig } from "vitepress"
 // it by scripts/build-site-pages.mjs (gitignored); the rest are authored here.
 // docs-site-ia.md and session-zero-test-cases.md are working docs, not site pages.
 export default defineConfig({
+  // The README's images live in docs/assets/ and are served from the site root.
+  vite: { publicDir: "assets" },
   title: "Centina",
   description: "Spec-flavored TypeScript for writing falsework before a coding task is built.",
   base: "/centina/",
