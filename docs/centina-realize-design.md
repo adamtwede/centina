@@ -458,7 +458,7 @@ before building the fix"), and setting prose.
 1. **Two new label letters:**
    - `G` goal, for theses and phase-independent project goals. "Which project
      goal the phase serves" in the planning gate means these. (Not to be
-     confused with the goals in Centina's own README, which govern Centina
+     confused with the goals in Centina's own docs (`docs/why.md`), which govern Centina
      itself.)
    - `R` rule, with `Kind:` `structural`, `design`, `method`, or `process`.
 2. **Status values:**

@@ -161,6 +161,17 @@ Settled by the author:
    `install.mjs`'s post-install message pointed at that README section; it now
    points at the procedure doc.
 
+Applied after the site build:
+
+5. README trimmed to a landing page: title, summary, a pointer to the docs site,
+   a short install, and a link to CONTRIBUTING.md. The content it had lives in
+   the site pages.
+6. The site pages are now the source. The generator that split the README is
+   gone, and the generated copies became authored files.
+7. IA cut list: Commands, Repository layout, and State of the project on the
+   Reference page are links to package.json, plugin-file-layout.md, and ROADMAP.md.
+   The four skill blurbs on Using it are one line each, linking to each SKILL.md.
+8. CONTRIBUTING.md is a pointer to docs/contributing.md, the source.
+
 Still open: the `specs/hill-climbing-loop/` boundary-dependency errors noted in
-section 3 above (whether they are known), and the GitHub Pages generator, which
-waits on the site structure being built.
+section 3 above (whether they are known).
