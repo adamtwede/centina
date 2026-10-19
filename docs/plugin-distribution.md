@@ -59,8 +59,7 @@ other people or other machines:
    daily-driver machine: same zero-ceremony, directory-based install as
    (1), minus the per-session flag. Still doesn't help anyone else — the
    destination has to exist on that same machine.
-3. **`/plugin marketplace add <own-repo>` then `/plugin install
-   centina@<marketplace-name>`** — a self-hosted marketplace. Anyone who
+3. **`/plugin marketplace add <own-repo>` then `/plugin install centina@<marketplace-name>`** — a self-hosted marketplace. Anyone who
    knows the repo URL can add it; no review, no gatekeeper. The first
    option that actually reaches another person or machine.
 4. **Submission to `claude-plugins-community`** — requires passing

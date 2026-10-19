@@ -2,12 +2,12 @@
 
 Covers a one-time, correct-the-first-time install of Centina for
 [Opencode](https://github.com/anomalyco/opencode), which requires different steps from what is
-detailed in [Getting started (Claude Code)](../README.md#getting-started-claude-code), or even in [Using Centina without Claude Code](../README.md#using-centina-without-claude-code)
+detailed in [Claude Code setup](https://github.com/adamtwede/centina/blob/main/README.md#claude-code-setup), or even in [Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
 as presently written, which covers a more general (but less turnkey) setup.
 
 ## Why the generic "without Claude Code" instructions aren't enough
 
-[Using Centina without Claude Code](../README.md#using-centina-without-claude-code)
+[Using Centina without Claude Code](https://github.com/adamtwede/centina/blob/main/README.md#using-centina-without-claude-code)
 already covers running the checker with no Claude Code environment variables
 set. That's necessary but not sufficient for OpenCode specifically, because of
 one additional constraint that doesn't exist for a human running commands by
@@ -136,9 +136,7 @@ only used to produce the install and to source updates from later.
    - `centina-iterate`'s `${CLAUDE_PLUGIN_ROOT}/bin/centina-check` invocation
      replaced with a direct call to the data dir's checker, which is the copy
      that has `node_modules`. The install root's copy does not:
-     `~/.config/opencode/centina-data/checker/node_modules/.bin/tsx
-     ~/.config/opencode/centina-data/checker/cli.ts --project
-     <artifactsRoot>/tsconfig.json <file>`.
+     `~/.config/opencode/centina-data/checker/node_modules/.bin/tsx ~/.config/opencode/centina-data/checker/cli.ts --project <artifactsRoot>/tsconfig.json <file>`.
 
    **Before writing there by hand**, confirm your OpenCode config's global
    skill directory isn't itself managed by an automated vendoring/sync tool

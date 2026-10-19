@@ -63,8 +63,8 @@ To split:
 
 ## Reading in a long session
 
-1. Read the run frame, and the phase view (`centina-check ledger --phase
-   <label> <dir>`) if a current phase is set, or `LEDGER-INDEX.md` if not —
+1. Read the run frame, and the phase view (`centina-check ledger --phase <label> <dir>`)
+   if a current phase is set, or `LEDGER-INDEX.md` if not —
    not the ledger. See `ledger.md`, "Reading".
 2. Look up entries by label as needed (`### <label>:`).
 3. After a compaction, reread the run frame and the same phase view or index

@@ -1,8 +1,8 @@
 # The trail (step 3 of the work-item progress tracking)
 
 Agreed by the author (what counts as a decision, agent-drafted gates ruled by
-the human over several turns, JSONL, one file per system). `centina-check
-trail <system-dir>` validates it and writes `TRACKER.html` (see "The checker
+the human over several turns, JSONL, one file per system). `centina-check trail <system-dir>`
+validates it and writes `TRACKER.html` (see "The checker
 and the tracker" below). `skills/centina-spike/SKILL.md` writes it, by
 appending lines in the formats below.
 
