@@ -144,14 +144,23 @@ repo).
 - `plugin-setup-step.md` and `plugin-setup-procedure.md`. Already decided to keep
   both.
 
-## Open questions
+## Decisions
 
-1. Confirm the site map, or do you want "Why" trimmed harder?
-2. Cut #1 means the README stops documenting manual install. OK to make that a
-   link-only section?
-3. OpenCode appendix and relative-path checker bug: both done. The fixture
-   `specs/hill-climbing-loop/` reports `boundary-dependency` errors in
-   `task-corpus.centina.ts` when checked. Confirm whether those are known before
-   relying on the exit code there.
-4. "Developing Centina itself" (763–806): `CONTRIBUTING.md` at repo root, or a site
-   page?
+Settled by the author:
+
+1. Site map as proposed above.
+2. Manual install is link-only. Done.
+3. "Developing Centina itself" moves to `CONTRIBUTING.md`. Done: the section is
+   in that file; the README's contents entry links to it.
+4. "Running it yourself" removed from the README, since `docs/plugin-setup-procedure.md`
+   is linked from the Claude Code section and from "Using Centina without
+   Claude Code". The procedure doc now carries the three points that were unique
+   to the README block: the `centina-check --project` example, the Claude Code
+   data-dir naming caveat, and the refuse-on-stale-deps behavior. The wrapper
+   shell function is not carried over.
+   `install.mjs`'s post-install message pointed at that README section; it now
+   points at the procedure doc.
+
+Still open: the `specs/hill-climbing-loop/` boundary-dependency errors noted in
+section 3 above (whether they are known), and the GitHub Pages generator, which
+waits on the site structure being built.
