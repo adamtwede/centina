@@ -32,15 +32,15 @@
 
 import { Agent, Skill, deferred } from "../../centina"
 import { taskMatcherEngine } from "./task-matcher.centina"
-import { ModelId } from "./shared.centina"
 import {
+  ModelId,
   Attempt,
   Task,
   Grade,
   Score,
   TaskRunRecord,
   Feedback,
-} from "./task-corpus.centina"
+} from "./shared.centina"
 
 /** @external "node:crypto" */
 declare function randomUUID(): string
