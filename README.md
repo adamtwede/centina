@@ -1,14 +1,6 @@
 # Centina
 
-> Most building traditions have a word for the temporary frame that holds an
-> arch in shape while it's under construction, until its keystone locks and
-> the frame can be struck: the frame that teaches the arch its shape until it
-> can stand alone. German calls it *Lehrgerüst* — literally "teaching frame."
-> French calls it *cintre*; Spanish, *cimbra*. This project takes its name
-> from the Italian term, *centina* — the word that named the frames behind
-> Brunelleschi's dome and the rest of the Renaissance's structural
-> ambition, an engineering discipline in its own right rather than incidental
-> carpentry.
+Most building traditions have a word for the temporary frame that holds an arch up while it's being built. The frame carries the stones until the keystone drops in, and then it's taken down and the arch stands on its own. In English it's called centering, or falsework. German calls it *Lehrgerüst*, literally "teaching frame," because the frame teaches the arch its shape. French calls it *cintre*; Spanish, *cimbra*. This project takes its name from the Italian, *centina*, the word for the frames behind Brunelleschi's dome. The builders of the Renaissance didn't treat those frames as incidental carpentry. Building them well was an engineering discipline in its own right.
 
 <p align="center">
   <picture>
@@ -18,7 +10,9 @@
   </picture>
 </p>
 
-**Centina** is spec-flavored TypeScript: a medium for writing structured, rule-checked pseudocode, i.e., *falsework*, for a coding task before it is built. TypeScript supplies the grammar and the expressiveness; a spec-plane checker, not the TypeScript compiler, is the arbiter of "done." A Centina spec is built first and checked for structure, so it teaches the implementation its shape, and it is up front about being scaffolding rather than product.
+**Centina** is TypeScript repurposed for writing specs. You use it to write structured, rule-checked pseudocode (falsework) for a coding task before anyone builds it. TypeScript supplies the grammar, but it doesn't get the final word. That belongs to Centina's own spec-plane checker, because a spec isn't done when it compiles. It's done when every gap left in it is there on purpose and has somewhere to go.
+
+Like the frame under an arch, a spec comes first and gives the implementation its shape. It's scaffolding, not product, and it doesn't pretend otherwise.
 
 ## Documentation
 
