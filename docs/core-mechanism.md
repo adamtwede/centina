@@ -1,33 +1,29 @@
 # Core mechanism
 
-### The core mechanism: the typed hole with routing
+## The typed hole
 
-Centina's central primitive is the **"typed hole,"** a known gap in the design with a route for resolution. A spec is finished not when it has no gaps, but when every gap is *deliberate, typed, and routed*, i.e., deferred to the designer writing the spec, delegated to an agent, referenced from external code, or quarantined behind a boundary. 
+Centina's central idea is the **typed hole**: a gap in the design that you know about, with a declared type and a route for how it will get filled. A spec isn't finished when it has no gaps. It's finished when every gap is deliberate, typed, and routed, meaning each one has been sent somewhere: deferred to the person writing the spec, delegated to an agent, pointed at external code, or quarantined behind a boundary.
 
-Aside: It's worth being aware that "finished" is a relative term. Software design is (potentially) infinitely recursive, and Centina's goal is to help guide you to the balance point between reinventing the wheel (and the laws of physics themselves), and where you can safely stop iterating on your design (at least for now) without coming to regret it later.
+Aside: it's worth being aware that "finished" is a relative term. Software design is (potentially) infinitely recursive. Centina's goal is to help you find the balance point between reinventing the wheel (and the laws of physics themselves) and stopping somewhere you can safely leave your design alone (at least for now) without coming to regret it later.
 
-The typed holes, enumerated:
+Here are the holes:
 
-| Hole | Spelling | Routing |
+| Hole | How you write it | Where it goes |
 |---|---|---|
-| deferred decision | `const f = deferred<(a: A) => B>()` | routing itself undecided — the checker flags it (a decision still owed) |
-| → routed to this/another spec | `deferred<"spec", F>()` | belongs in a separate `.centina.ts`, part of a larger workflow |
-| → left to the implementer | `deferred<"open", F>()` | the planning agent's discretion; not a gap the human must close |
-| → held for a human-authored body | `deferred<"unimplemented", F>()` | a real body is owed before planning; a hard stop until filled |
-| agent-directed note | `// @agent: ...` / `// @agent(C1): ...` | the coding agent resolves it at spec-iteration or plan-build time; optional label gives it a stable name to reference |
-| external | `/** @external "src" */ declare ...` | lives in existing code / an API / an external system |
-| boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | a declared, black-box data seam; doors are the privileged entry/exit points |
+| Deferred, unrouted | `const f = deferred<(a: A) => B>()` | Nowhere yet. You haven't decided how it gets resolved, so the checker warns you that a decision is still owed. |
+| Deferred to another spec | `deferred<"spec", F>()` | It belongs in its own `.centina.ts`, as part of a larger workflow. |
+| Deferred to the implementer | `deferred<"open", F>()` | It's the planning agent's call. This isn't a gap the human has to close. |
+| Deferred for a human-written body | `deferred<"unimplemented", F>()` | A real body is owed before planning can start. The checker errors until it's filled in. |
+| Agent note | `// @agent: ...` or `// @agent(C1): ...` | The coding agent resolves it while iterating on the spec or building the plan. The optional label gives the note a stable name you can refer back to. |
+| External | `/** @external "src" */ declare ...` | It already exists, in existing code, an API, or some outside system. |
+| Boundary | `/** @datasource\|@datasink\|@boundary */ declare class ...` | A declared, black-box seam for data. Its doors are the declared ways in and out. |
 
-The signature behind a hole is real and participates fully in type checking. Callers are held to it even though nothing exists behind it yet. That is what lets a *consumer* be specified against a seam that has not been built, and built in parallel with it.
+The type signature on a hole is real, and it takes full part in type checking. Anything that calls it is held to that signature, even though nothing exists behind it yet. That's what lets you specify a consumer against a seam that hasn't been built, and build the two in parallel.
 
-Two operating principles that form the foundation:
+## Two founding principles
 
-- **Boundaries model affordances, not transports** — a boundary is a set of
-  *doors* (what you can "do" with respect to an interface or boundary), 
-  and direction is inferred from each door's return type (`void` = write, 
-  non-`void` = read), never from its name.
-  See [docs/boundaries.md](boundaries.md).
-- **Provenance is bookkeeping, not prohibition.** Every value's origin should
-  be *visible* — names must resolve, and every `as` cast is a recorded
-  assumption, but the spec-writer is free to assemble records and sketch
-  structure without fighting a privilege system.
+Two principles sit underneath all of this.
+
+**Boundaries model affordances, not transports.** A boundary describes what you can do with something, not how the data gets there. It's a set of *doors*, and whether a door reads or writes is inferred from its return type (`void` means write, anything else means read), never from its name. [Boundaries](/boundaries) covers this in depth.
+
+**Provenance is bookkeeping, not prohibition.** You should always be able to see where a value came from. Names have to resolve, and every `as` cast is recorded as an assumption. But you're free to assemble records and sketch structure without fighting a privilege system to do it. (Centina's predecessor had one, and real use showed it got in the way more than it helped. The story is in [Fit validation](/fit-validation#provenance-is-a-hypothesis-not-an-axiom).)

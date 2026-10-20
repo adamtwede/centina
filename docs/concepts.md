@@ -2,106 +2,91 @@
 
 ## Centina's answer
 
-### The responsibility split: meaning is the human's, implementation is the agent's
+### Meaning is the human's, implementation is the agent's
 
-Centina draws a hard line through the planning work:
+Centina draws a hard line through the planning work.
 
-- **Meaning and intent belong to the human.** *What* the data *is*, the shapes
-  it takes, the directions it flows, which decisions are made and which are
-  deliberately deferred. This is the human software architect's thinking, and
-  it is precisely the part that cannot be delegated without reintroducing the
-  entropy above.
-- **Implementation belongs to the coding agent.** *How* the pinned intent is
-  carried out (the algorithms, the code, aka the *realization*) is where the agent's strength lives
-  and where it should be pointed.
+On one side is meaning and intent, and that belongs to the human. What the data *is*, what shapes it takes, which direction it flows, which decisions get made now and which get deliberately put off. This is the software architect's thinking, and it's exactly the part you can't hand off without letting the entropy described in [Why](/why#the-practical-failure-over-competence) right back in.
 
-The whole medium exists to keep those two separated *continuously*, so that by the time an agent is implementing, there is nothing left for it to invent.
+On the other side is implementation, and that belongs to the coding agent. *How* the pinned-down intent actually gets carried out (the algorithms, the code, what Centina calls the *realization*) is where the agent is strong, and it's where that strength should be pointed.
 
-### TypeScript as pseudocode, checked for meaning, but not compiled
+The whole medium exists to keep those two apart, continuously, so that by the time an agent starts implementing, there's nothing left for it to invent.
 
-A Centina spec is a **valid TypeScript file** (suffix `.centina.ts`) that imports a small vocabulary module (`centina.ts`). There is no new grammar, so every editor on earth already parses, highlights, and completes a spec with no extension installed.
+### TypeScript as pseudocode: checked, not compiled
 
-But the point is not to compile it, and not to produce executable code. TypeScript is used here as a **rigorous pseudocode**, a way to state structure (names, shapes, arities, directions, contracts) precisely enough that a machine can check it, while reading like organized prose rather than a program to run. Read a `.centina.ts` file as *authorial intent expressed in typed declarations*, not as code with literal runtime semantics.
+A Centina spec is a valid TypeScript file with the suffix `.centina.ts`, and it imports a small vocabulary module (`centina.ts`). There's no new grammar to learn, which means any editor that understands TypeScript can already parse, highlight, and autocomplete a spec without installing anything.
+
+But the point isn't to compile it, and it isn't to produce code you can run. TypeScript is being used here as rigorous pseudocode. It lets you state structure (names, shapes, arities, directions, contracts) precisely enough for a machine to check, while still reading more like organized prose than a program. When you read a `.centina.ts` file, read it as the author's intent written down in typed declarations, not as code with literal runtime behavior.
 
 > [!CAUTION]
-> **A Centina spec is not executable code — do not run it, ship it, or treat it
-> as an implementation.** It is a formal *semantic descriptor* for a piece of
-> software's design and architecture: an **"intent-as-code" artifact** whose
-> whole purpose is to state design intent precisely, with hidden ambiguity
-> minimized and every known unknown surfaced as a marked, routed hole. The
-> TypeScript grammar is a checkable notation for that intent, nothing more; the
-> function bodies, casts, and control flow are pseudocode illustrating *shape
-> and intent*, not runtime behavior to be executed.
+> **A Centina spec is not executable code. Don't run it, don't ship it, and
+> don't treat it as an implementation.** It's an "intent-as-code" artifact: its
+> whole job is to state design intent precisely, with as little hidden
+> ambiguity as possible and every known unknown marked as a routed hole. The
+> TypeScript grammar is just a checkable notation for that intent. Function
+> bodies, casts, and control flow in a spec are pseudocode showing shape and
+> intent, not behavior meant to execute.
 
-Two checkers cooperate:
+Two checkers work together.
 
-- **`tsc`, run under a deliberately permissive config** (`tsconfig.json`),
-  kept for what it is genuinely good at — name resolution, arity, shape — and
-  relieved of the duties that fight a spec-writer (unused locals, missing
-  implementations; `declare` is legal and encouraged). A clean `tsc` run is
-  the necessary floor, not the ceiling.
-- **The Centina spec-plane checker** (`checker/`, `npm run check`), which
-  layers the rules that are actually Centina's: enumerating typed holes and
-  their routing, enforcing boundary direction, assumption-bookkeeping on `as`
-  casts, naming-consistency on the free-text namespaces no compiler validates,
-  and a "does this spec say what it is for" explanation check. The same rules
-  surface live in the editor through a TypeScript language-service plugin, so
-  spec diagnostics appear alongside `tsc`'s as you type.
+The first is `tsc`, run under a deliberately permissive config (`tsconfig.json`). It's kept around for what it's genuinely good at, which is name resolution, arity, and shape, and it's let off the hook for the checks that fight a spec-writer, like unused locals and missing implementations. (`declare` is legal, and encouraged.) A clean `tsc` run is the floor, not the ceiling.
+
+The second is Centina's own spec-plane checker (`checker/`, run with `npm run check`), and this is where the rules that are actually Centina's live. It enumerates the typed holes and checks how each one is routed. It enforces boundary direction. It keeps the books on assumptions, so every `as` cast is on record. It checks naming consistency across the free-text namespaces no compiler looks at. And it checks that each spec says what it's for. The same rules show up live in your editor through a TypeScript language-service plugin, so spec diagnostics appear right alongside `tsc`'s as you type.
 
 > [!IMPORTANT]
-> A spec is not "done" when it compiles. It is done when **every gap in it is
-> deliberate, typed, and routed** — deferred to the human, delegated to an
+> A spec isn't done when it compiles. It's done when **every gap in it is
+> deliberate, typed, and routed**: deferred to the human, delegated to an
 > agent, referenced from external code, or quarantined behind a boundary.
 
-### The spec as a first-class artifact, and PLAN.md as its near-deterministic output
+### The spec is the artifact, and PLAN.md follows from it
 
-A Centina spec is a durable software artifact in its own right, not a throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`) should follow from it *nearly deterministically*; two agents handed the same frozen spec should produce substantially the same plan, because the meaning has already been pinned and only the carrying-out is left, which itself is well-defined, tightly-controlled, and clearly marked.
+A Centina spec is a durable piece of software in its own right, not a throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`) should follow from it almost deterministically. Hand the same frozen spec to two different agents and they should come back with substantially the same plan, because the meaning has already been pinned down. All that's left is carrying it out, and even that part is well-defined, tightly controlled, and clearly marked.
 
-It is useful to think of a Centina spec as **"code" for a coding-agent "runtime."** The spec is the program; the agent is the interpreter; PLAN.md and the eventual implementation are its output. And like the n-body integrator above, this puts a **re-grounding checkpoint** between intent and implementation: a structured place where accumulated ambiguity is forced to
-the surface and corrected *before* it compounds into code. Every iteration on the spec is one short, verified step.
+It helps to think of a Centina spec as "code" for a coding-agent "runtime." The spec is the program, the agent is the interpreter, and PLAN.md and the eventual implementation are the output. Like the n-body integrator in [Why](/why#the-error-floor), this puts a re-grounding checkpoint between intent and implementation, a structured place where accumulated ambiguity gets forced to the surface and corrected before it compounds into code. Every iteration on the spec is one short, verified step.
 
-### The restraints on the agent
+### Keeping the agent in its lane
 
-For that checkpoint to work, the agent has to be kept off the parts that are the human's. Centina's toolchain enforces this through explicit rules of engagement:
+For that checkpoint to work, the agent has to stay off the parts that belong to the human. Centina's toolchain enforces this with a few explicit rules of engagement:
 
 - **The agent never decides meaning** (Rule 0). Data nouns, shapes,
-  directions, and the resolution of deferred holes are the human's to author.
-  The agent supplies *form* — skeletons, syntax, holes, and elicits the rest
-  with questions.
-- **The agent helps generate the skeleton, not the content.** It may lay down
-  typed seams and marked holes that trace to something the human ratified;
-  anything the human did *not* decide comes out as a routed hole, never a
-  plausible fill. An over-complete skeleton is the bug, not the feature.
-- **The agent does not hold the pen on an existing spec** (Rule 0a). During a
-  refinement session it surfaces decisions and lets the human write them; if
-  asked to edit anyway, it pushes back once (naming the risk that the human may
-  be offloading thinking meant to stay theirs), then complies if they persist.
+  directions, and how deferred holes get resolved are the human's to author.
+  The agent supplies the form (skeletons, syntax, holes) and asks questions to
+  draw out the rest.
+- **The agent helps build the skeleton, not the content.** It can lay down
+  typed seams and marked holes, as long as they trace back to something the
+  human signed off on. Anything the human *didn't* decide comes out as a routed
+  hole, never a plausible-looking fill. A skeleton that's too complete is a
+  bug, not a feature.
+- **The agent doesn't hold the pen on an existing spec** (Rule 0a). During a
+  refinement session it points out decisions and lets the human write them.
+  If the human asks it to make the edit anyway, it pushes back once, naming
+  the risk that they may be offloading thinking that's meant to stay theirs.
+  If they still want it, it goes along.
 
 > [!IMPORTANT]
-> The agent is a **scribe, not an architect.** Supplying *form* — skeletons,
-> syntax, holes — is its job; authoring *meaning* is never delegated. That
-> separation is the mechanism that keeps over-competence from getting a
+> The agent is a **scribe, not an architect.** Form is its job. Meaning never
+> gets delegated. That separation is what keeps over-competence from getting a
 > foothold.
 
 ## Caveats
 
 ### Who should use it
 
-Anyone can use Centina, but it's not intended for everyone. The value you can expect to get out of Centina is directly proportional to the amount of software design and engineering expertise you bring.
+Anyone can use Centina, but it's not meant for everyone. How much you get out of it is directly proportional to how much software design and engineering experience you bring to it.
 
 > [!WARNING]
-> Inexperienced software developers may find using Centina to be a frustrating
-> experience. It will ask you to think carefully about details that may seem abstract,
-> tedious, and pedantic. It will push back on choices that don't seem consistent with
-> earlier decisions. It will refuse to do your thinking for you.
+> Inexperienced developers may find Centina frustrating. It will ask you to
+> think carefully about details that can seem abstract, tedious, and pedantic.
+> It will push back on choices that don't line up with decisions you made
+> earlier. It will refuse to do your thinking for you.
 
-**Note:** The fact that Centina emits spec artifacts in Typescript does **not** imply it can be used only for Typescript or Javascript projects, or even only for web-based applications. The choice of using Typescript as the spec-language is simply due to its incredibly robust type system (practically a separate language in its own right), and its expressiveness (its widespread popularity is also a huge bonus). A capable agent should have no trouble understanding that the **target** language is not the same as the **spec** language, and that the two are related in terms of intent, not execution.
+**Note:** Centina specs are written in TypeScript, but that does **not** mean Centina is only for TypeScript or JavaScript projects, or only for web apps. TypeScript was chosen as the spec language because its type system is incredibly robust (practically a language of its own) and expressive, and its popularity is a huge bonus. A capable agent has no trouble understanding that the **target** language isn't the same as the **spec** language, and that the two are connected by intent, not execution.
 
-To summarize: Centina specs can be used for any target language, and that choice would be specified at implementation time, not in the spec itself or during planning phases (as mentioned elsewhere, Centina deliberately avoids specifying the technologies used for implementation).
+In short, a Centina spec can target any language. That choice gets made at implementation time, not in the spec and not during planning. Centina deliberately stays out of choosing your technologies (more on that below).
 
 ### When to use it (and when not to)
 
-Centina isn't a good fit for every problem, but is ideal for many. Here's a quick rundown.
+Centina isn't a good fit for every problem, but it's ideal for a lot of them. Here's a quick rundown.
 
 Best fit:
 
@@ -120,13 +105,12 @@ Unlikely fit:
 - small or simple projects with low complexity and/or few unknowns, or that tread well-established ground
 - small or simple maintenance tasks in existing projects
 - refactors of large or complex but highly-coupled components in existing projects
-- projects or solutions with a high level of implementation (lots of computation) and a low level of structure (little in the way of business rules or interactivity)
+- projects or solutions with a lot of implementation (heavy computation) and not much structure (little in the way of business rules or interactivity)
 
 > [!TIP]
-> If you're not sure if your problem is a good fit for Centina, simply start your agent 
-> session from within this project and ask. The project is loaded with plenty of context
-> for your agent to help you make an assessment.
-
+> If you're not sure whether your problem is a good fit, start an agent session
+> inside a clone of the Centina repo and ask. The repo carries plenty of
+> context for your agent to help you make the call.
 
 ### What Centina most definitely isn't for
 
@@ -138,8 +122,8 @@ Centina can't, or at least shouldn't:
 - tell you what good software architecture actually looks like, or how to develop it
 
 > [!CAUTION]
-> Centina cannot replace your brain or your experience. (That's what 
-> standard agent planning sessions are for 😉) 
-> 
-> Centina is extra leverage for the experience and competence 
-> you *already possess* as a software engineer, with all that implies.
+> Centina can't replace your brain or your experience. (That's what standard
+> agent planning sessions are for 😉)
+>
+> Centina is extra leverage for the experience and competence you *already
+> have* as a software engineer, with all that implies.

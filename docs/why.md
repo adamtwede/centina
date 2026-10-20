@@ -4,25 +4,15 @@
 
 ### The error floor
 
-Start with what an AI model *is*. A coding agent is a pattern-recognizer trained on enormous quantities of noisy, chaotic data. That training is what makes it powerful, and it is also what makes it, formally, a **chaotic system**, one whose outputs are exquisitely sensitive to conditions we can neither fully specify nor fully observe. Chaotic systems have a property that
-no amount of engineering removes: a **floor on how much error you can eliminate**. However sophisticated the model becomes, some irreducible error remains in its outputs in the aggregate.
+Start with what an AI model actually is. A coding agent is a pattern-recognizer trained on an enormous amount of noisy, chaotic data. That training is what makes it powerful. It's also what makes it, formally, a chaotic system: its outputs are extremely sensitive to conditions we can neither fully specify nor fully observe. Chaotic systems have a property that no amount of engineering removes. There's a floor on how much error you can get rid of. However sophisticated the model gets, some error will always remain in what it produces, in the aggregate.
 
-Two consequences follow, and they compound each other:
+Two things follow from that, and they make each other worse.
 
-1. **As outputs grow more sophisticated, their errors grow harder to
-   detect.** A crude mistake announces itself. A subtle one, a plausible
-   assumption, a quietly-wrong edge case, an interface that is *almost*
-   right, hides inside work that otherwise reads as correct. The better the
-   model, the more its errors look like competence.
+The first is that as the outputs get more sophisticated, the errors get harder to spot. A crude mistake announces itself. A subtle one doesn't. A plausible assumption, an edge case that's quietly wrong, an interface that's almost right: these hide inside work that otherwise reads as correct. The better the model, the more its errors look like competence.
 
-2. **Undetected marginal errors compound invisibly** until they cross a
-   visibility threshold, at which point the failure is finally obvious, but
-   its *origin* is not. By then it may be genuinely intractable to trace where
-   the error started, and any attempt to correct it manually or with an agent
-   risks introducing still more error. You are debugging accumulated drift,
-   not a bug.
+The second is that the errors nobody catches compound, invisibly, until they cross some threshold where the failure is finally obvious. The failure is obvious by then, but where it came from isn't. It may be genuinely impossible to trace where the error started, and every attempt to fix it, by hand or with an agent, risks adding more. At that point you aren't debugging a bug. You're debugging accumulated drift.
 
-How to live with this is an open question, but other disciplines that grapple with chaotic systems offer a cue. Consider the **n-body problem** in astrophysics: how bodies move under their mutual gravitation. For three or more bodies there is no general analytical solution. The problem is worked **numerically**, which means it is solved again and again over short intervals of time, re-grounding the trajectory at every step so that error never has room to grow large before it is corrected. There is no closed form that gets you to the answer in one leap; there is only the discipline of taking small, verified steps.
+So how do you live with that? Nobody has a complete answer yet, but other fields that deal with chaotic systems offer a clue. Take the n-body problem in astrophysics, which asks how a group of bodies move under each other's gravity. For three or more bodies there's no general analytical solution, no formula that gets you to the answer in one leap. Instead the problem is worked numerically. It's solved over and over across short intervals of time, and the trajectory is re-grounded at every step so error never has room to grow before it's corrected. There's no shortcut. There's only the discipline of taking small, verified steps.
 
 <p align="center">
   <picture>
@@ -32,25 +22,27 @@ How to live with this is an open question, but other disciplines that grapple wi
   </picture>
 </p>
 
-The wager of Centina is that the new human–agent coding paradigm needs some form of the same discipline: **frequent, structured re-grounding of intent against a checkable artifact, before error has room to compound** — not one heroic prompt that leaps from idea to implementation.
+Centina is a bet that coding with agents needs some version of that same discipline. Not one heroic prompt that leaps from idea to implementation, but frequent, structured re-grounding of what you meant against something that can be checked, before error has room to compound.
 
 ### The practical failure: over-competence
 
-That abstract problem has a very concrete daily face in agentic coding, and it is not incompetence. It is **over**competence.
+In day-to-day agentic coding, that abstract problem has a very concrete face, and it isn't incompetence. It's over-competence.
 
-Hand a capable model a problem and it will go and solve it, often by making assumptions, filling gaps, and generating structure you did not expect, intend, or want. Models have gotten better at asking questions, and planning modes have grown more capable, but there is a ceiling on what conversational prose can carry. Past a certain complexity, prose is simply not a precise enough medium to *design* a solution in. It smooths over exactly the seams where intent and implementation diverge, and it lets the agent quietly introduce **latent technical entropy**, decisions that look settled but were never actually made by a human that will not surface as a problem until much later, when it is far more expensive to address.
+Hand a capable model a problem and it will go solve it, usually by making assumptions, filling in gaps, and building structure you didn't expect, intend, or want. Models have gotten better at asking questions, and planning modes have gotten better too, but there's a ceiling on what conversational prose can carry. Past a certain level of complexity, prose just isn't precise enough to design a solution in. It smooths over exactly the seams where what you meant and what gets built start to drift apart, and it gives the agent room to quietly introduce latent technical entropy: decisions that look settled but were never actually made by a human, and that won't surface as problems until much later, when they're far more expensive to fix.
 
-**A single sentence can demonstrate the problem**. Picture a planning conversation settling on *"the dashboard shows the user's most recent order."* It reads like a decision, but it is three undecided ones in a trench coat: what happens when the user has **no** orders (the empty case), whether *"recent"* sorts by when the order was created or when it was last touched, and whether a draft or cancelled order counts as an order at all, a question about the *shape* of the thing. Even if the agent asks for clarification, conversational prose, even interspersed with structured outputs, obfuscates meaning and intent, which will end up accumulating the longer the session and the more complex the design becomes. The agent wants to be helpful, so it will let you sail past critical questions over meaning and intent, answering them silently and plausibly the moment it drafts an implementation plan or writes code; none was ever the human's call, and each is far, far cheaper to uncover during early design than to reverse-engineer from later failures.
+A single sentence is enough to show the problem. Picture a planning conversation that settles on "the dashboard shows the user's most recent order." It reads like a decision. It's actually three undecided ones in a trench coat. What happens when the user has no orders? Does "recent" mean when the order was created, or when it was last touched? And does a draft or a cancelled order count as an order at all? (That last one is a question about the shape of the thing, not just how it behaves.)
 
-The insidious part is that a fluent agent's confabulated architecture looks *identical* to an elicited one. A clean, plausible, well-shaped design disguises which parts were the human's conviction and which were the agent's guess. The human then ratifies a coherent picture, half of which they never decided, and the entropy is baked in before a line of real code exists.
+Even if the agent stops to ask for clarification, a conversation, even one with structured output mixed in, blurs meaning and intent, and the blur gets worse the longer the session runs and the more complex the design gets. The agent wants to be helpful, so it will let you sail right past those questions and then answer them itself, silently and plausibly, the moment it drafts a plan or writes code. The human never made any of those calls. Each one would have been far cheaper to catch during early design than to reverse-engineer later from whatever broke.
 
-This is the compounding-error problem arriving one prompt at a time. It demands an approach that harnesses what the model is genuinely good at without handing it the one thing it should not hold: authority over *meaning*.
+The insidious part is that an architecture a fluent agent made up looks identical to one it drew out of you. A clean, plausible, well-shaped design doesn't tell you which parts were the human's conviction and which were the agent's guess. So the human signs off on a coherent picture, half of which they never decided, and the entropy is baked in before a single line of real code exists.
+
+This is the compounding-error problem again, arriving one prompt at a time. What it calls for is a way to use what the model is genuinely good at without handing it the one thing it shouldn't have: authority over meaning.
 
 ---
 
-## The goals (the invariant everything else serves)
+## The goals
 
-The four goals are the project's *only* invariant; every rule and primitive is a means under test against them. Note that each is **comparative**. The baseline is conversational prose. Centina produces structured, rule-checked pseudocode that:
+These four goals are the one thing in the project that isn't up for negotiation. Every rule and every primitive is a means, under test against them and kept only as long as it serves them. Notice that each goal is comparative. The baseline is conversational prose. Centina produces structured, rule-checked pseudocode that:
 
 1. makes it easier for a human to describe and understand a complex coding
    task, at a given level of detail, to themselves and other humans, than
@@ -66,20 +58,13 @@ The four goals are the project's *only* invariant; every rule and primitive is a
 
 ## What this offers over planning-mode conversation
 
-A good planning-mode conversation and a Centina spec both aim to align a human
-and an agent before code is written. The difference is what each *leaves
-behind* and where the authority sits:
+A good planning conversation and a Centina spec are after the same thing: getting a human and an agent on the same page before any code is written. The difference is what each one leaves behind, and who holds the authority.
 
 | | Planning-mode conversation | Centina spec |
 |---|---|---|
-| **What it leaves behind** | a transcript in a scrollback — it evaporates | a durable, versioned, mechanically checked artifact a fresh agent picks up cold |
-| **The meaning/impl line** | the agent can smuggle a decision into fluent prose, unnoticed | anything the human didn't decide is a *visible hole* the checker won't pass as resolved |
-| **Deferral** | "we'll figure it out later" is a dropped thread | a typed hole with an explicit route, tracked in a ledger until it's closed |
-| **Re-grounding** | a matter of remembering to be careful | structural — the n-body discipline, correct-before-compounding, built in |
+| **What it leaves behind** | A transcript in your scrollback. It evaporates. | A durable, versioned, mechanically checked artifact that a fresh agent can pick up cold. |
+| **Who decides meaning** | The agent can slip a decision into fluent prose and nobody notices. | Anything the human didn't decide shows up as a visible hole, and the checker won't pass it as resolved. |
+| **Deferral** | "We'll figure it out later" becomes a dropped thread. | A typed hole with an explicit route, tracked in a ledger until it's closed. |
+| **Re-grounding** | Depends on remembering to be careful. | Built into the structure. It's the n-body discipline: correct before error compounds. |
 
-For an experienced developer this is leverage, not overhead: it is a way to
-**keep a powerful coding model appropriately restrained while still harnessing
-its strengths**, and thereby to raise the ceiling on the software they can
-reliably produce with it.
-
----
+For an experienced developer, this isn't overhead. It's leverage. It's a way to keep a powerful coding model on a short leash while still using everything it's good at, and that raises the ceiling on what you can reliably build with it.
