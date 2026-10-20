@@ -10,7 +10,7 @@ Most building traditions have a word for the temporary frame that holds an arch 
   </picture>
 </p>
 
-**Centina** is TypeScript repurposed for writing specs. You use it to write structured, rule-checked pseudocode (falsework) for a coding task before anyone builds it. TypeScript supplies the grammar, but it doesn't get the final word. That belongs to Centina's own spec-plane checker, because a spec isn't done when it compiles. It's done when every gap left in it is there on purpose and has somewhere to go.
+**Centina** is TypeScript repurposed for writing specs. You don't need to know Typescript to use it, nor does it mean anything about the programming language you will use for final implementation. You use Centina to write structured, rule-checked pseudocode (falsework) for a coding task before anyone builds it. TypeScript supplies the grammar, but it doesn't get the final word. That belongs to Centina's own spec-plane checker, because a spec isn't done when it compiles. It's done when every gap left in it is there on purpose and has somewhere to go.
 
 Like the frame under an arch, a spec comes first and gives the implementation its shape. It's scaffolding, not product, and it doesn't pretend otherwise.
 
