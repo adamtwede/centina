@@ -18,7 +18,7 @@ So how do you live with that? Nobody has a complete answer yet, but other fields
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="/error-floor-dark.svg">
     <img src="/error-floor.svg" width="720"
-         alt="Two paths cross the same distance. A single heroic leap from prose to code drifts steadily out of the tolerance corridor as error compounds; a path of small verified steps, each re-grounded back toward the center, stays bounded within the corridor.">
+         alt="Three paths cross the same distance. A single heroic leap from prose to code drifts steadily out of the tolerance corridor as error compounds; an army of agents fans out into many paths that scatter out of the corridor in different directions, including agents that try to ground their neighbors but do so against their own drift; a path of small verified steps, each re-grounded back toward the center, stays bounded within the corridor.">
   </picture>
 </p>
 
