@@ -40,7 +40,7 @@ The second is Centina's own spec-plane checker (`checker/`, run with `npm run ch
 
 ### The spec is the artifact, and PLAN.md follows from it
 
-A Centina spec is a durable piece of software in its own right, not a throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`) should follow from it almost deterministically. Hand the same frozen spec to two different agents and they should come back with substantially the same plan, because the meaning has already been pinned down. All that's left is carrying it out, and even that part is well-defined, tightly controlled, and clearly marked.
+A Centina spec is a durable piece of software in its own right, not a throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`) should follow from it *pseudo*deterministically (the *details* might differ, but the *meaning* is the same). Hand the same frozen spec to two different agents and they should come back with substantially the same plan, because the meaning has already been pinned down. All that's left is carrying it out, and even that part is well-defined, tightly controlled, and clearly marked.
 
 It helps to think of a Centina spec as "code" for a coding-agent "runtime." The spec is the program, the agent is the interpreter, and PLAN.md and the eventual implementation are the output. Like the n-body integrator in [Why](/why#the-error-floor), this puts a re-grounding checkpoint between intent and implementation, a structured place where accumulated ambiguity gets forced to the surface and corrected before it compounds into code. Every iteration on the spec is one short, verified step.
 
@@ -78,7 +78,8 @@ Anyone can use Centina, but it's not meant for everyone. How much you get out of
 > Inexperienced developers may find Centina frustrating. It will ask you to
 > think carefully about details that can seem abstract, tedious, and pedantic.
 > It will push back on choices that don't line up with decisions you made
-> earlier. It will refuse to do your thinking for you.
+> earlier. Most annoyingly, it will refuse to do your thinking for you. That's 
+> also its best feature.
 
 **Note:** Centina specs are written in TypeScript, but that does **not** mean Centina is only for TypeScript or JavaScript projects, or only for web apps. TypeScript was chosen as the spec language because its type system is incredibly robust (practically a language of its own) and expressive, and its popularity is a huge bonus. A capable agent has no trouble understanding that the **target** language isn't the same as the **spec** language, and that the two are connected by intent, not execution.
 
@@ -118,7 +119,7 @@ Centina can't, or at least shouldn't:
 
 - help you decide which technologies to use in your project
 - help you implement a complex algorithm
-- help you write software you don't understand or can't specify
+- help you write software you yourself don't adequately understand or can't specify
 - tell you what good software architecture actually looks like, or how to develop it
 
 > [!CAUTION]

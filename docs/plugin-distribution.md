@@ -1,6 +1,6 @@
 # Plugin distribution and install mechanics (design spec)
 
-Status: design, not yet implemented. Companion to `docs/plugin-file-
+Status: partially-implemented. Companion to `docs/plugin-file-
 layout.md`, `docs/plugin-setup-step.md`, `docs/plugin-checker-install.md`.
 Those cover what the plugin contains and how it behaves once installed;
 this covers how a user gets it installed at all.

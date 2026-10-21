@@ -2,7 +2,10 @@
 
 Working rules for `centina-session-zero`, `centina-iterate` and
 `centina-realize`. Imperative on purpose; see "Why this format" below for the
-evidence behind it.
+evidence behind it. This document's intended audience is a coding
+agent running a Centina session, but a curious human is welcome to read it
+to better understand the ledger system, and make any changes they
+need.
 
 ## What it is
 
@@ -25,16 +28,15 @@ as the scribe, including during sessions where Rule 0a keeps it out of spec
 files. The human decides every status that means a decision (ratified,
 rejected, chosen, and so on).
 
-Create `LEDGER.md` at the first decision worth recording, once the system
-name is known. Start it with a one-line title (`# Ledger: <system>`).
+The agent creates `LEDGER.md` at the first decision worth recording, once the system
+name is known, and starts it with a one-line title (`# Ledger: <system>`).
 
 ## Why this format
 
-Drawn from the Chrysalis Underworld project (`chrysalis/prototype/` and
-`chrysalis/centina/specs/underworld/`, including `archive/`), which surfaced
-the failure modes this format exists to close. Most had no cross-reference to
-follow at the time the new decision was recorded, so a rule that only fires
-when a new proposal is recorded would not have caught them:
+Drawn from real-world use cases, which surfaced the failure modes this format 
+exists to close. Most had no cross-reference to follow at the time the new decision 
+was recorded, so a rule that only fires when a new proposal is recorded would not 
+have caught them:
 
 1. **Unlabeled claim.** A prose line ("Bathymetry is 2.5D") had no label; a
    proposal rejected it by name a day later, but nothing pointed back to the
@@ -138,39 +140,39 @@ rather than guessing.
 
 ### Letters and statuses
 
-| Letter | For | Statuses |
-|---|---|---|
-| `A` | axiom: an authored, external-provenance given (see "Axioms") | `provisional`, `ratified`, `retired` |
-| `P` | proposal | `open`, `ratified`, `rejected`, `withdrawn` |
-| `Q` | question | `open`, `answered`, `withdrawn` |
-| `F` | finding | `hypothesis`, `predicted`, `measured`, `measured-false`, `withdrawn` |
-| `O` | option within a fork | `open`, `chosen`, `declined` |
-| `W` | work item (`Kind`: `phase`, `step`, `spike`, `change-request`, `other`) | `planned`, `active`, `blocked`, `deferred`, `done`, `withdrawn` |
-| `G` | goal or thesis | `active`, `deferred`, `retired` |
-| `R` | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`) | `provisional`, `ratified`, `retired` |
+| Letter | For                                                                          | Statuses                                                             |
+| ------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `A`    | axiom: an authored, external-provenance given (see "Axioms")                 | `provisional`, `ratified`, `retired`                                 |
+| `P`    | proposal                                                                     | `open`, `ratified`, `rejected`, `withdrawn`                          |
+| `Q`    | question                                                                     | `open`, `answered`, `withdrawn`                                      |
+| `F`    | finding                                                                      | `hypothesis`, `predicted`, `measured`, `measured-false`, `withdrawn` |
+| `O`    | option within a fork                                                         | `open`, `chosen`, `declined`                                         |
+| `W`    | work item (`Kind`: `phase`, `step`, `spike`, `change-request`, `other`)      | `planned`, `active`, `blocked`, `deferred`, `done`, `withdrawn`      |
+| `G`    | goal or thesis                                                               | `active`, `deferred`, `retired`                                      |
+| `R`    | standing rule (`Kind`: `structural`, `design`, `method`, `process`, `limit`) | `provisional`, `ratified`, `retired`                                 |
 
 Every letter can also be `superseded`, which requires `Obsoleted-by`.
 
 ### Header fields
 
-| Field | On | Meaning |
-|---|---|---|
-| `Date` | any | Date recorded, `YYYY-MM-DD` |
-| `Session` | any | Session ID that recorded it |
-| `Phase` | any | The phase work item, e.g. `task-matcher:W1` |
-| `Status` | any | Required |
-| `Kind` | `W`, `R` | Required on those letters; not re-validated once an entry is no longer holding (see rule 8) |
-| `Depends-on` | `W` | Labels that must be resolved first; required when `blocked` |
-| `Premises` | any | Labels assumed true; an `A` may only cite other `A` entries |
-| `Constraints` | phase `W` | `R` labels that bear on the phase |
-| `Review` | `R` | When a `provisional` rule is reconsidered; required when `provisional` |
-| `Parked` | `Q`, `P` | `YYYY-MM-DD, until <condition>`; set aside but still open. Only on `open` items; the condition is required free text. The index shows it beside the title |
-| `Enforced-by` | `R` | The type or test enforcing the rule |
-| `Evidence` | `F` | Harness, command, commit; required when `measured` or `measured-false` |
-| `Tags` | `A` | Free-text, comma-separated categories for grouping (e.g. `world, vessel`) |
-| `Obsoletes` / `Obsoleted-by` | any | Full replacement, recorded on both entries |
-| `Updates` / `Updated-by` | any | Partial change (usually a part), recorded on both entries |
-| `Renumbered-from` | any | Old label after fixing a duplicate |
+| Field                        | On        | Meaning                                                                                                                                                   |
+| ---------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Date`                       | any       | Date recorded, `YYYY-MM-DD`                                                                                                                               |
+| `Session`                    | any       | Session ID that recorded it                                                                                                                               |
+| `Phase`                      | any       | The phase work item, e.g. `task-matcher:W1`                                                                                                               |
+| `Status`                     | any       | Required                                                                                                                                                  |
+| `Kind`                       | `W`, `R`  | Required on those letters; not re-validated once an entry is no longer holding (see rule 8)                                                               |
+| `Depends-on`                 | `W`       | Labels that must be resolved first; required when `blocked`                                                                                               |
+| `Premises`                   | any       | Labels assumed true; an `A` may only cite other `A` entries                                                                                               |
+| `Constraints`                | phase `W` | `R` labels that bear on the phase                                                                                                                         |
+| `Review`                     | `R`       | When a `provisional` rule is reconsidered; required when `provisional`                                                                                    |
+| `Parked`                     | `Q`, `P`  | `YYYY-MM-DD, until <condition>`; set aside but still open. Only on `open` items; the condition is required free text. The index shows it beside the title |
+| `Enforced-by`                | `R`       | The type or test enforcing the rule                                                                                                                       |
+| `Evidence`                   | `F`       | Harness, command, commit; required when `measured` or `measured-false`                                                                                    |
+| `Tags`                       | `A`       | Free-text, comma-separated categories for grouping (e.g. `world, vessel`)                                                                                 |
+| `Obsoletes` / `Obsoleted-by` | any       | Full replacement, recorded on both entries                                                                                                                |
+| `Updates` / `Updated-by`     | any       | Partial change (usually a part), recorded on both entries                                                                                                 |
+| `Renumbered-from`            | any       | Old label after fixing a duplicate                                                                                                                        |
 
 ## Rules for writing
 

@@ -28,7 +28,7 @@ Centina is a bet that coding with agents needs some version of that same discipl
 
 In day-to-day agentic coding, that abstract problem has a very concrete face, and it isn't incompetence. It's over-competence.
 
-Hand a capable model a problem and it will go solve it, usually by making assumptions, filling in gaps, and building structure you didn't expect, intend, or want. Models have become proficient at asking questions, and planning modes have gotten better too, but there's an inescapable teleological ceiling on what conversational prose can carry. Past a certain level of complexity, prose just isn't precise enough to design a solution that satisfies the original intent. It smooths over exactly the seams where what you meant and what gets built start to drift apart, and it gives the agent room to quietly introduce latent technical entropy: decisions that look settled but were never actually made by a human, and that won't surface as problems until much later, when it may be more expensive to fix them than to simply start over.
+Hand a capable model a problem and it will go solve it, usually by making assumptions, filling in gaps, and building structure you didn't expect, intend, or want. Models have become proficient at asking questions, and planning modes have gotten better, but there's a hard teleological ceiling on what conversational prose can carry. Past a certain level of complexity, prose just isn't precise enough to design a solution that satisfies the original intent. It smooths over exactly the joints where what you meant and what gets built start to drift apart, and it gives the agent room to quietly introduce latent technical entropy: decisions that look settled but were never actually made by a human, and that won't surface as problems until much later, when it may be more expensive to fix them than to simply start over.
 
 A single sentence is enough to show the problem. Picture a planning conversation that settles on "the dashboard shows the user's most recent order." It reads like a tidy decision in a tuxedo, but it's actually three gremlins in a trench coat. What happens when the user has no orders? Does "recent" mean when the order was created, or when it was last touched? And does a draft or a cancelled order count as an order at all? (That last one is a question about the shape of the thing, not just how it behaves.)
 
@@ -42,7 +42,7 @@ This is the compounding-error problem again, arriving one prompt at a time. What
 
 ## The goals
 
-These four goals are the one thing in the project that isn't up for negotiation. Every rule and every primitive is a means, under test against them and kept only as long as it serves them. Notice that each goal is comparative. The baseline is conversational prose. Centina produces structured, rule-checked pseudocode that:
+These four goals are the only things in the project that aren't up for negotiation. Every rule and every primitive is mechanical leverage to reach them. Notice that each goal is comparative. The baseline is conversational prose. Centina produces structured, rule-checked pseudocode that:
 
 1. makes it easier for a human to describe and understand a complex coding
    task, at a given level of detail, to themselves and other humans, than
