@@ -8,7 +8,7 @@ Centina is driven by four skills, each of which runs as a collaborative, gated p
 
 - **[centina-session-zero](https://github.com/adamtwede/centina/blob/main/skills/centina-session-zero/SKILL.md)** takes a prose idea for a whole system and turns it into a component DAG, a set of skeleton specs, and an `ARCHITECTURE.md`, one gated phase at a time.
 - **[centina-iterate](https://github.com/adamtwede/centina/blob/main/skills/centina-iterate/SKILL.md)** refines a single spec until it's clean, settling each diagnostic with you, and then derives `PLAN.md` from it.
-- **[centina-realize](https://github.com/adamtwede/centina/blob/main/skills/centina-realize/SKILL.md)** plans and builds a working slice behind a spec's boundaries, and hands each spike off to `centina-spike`.
+- **[centina-realize](https://github.com/adamtwede/centina/blob/main/skills/centina-realize/SKILL.md)** plans and builds a working slice behind a spec's boundaries, and hands each spike off to `centina-spike`. Not meant to act as production implementation, but rather to hone the spec.
 - **[centina-spike](https://github.com/adamtwede/centina/blob/main/skills/centina-spike/SKILL.md)** runs one bounded line of experiments, for a question the spec can't settle without code, measured against a gate you set before it starts.
 
 ### Fit is a map, not a verdict
@@ -17,14 +17,14 @@ One thing worth understanding early is how session-zero handles fit. It treats f
 
 To decide where something belongs, every node gets read on two planes, and wherever its center of gravity sits decides how it's routed:
 
-| Plane | What it captures | Where it lands in a spec |
-|---|---|---|
-| **Structural** | Relationships between named data: where it comes from, where it flows, what the contract is ("*X* comes from *Y*, in shape *Z*"). | A filled-in component. |
-| **Realization** | The carrying-out: algorithm, dynamics, aesthetics. No nameable data relationship. | Routed behind a door: a terminal, a Skill, or a held hole. |
+| Plane           | What it captures                                                                                                                  | Where it lands in a spec                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Structural**  | Relationships between named data: where it comes from, where it flows, what the contract is ("*X* comes from *Y*, in shape *Z*"). | A filled-in component.                                     |
+| **Realization** | The carrying-out: algorithm, dynamics, aesthetics. No nameable data relationship.                                                 | Routed behind a door: a terminal, a Skill, or a held hole. |
 
 ### From prose to implementation
 
-The whole lineage goes like this. Session-zero produces an `ARCHITECTURE.md` and a skeleton set. Each `<component>.centina.ts` in that set gets filled in, through cycles of iterate and realize that grow a working slice along the way. Then each boundary-set gets a `PLAN.md`, and that drives the implementation.
+The whole lineage goes like this. Session-zero produces an `ARCHITECTURE.md` and a skeleton set. Each `<component>.centina.ts` in that set gets filled in, through cycles of iterate and realize that grow a working slice along the way. Then each boundary-set gets a `PLAN.md`, and that drives the implementation:
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ flowchart LR
   skel -->|human fills| filled["filled spec"]
   filled -->|centina-iterate| clean(["spec-complete"])
   filled <-->|centina-realize| slice["working slice"]
-  clean -. near-deterministic .-> plan["PLAN.md"] --> impl(["implementation"])
+  clean -. pseudo-deterministic .-> plan["PLAN.md"] --> impl(["implementation"])
 ```
 
 > [!TIP]
