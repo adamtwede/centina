@@ -203,7 +203,9 @@ since a disagreement with it is the finding.
 with `Evidence` (harness file, command, commit); the prediction's text stays.
 For `measured-false`, record which premise or inference failed. Follow
 `ledger.md`, "When a status changes". Quote every number with its conditions.
-Say `measured` only with the evidence in hand.
+Say `measured` only with the evidence in hand. Offering an idea or a likely
+outcome in conversation is fine when marked as such. Recording one as fact is
+not.
 
 **A diagnosis is a claim.** "The cause is X" is a hypothesis until measured:
 check it before reporting it as the cause or building a fix on it.

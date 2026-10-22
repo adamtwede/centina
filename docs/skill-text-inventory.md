@@ -432,8 +432,9 @@ Underworld", in the Centina repository. The page's own opening, which said
 "Used by `centina-realize`", now says it is the full form of spike's rules and
 not bundled. Spike's "Measuring" carries every rule in it; the one thing it
 lacks is that an idea or likely outcome may be offered in conversation if
-marked as such but never recorded as fact, which realize's skill has and
-spike's doesn't. No runtime saving, as expected: the fix is that the pointer
+marked as such but never recorded as fact, which realize's skill had and
+spike's now has too, in realize's words, at the end of "After running". No
+runtime saving, as expected: the fix is that the pointer
 no longer misdirects.
 
 **All five steps are applied.**
