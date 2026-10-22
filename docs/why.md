@@ -38,8 +38,6 @@ The insidious part is that an architecture a fluent agent made up looks identica
 
 This is the compounding-error problem again, arriving one prompt at a time. What it calls for is a way to use what the model is genuinely good at without handing it the one thing it shouldn't have: **authority over meaning**.
 
----
-
 ## The goals
 
 These four goals are the only things in the project that aren't up for negotiation. Every rule and every primitive is mechanical leverage to reach them. Notice that each goal is comparative. The baseline is conversational prose. Centina produces structured, rule-checked pseudocode that:
@@ -58,7 +56,7 @@ These four goals are the only things in the project that aren't up for negotiati
 
 ## What this offers over planning-mode conversation
 
-A good planning conversation and a Centina spec are after the same thing: getting a human and an agent on the same page before any code is written. The difference is what each one leaves behind, and who holds the authority.
+A good planning conversation and a Centina spec are after the same thing: getting a human and an agent on the same page before any production code is written. The difference is what each one leaves behind, and who holds the authority.
 
 |                           | Planning-mode conversation                                          | Centina spec                                                                                            |
 | ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |

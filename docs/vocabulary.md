@@ -36,9 +36,14 @@ const someFormula = agent.prompt("Generate a random formula.") as Formula
 A `Skill` is a named capability the spec's `Agent` can invoke, as opposed to a raw `prompt`. Its type parameters are its contract. You declare them once, and they're enforced at every call site: pass the `Skill` as the first argument to `invokeSkill`, and the remaining arguments are checked against `In` while the result comes back typed as `Out`, no cast needed. With a raw `prompt`, the shape assumption gets recorded at every call. With a skill, it's recorded once, where the skill is declared, so two call sites can't quietly disagree about its shape.
 
 ```ts
-const explain: Skill<[Formula, FormulaType], string> = { name: "formula-explanation" }
-//                  ^ input types            ^ output
-const text = agent.invokeSkill(explain, someFormula, FormulaType.UNKNOWN) // : string
+// skill declaration:
+const explain: Skill<[Formula, FormulaType], string> = { name: "formula-explanation" } // `name` corresponds to actual skill name that agent can invoke
+//           input types ^   and   ^           ^ output type
+
+// skill usage:
+const explanation = agent.invokeSkill(explain, someFormula, FormulaType.UNKNOWN)
+//              skill (from declaration) ^          ^ input (Formula)   ^ input (FormulaType)
+// `explanation` is typed as string, from the output type
 ```
 
 ## Authoring markers: notes for the checker and the agent
@@ -56,12 +61,14 @@ const lookup = deferred<"unimplemented", (n: Name) => Row>()       // hard stop 
 
 ### `@external "src"` — a reference into existing code
 
-A plain `declare`, tagged with where it comes from. The declaration is where your assumption about the outside world gets recorded, and call sites then use the declared type without a cast.
+A plain `declare`, tagged with where it comes from. The declaration is where your assumption about the outside world gets recorded, and call sites then use the declared type without a cast. This is the primary way of connecting your spec to existing code or APIs. Point `src` at the artifact (library file, REST endpoint, whatever) and define the subordinate operation by symbol name and mock its signature. It can be any machine-readable symbol. It doesn't need to be exact, it just needs to be complete enough for an agent to find it and wire it up during later spec sessions or implementation.
 
 ```ts
 /** @external "node:crypto" */
 declare function randomUUID(): string
 ```
+
+A more comprehensive treatment would be to wrap your `@external`s in a boundary (see below) to fully namespace the external system and give it a data-flow direction (source, sink, or both).
 
 ### `@datasource`, `@datasink`, `@boundary` — boundaries
 

@@ -6,6 +6,9 @@ The ledger mod fixes that. It's a small Claude Code mod that ships inside the Ce
 
 It's display only. Nothing in the skills or the checker depends on it, so if it never loads, or you hide it, Centina works exactly the same. It reads the ledger and never writes to it.
 
+> [!IMPORTANT]
+> The ledger mod only works for Claude Code, as sufficient modding capabilities for other harnesses do not yet exist as of this writing. Additionally, the mod **only works for the Claude Code desktop and terminal apps**, since it relies on links to files that live in the local filesystem.
+
 ## What you see
 
 Say the agent's latest reply mentions `terrain:P12` and `terrain:W44`. Above your prompt you get a header line, then one row per citation:
@@ -41,13 +44,13 @@ Everything below runs a one-off model call from inside the mod. These calls have
 
 The dollar signs on the labels are relative cost, not prices: one for Haiku, two for Sonnet, three for Opus. Reasoning counts against the same token cap as the answer, so the heavier buttons spend more than their answers look like they should.
 
-| Button | Model | Shows when | What you get |
-|---|---|---|---|
-| ELI5 (per row) | Haiku | a row resolved | Plain-words explanation of one entry |
-| Break it down ($) | Haiku | the reply is over 150 words | Gist, jargon glossed, options weighed |
-| Phase progress ($$) | Sonnet | some phase is `active` | Progress, remaining work, direction |
-| Item progress ($$) | Sonnet | some work item is `active` | The line of inquiry so far |
-| Second opinion ($$$) | Opus | the reply is over 50 words | A critical review of the reply |
+| Button               | Model  | Shows when                  | What you get                          |
+| -------------------- | ------ | --------------------------- | ------------------------------------- |
+| ELI5 (per row)       | Haiku  | a row resolved              | Plain-words explanation of one entry  |
+| Break it down ($)    | Haiku  | the reply is over 150 words | Gist, jargon glossed, options weighed |
+| Phase progress ($$)  | Sonnet | some phase is `active`      | Progress, remaining work, direction   |
+| Item progress ($$)   | Sonnet | some work item is `active`  | The line of inquiry so far            |
+| Second opinion ($$$) | Opus   | the reply is over 50 words  | A critical review of the reply        |
 
 If your organization restricts which models Claude Code may use, a button whose model is blocked fails with "The opus call failed" and the reason. Nothing else is affected.
 
