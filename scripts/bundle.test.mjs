@@ -111,13 +111,21 @@ describe("installer", () => {
       stub(src, "checker/package-lock.json")
       stub(src, ".claude-plugin/types/index.d.ts")
       stub(src, "docs/dev-only.md")
+      stub(src, "scripts/context-audit/classify.mjs")
       const dest = path.join(scratch, "dest")
       stub(dest, "stale.txt")
       install(src, dest)
       assert.ok(!existsSync(path.join(dest, "stale.txt")), "the old install should be removed")
       assert.ok(existsSync(path.join(dest, "checker/keep")))
+      assert.ok(existsSync(path.join(dest, "scripts/keep")), "excluding a scripts/ subdirectory keeps the rest of scripts/")
       assert.ok(existsSync(path.join(dest, "docs", BUNDLE.docs[0])))
-      for (const rel of ["checker/node_modules", "checker/package-lock.json", ".claude-plugin/types", "docs/dev-only.md"]) {
+      for (const rel of [
+        "checker/node_modules",
+        "checker/package-lock.json",
+        ".claude-plugin/types",
+        "docs/dev-only.md",
+        "scripts/context-audit",
+      ]) {
         assert.ok(!existsSync(path.join(dest, rel)), `${rel} should not be installed`)
       }
     })

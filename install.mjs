@@ -44,7 +44,9 @@ export const BUNDLE = {
 // install-time artifacts the SessionStart hook regenerates in
 // CLAUDE_PLUGIN_DATA on first use — don't ship a stale copy. The engine lays
 // dev types into .claude-plugin/types for tsconfig.hooks.json; not the bundle.
-const EXCLUDED = new Set([".claude-plugin/types", "checker/package-lock.json"])
+// scripts/context-audit analyzes this machine's session transcripts for
+// docs/context-audit.md; it's a development tool, not something a plugin user runs.
+const EXCLUDED = new Set([".claude-plugin/types", "checker/package-lock.json", "scripts/context-audit"])
 
 /** Written beside the installed plugin by scripts/session-start-install.mjs; read by hooks/register.tsx. */
 const DATA_POINTER = ".centina-data"

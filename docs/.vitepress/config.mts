@@ -9,7 +9,7 @@ export default defineConfig({
   title: "Centina",
   description: "Spec-flavored TypeScript for writing falsework before a coding task is built.",
   base: "/centina/",
-  srcExclude: ["docs-site-ia.md", "session-zero-test-cases.md"],
+  srcExclude: ["docs-site-ia.md", "session-zero-test-cases.md", "context-audit.md"],
   cleanUrls: true,
   // Dead links fail the build. The point of the site is that it stays correct.
   ignoreDeadLinks: false,
