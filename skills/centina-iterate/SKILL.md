@@ -216,8 +216,10 @@ reason to split it: split only when the human asks.
 These apply throughout this loop. Explain a label the first time it comes up,
 in one clause ("task-matcher:F7, the scope-crossing identifier in
 `matchTasks`"), and restate a reminder when more than 10 labels of the same
-letter have come up since, erring toward restating. Spell out every symbol of
-a formula on introduction, and always when it goes into PLAN.md,
+letter have come up since, erring toward restating. Write a label in full
+(`task-matcher:F7`) the first time it appears in each turn; only after that,
+in the same turn, may you shorten it to `F7` (`ledger.md`, "Reading"). Spell
+out every symbol of a formula on introduction, and always when it goes into PLAN.md,
 ARCHITECTURE.md or any other document. Never open a session transcript
 without asking, and warn about concurrent sessions (`ledger.md`). Without a
 ledger, use session labels (`P`/`Q`/`F`/`O<n>`) and a compact index in the
