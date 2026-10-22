@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSyn
 import path from "node:path"
 import { isAbsolute } from "../ledger/config"
 
-// What `centina-check setup` does, in order: docs/plugin-setup-procedure.md.
+// What `centina-check setup` does, in order: docs/centina-check-setup.md.
 
 /** Marks where the tsserver plugin's path goes in `tsconfig.template.json`. */
 export const PLACEHOLDER = "<placeholder, substituted at generation time>"

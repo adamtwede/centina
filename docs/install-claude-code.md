@@ -21,7 +21,7 @@ A few details worth knowing:
 
 **You can delete the clone once it's installed.** The clone is a one-time source, not a link. Nothing in the installed copy points back at it. Claude Code loads the plugin from the install location, and the compiled checker that live in-editor checking depends on lives in Claude Code's own per-plugin data directory, keyed by the plugin's name rather than by any checkout's path. The only reason to keep the clone is if you plan to `git pull` updates later and re-run `install.mjs`.
 
-The checker's command-line tool ends up at `~/.claude/skills/centina/bin/centina-check`. There's nothing to configure there, because the skills call it directly through `${CLAUDE_PLUGIN_ROOT}`. If you want to run the checker from a terminal yourself, see [Running it without a session](/plugin-setup-procedure#running-it-without-a-session).
+The checker's command-line tool ends up at `~/.claude/skills/centina/bin/centina-check`. There's nothing to configure there, because the skills call it directly through `${CLAUDE_PLUGIN_ROOT}`. If you want to run the checker from a terminal yourself, see [Running it without a session](/centina-check-setup#running-it-without-a-session).
 
 Would you rather try it out for a single session without installing anything? `claude --plugin-dir /path/to/centina` loads it for that session only, with no lasting change. [Plugin distribution](/plugin-distribution) covers that option, plus the marketplace options for when you want to share Centina with someone else or use it across machines.
 

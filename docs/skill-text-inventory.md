@@ -372,3 +372,30 @@ listed, with the second copies cut to what only they carried:
 - Session zero's ledger-location sentence was trimmed rather than replaced by
   its pointer. Session zero never directs a read of `output-management.md`,
   so the skill's copy is the one its agents actually see.
+
+**Step 3, applied.** About 6.0k characters: 3,844 from
+`plugin-setup-procedure.md` (now 5,679) and 2,184 from `trail.md` (now
+10,425). The destinations changed on review:
+
+- The setup material went to a new page, `centina-check-setup.md`, not to
+  `plugin-setup-step.md` or the install pages. The plain-shell error in
+  `checker/setup/command.ts` points a person at it from outside a session, so
+  it has to ship, and it is bundled (installer list, layout tree, site
+  sidebar) though no skill reads it. It holds the three sections verbatim,
+  apart from one "(below)" that became a pointer back to "The config". The
+  procedure keeps one paragraph naming what setup writes, the refusal before
+  the first write, "copies no docs", and a pointer that tells the agent it
+  doesn't need the page. Every link to "Running it without a session" moved
+  with it: the three install pages, the installer's closing message, the
+  error message and a comment in `setup.ts`.
+- The tracker-page description went to `ledger-mod.md`, "The work item
+  tracker", reworded into that page's voice with every fact kept. "The ledger
+  hook" became "a plugin hook", since the transcript hook does the copy.
+  `trail.md` keeps the command, the findings, one paragraph on where weights
+  live (gitignored `transcripts/`, committed `weights/`), the resumed-item
+  rule, and a pointer.
+- Step 1 left `trail.md` saying `trail-missing-decision` covers "the weak
+  point named below", after the weak points had moved out. It now names that
+  point: options are offered in prose, so capture is up to the agent.
+
+The procedure's config compression (96–114) is still open, with step 4.

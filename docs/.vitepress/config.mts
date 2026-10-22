@@ -58,6 +58,7 @@ export default defineConfig({
           { text: "Project state and layout", link: "/reference" },
           { text: "Plugin distribution", link: "/plugin-distribution" },
           { text: "Plugin setup procedure", link: "/plugin-setup-procedure" },
+          { text: "The setup command", link: "/centina-check-setup" },
           { text: "Plugin setup step", link: "/plugin-setup-step" },
           { text: "Plugin checker install", link: "/plugin-checker-install" },
           { text: "Plugin file layout", link: "/plugin-file-layout" },

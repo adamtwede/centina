@@ -63,6 +63,7 @@ centina-plugin/
 ├── tsconfig.template.json
 └── docs/
     ├── plugin-setup-procedure.md
+    ├── centina-check-setup.md
     ├── output-management.md
     ├── ledger.md
     ├── measurement-methodology.md
