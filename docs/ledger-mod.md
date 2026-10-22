@@ -8,6 +8,10 @@ It's display only. Nothing in the skills or the checker depends on it, so if it 
 
 ## What you see
 
+This is the band in a real session, with three cited entries, the drift line in yellow and the tracker button on the right:
+
+![The ledger band above the prompt: a header with the Hide, Break it down, Phase progress, Item progress, Second opinion and Work item tracker buttons, a yellow Long-running line for a work item, and three ledger rows each with Open and ELI5 buttons](/ledger-mod.png)
+
 Say the agent's latest reply mentions `terrain:P12` and `terrain:W44`. Above your prompt you get a header line, then one row per citation:
 
 ```text
@@ -101,6 +105,10 @@ If a bare number matches items in more than one ledger, it asks for the full lab
 ## The work item tracker
 
 When a system has a `TRAIL.jsonl`, the band also shows **Work item tracker**, marked with a cyan ◆. The [trail](/trail) records the options the agent offered you at each decision and which you took. This button builds the picture of it. It brings the checker's install up to date (a no-op when nothing has changed), runs `centina-check trail` for the tracked item, and opens the resulting `TRACKER.html` in your browser.
+
+![The work item tracker page for one work item: summary tiles for active time, output tokens and decision points, a timeline of decisions with the path taken and the options offered and not taken, and collapsed panels for standing alternatives, gates and readings, and a table view](/work-item-tracker.png)
+
+The page names its item at the top, then shows tiles for what the work has cost and how many decisions it took. Below them is the timeline: the blue line is the path you took, the stubs beside it are the options that were offered and not taken, and the links at the right open the cited ledger entries. The [trail page](/trail#the-checker-and-the-tracker) explains how to read each part.
 
 If the checker can't run, it opens the last page it generated and says why in a toast. The very first time, the mod needs one session start to learn where the checker lives, because the install hook records that location for it. If the trail has errors, the page is still written and the toast tells you to read them.
 
