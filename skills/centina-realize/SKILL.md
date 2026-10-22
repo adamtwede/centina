@@ -356,7 +356,3 @@ Both travel as ledger entries; there is no other channel.
 - Don't tune a model or the world to reproduce an earlier number.
 - Don't change `ledgerHook`, and don't open a transcript without asking
   (`ledger.md`).
-
-## Lessons from use
-
-_Accumulate here as the skill is exercised._

@@ -1,8 +1,6 @@
 # Session zero: which nodes earn a spec
 
 Read by `centina-session-zero` before it classifies any node (phases 2 to 4).
-Moved here verbatim from the skill so the skill stays under the post-compaction
-cap (`ROADMAP.md`, "Skills over the post-compaction cap").
 
 ## Which nodes earn a spec: routing, not gatekeeping
 
@@ -25,13 +23,6 @@ gravity sits:
   a nameable data relationship. A realization-dominated node is **not
   rejected** — it is **routed behind a door** (terminal, Skill, or held hole),
   and the spec keeps only the seam around it.
-
-That "routed, not rejected" is the post-pivot shift, and it's why session zero
-carries this judgment rather than a separate gate owning it. Before Centina had
-routing primitives a realization-heavy task had nowhere to go, so fit was a
-binary admit/reject asked before any spec was written. Now the routing
-primitives _are_ the answer: realization goes behind a door, and the only thing
-left to decide per node is whether anything structural remains once it does.
 
 **A node can straddle both planes — split on the seam, don't collapse it.**
 "Center of gravity" isn't always a whole-node verdict: one responsibility often
@@ -93,9 +84,9 @@ _each_ be routed behind a single door. When routing it leaves nothing else,
 there was no system to architect — but that is **not a recusal**. You still emit
 a skeleton: the one node's signature pinned, its body held, and an honest label
 saying "this is one function/algorithm, not a system — you likely didn't need
-session zero for it." Producing the thin honest map _is_ the output; refusing to
-engage is the verdict-era reflex the jurisdiction reframe retired. Deliver the
-map and let the human decide whether it was worth the trip.
+session zero for it." Producing the thin honest map _is_ the output; don't
+refuse to engage. Deliver the map and let the human decide whether it was worth
+the trip.
 
 The tell that you're at this floor is a near-**empty contract set** — but
 "empty" is rarer than it looks, and interrogation almost always finds _some_
@@ -107,7 +98,4 @@ value equality). Otherwise phase 3's shape interrogation yields the key/identity
 contracts and the skeleton is thin-but-non-empty, not hollow. Either way the
 move is identical: pin what interrogation surfaces, hold the algorithm, label
 the coverage honestly — never manufacture seams to fake a DAG, and never bounce
-the human with a "bad fit" verdict. (The whole-DAG view is more robust than
-counting boundary-ends on a single slice, which flips with where you draw the
-slice; it turns the 0-end case into a structural fact rather than a
-slice-relative guess.)
+the human with a "bad fit" verdict.

@@ -1,10 +1,9 @@
-# The trail (step 3 of the work-item progress tracking)
+# The trail
 
-Agreed by the author (what counts as a decision, agent-drafted gates ruled by
-the human over several turns, JSONL, one file per system). `centina-check trail <system-dir>`
-validates it and writes `TRACKER.html` (see "The checker
-and the tracker" below). `skills/centina-spike/SKILL.md` writes it, by
-appending lines in the formats below.
+The format of a system's trail file. `skills/centina-spike/SKILL.md` writes
+it, by appending lines in the formats below. `centina-check trail <system-dir>`
+validates it and writes `TRACKER.html` (see "The checker and the tracker"
+below).
 
 ## What it is for
 
@@ -20,10 +19,7 @@ cites ledger labels instead of restating them (`ledger.md`, rule 5).
 ## What it is not
 
 - **Not the work tree.** Steps and spikes are ledger `W` entries with
-  `Depends-on`; the trail points at them. (`centina-realize` already asks for
-  one `W` entry per step and for no unplanned work; `terrain:W43` kept about
-  twenty sub-steps as paragraphs of one entry instead. Making that rule bite
-  is step 4's job, not the trail's.)
+  `Depends-on`; the trail points at them.
 - **Not a store of weights.** Time and tokens between two decisions are
   derived by the tracker from the session transcripts (`transcripts/`, each
   message has a timestamp and usage), kept in reduced form in `weights/` (see
@@ -36,8 +32,7 @@ cites ledger labels instead of restating them (`ledger.md`, rule 5).
 
 ## Shape
 
-One file per system, `TRAIL.jsonl` beside `LEDGER.md` (its place follows the
-ledger folder refactor, ROADMAP "Open"). JSON Lines: append-only, one record
+One file per system, `TRAIL.jsonl` beside `LEDGER.md`. JSON Lines: append-only, one record
 per line, so two sessions merge cleanly and a half-written record damages one
 line. Never edit a line. A `decision` or `gate` is corrected by a later record with
 a new id and `"corrects":"<old id>"` (the old one is then hidden); for a
@@ -82,9 +77,7 @@ diamond.
 - `cites`: ledger labels the option rests on or would produce, for the
   tracker's links and the checker's resolution test.
 - `options` may be omitted on a record written after the fact
-  (`"backfilled":true`), when only the choice is known. This is what
-  `terrain:W43` looks like: the ledger quotes the human's pick
-  (`"route option 1"`) and the unchosen options are gone.
+  (`"backfilled":true`), when only the choice is known.
 
 ### `choice`: written when the human answers
 
@@ -247,16 +240,3 @@ session's file is replaced only when its transcript holds more messages, so it
 never shrinks. `--check` writes nothing. A resumed item needs no special
 handling: its new decisions append to the same trail, and the page, built from
 the whole trail and all stored weights, shows its full history.
-
-## Known weak points
-
-1. **Capture depends on the agent.** Options are offered in prose, so there is
-   nothing to hook. The rule goes in `centina-realize`, and the checker's
-   warning is the only backstop. If it drops records in long sessions, the
-   fallback is the mod extracting offered options from the reply with a cheap
-   model call, which is a cost and an accuracy trade, not a free fix.
-2. **Backfilling is partial.** For existing work the ledger gives the chosen
-   path and rough anchors, not the unchosen options.
-3. **A gate is a number, and not every step has one.** That is stated, not
-   hidden, but a line whose goal is not a threshold needs a different kind of
-   `gate` (a qualitative statement with `verdict` only); not designed yet.

@@ -1,9 +1,7 @@
 # Centina iterate reference
 
-Detail `centina-iterate` reads on demand. Each section was moved here
-verbatim from the skill, which keeps a short form of it, so the skill stays
-under the post-compaction cap (`ROADMAP.md`, "Skills over the post-compaction
-cap").
+Detail `centina-iterate` reads on demand. The skill keeps a short form of each
+section.
 
 ## Boundary declarations as extraction candidates
 
@@ -186,8 +184,7 @@ and let _them_ decide whether to apply it. (This is the one place iterate differ
 from `centina-session-zero`, where the agent has standing authority to emit such
 an encoding into the skeleton directly — here it only proposes.) When the
 constraint genuinely can't be typed (e.g. array homogeneity), an `@agent:` note
-is the honest fallback rather than a forced encoding. (From the grid-inventory
-live session, 2026-07-21.)
+is the honest fallback rather than a forced encoding.
 
 ### Warning triage is design discussion, not cleanup
 
@@ -217,14 +214,3 @@ first enters the spec (an `@external` function's return type, an `Agent`
 call's result), rather than scattered as ad hoc `as` casts at every use site.
 One recorded assumption beats the same assumption re-made silently in five
 places.
-
-### Scope-crossing identifiers are a common real finding
-
-The port of `prototype.aisl` to `hill-climbing-loop.centina.ts` (then still
-named `prototype.centina.ts`) reproduced (by design)
-six `tsc` errors, several of which were a value referenced in a `switch`/`if`
-branch other than the one that created it (e.g. an `attempt` used in a
-branch where no code path actually constructs one). This is exactly the
-"genuine ambiguity" category above — resist the urge to silence it with a
-declaration hoisted to a wider scope; ask whether the missing construction is
-itself the finding.

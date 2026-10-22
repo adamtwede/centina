@@ -26,9 +26,7 @@ to iterate: the human has a _system_ in mind and needs it turned into a
 in. The lineage: **ARCHITECTURE.md + skeleton spec set** (here) →
 **`<component>.centina.ts`** filled in (`centina-iterate`) → **PLAN.md** per
 boundary-set. The job is to make the _shape_ right early, by resolving the
-seam contracts first. Why, in full:
-`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Why session zero
-exists".
+seam contracts first.
 
 ## The one sanctioned write, and its single governing rule
 
@@ -313,8 +311,8 @@ or terminal source changes.
 
 ## Lessons from use
 
-Accumulated in `${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`,
-"Lessons from use" (the first run, Wordboard, and the 2026-07 test-case
-traces). The one that bears on every run: phase 3's _what happens on the
+Directives earned in use are in
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Lessons from use".
+The one that bears on every run: phase 3's _what happens on the
 empty / not-found / failure case?_ is the highest-yield question in the phase.
 Ask it first at every seam, not as a cleanup pass.

@@ -84,9 +84,8 @@ step, sort it:
 
 A step not in the confirmed plan is unplanned work (`centina-realize`,
 "Revising the plan"): a `W` entry and the human's confirmation first, never a
-paragraph appended to this entry. Appending is how one entry grew to hundreds
-of kilobytes and twenty steps, each admitted on its own merits and none
-checked against the original question.
+paragraph appended to this entry, where each step gets admitted on its own
+merits and none is checked against the original question.
 
 **A fired return condition ends the line.** Propose the return; do not
 diagnose why it fired and carry on. Continuing is a new plan with its own
@@ -237,10 +236,3 @@ check it before reporting it as the cause or building a fix on it.
   files.
 - Don't change `ledgerHook`, and don't open a transcript without asking
   (`ledger.md`).
-
-## Lessons from use
-
-_Accumulate here as the skill is exercised. Open: the starting values of N = 2
-and of "two steps" at checkpoints are guesses; whether recording a decision
-every turn holds up over a long session or drops records; whether a
-qualitative gate needs more than a stated test and a verdict._

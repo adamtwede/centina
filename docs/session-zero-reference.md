@@ -1,32 +1,7 @@
 # Session zero reference
 
-Detail `centina-session-zero` reads on demand. Each section was moved here
-verbatim from the skill, which keeps a short form of it, so the skill stays
-under the post-compaction cap (`ROADMAP.md`, "Skills over the post-compaction
-cap"). The routing lens has its own doc, `session-zero-routing.md`.
-
-## Why session zero exists, and where it sits
-
-This skill runs at the very **front of the funnel**, before there is any spec
-to iterate. `centina-iterate` refines _one_ spec toward clean; session zero
-sits upstream of it: the human has a _system_ in their head — several
-components that talk to each other — and needs it turned into a **component
-DAG** with frozen seams before any one component is worth filling in. Sorting
-those nodes — which earn a filled-in spec, which route away as terminals,
-Skills, or held holes — is part of the work here (see "Which nodes earn a
-spec" below).
-
-The lineage it feeds: **ARCHITECTURE.md + skeleton spec set** (session zero) →
-**`<component>.centina.ts`** filled in (`centina-iterate`) → **PLAN.md** per
-boundary-set (the implementation). Session zero's whole job is to make the
-_shape_ right early, so the later fill-and-iterate work is isolated by
-dependency direction instead of rippling backward.
-
-Why it exists: writing one component fully, _then_ discovering its boundaries,
-forces rework on the component when the boundaries turn out to be shaped
-differently than imagined. The cheaper path is to resolve the seam contracts
-first — the skeleton everything else hangs on — and this skill is that
-resolution, formalized into a gated process with an output artifact.
+Detail `centina-session-zero` reads on demand. The skill keeps a short form of
+each section. The routing lens has its own doc, `session-zero-routing.md`.
 
 ## The `@external` cases
 
@@ -81,9 +56,7 @@ resolution, formalized into a gated process with an output artifact.
   volunteers their priorities, but a less experienced one won't, and then the
   agent frames a tradeoff the human has no basis to weigh. Surfacing what
   _doesn't_ matter (e.g. "rendering doesn't bear on this") is as load-bearing as
-  surfacing what does. (Promoted straight to core from the grid-inventory live
-  session, 2026-07-21 — the first lesson earned in a live run rather than an
-  adversarial trace.)
+  surfacing what does.
 - **Encode ratified intent into the type system when the seam can carry it.**
   Intent-as-spec is one of Centina's headline concerns, and TypeScript is the
   grammar precisely so a decision about _meaning_ can be made load-bearing and
@@ -105,9 +78,7 @@ resolution, formalized into a gated process with an output artifact.
   bounded because it applies _only_ to encoding a decision the human already made,
   never to inventing one, and only when the type genuinely carries it (when a
   constraint can't be typed — e.g. array homogeneity — an `@agent:` note is the
-  honest fallback, not a forced encoding). (Promoted straight to core from the
-  grid-inventory live session, 2026-07-21 — the non-empty comparator-input type
-  `[ItemInstance, ...ItemInstance[]]` was the triggering case.)
+  honest fallback, not a forced encoding).
 - **A run may surface language-level conventions, not just app contracts.**
   Occasionally the elicitation kicks up a reusable Centina convention (a
   boundary-door naming scheme, a rule for a recurring door shape) rather than a
@@ -185,8 +156,7 @@ label and never restates the status.
    for each. An unknown source cites a `sz:Q` label.
 5. **Risks / watch-items** — each recorded as a ledger entry (a `sz:F`
    finding, or a `sz:R` rule for conventions adopted under test); this section
-   cites the labels. (Added after the first run, where the thin-UI risk needed
-   a home the other four sections didn't give it.)
+   cites the labels.
 6. **Rejected alternatives** — a pointer to the settled section of
    `LEDGER-INDEX.md`. Rejected proposals stay in the ledger with their
    reasons, which keeps the next session from reopening settled ground.
@@ -212,110 +182,19 @@ ledger, and drifts exactly when the ledger drifts.
 
 ## Lessons from use
 
-
-_Accumulate here as the skill is exercised: phases that reliably resolved or
-stalled, where the diagram earned its keep, where over-competence crept in past
-a gate, whether the "typed seams + routed holes" skeleton got the human to a
-better starting shape than a blank set of files._
-
-**First run — Wordboard (a writer's word-tracker app).** Produced a seven-file
-skeleton + ARCHITECTURE.md, tsc-clean, across intent → components → seams →
-terminals → skeleton.
-
-- _The gates held against over-competence._ The human painted every door name,
-  type, and mode; the agent supplied form and flagged ripples. Catching the
-  "definition-on-`Suggestion`" seam ripple early — it would have wired the
-  suggesters to the definition source and made `DefinitionLookup` vestigial —
-  was exactly the rework-avoidance the skill exists for.
-- _Boundary-as-user works and is worth reaching for._ Modeling the
-  orchestrator's far side — the human user — as a `@boundary` gave intent-level
-  doors (`exchangeSuggestion`, not "render a list and read a tap") that guide
-  the eventual UI without pinning it. Recognize it as an available pattern when
-  a thin orchestrator's far side is a person.
-- _A run surfaced language conventions, not just app contracts_ — the
-  `read*/write*/exchange*` boundary-door naming and a write-with-receipt door
-  heuristic both emerged here, adopted under-test per the cross-cutting note.
-- _Terminals behind a component door_ were recorded (ledger + comments) with the
-  concrete `@external` deferred to fill, rather than fabricated — folded into
-  the `@external` guidance above.
-- _Weak spot: the diagram lagged._ The agent narrated the DAG in prose through
-  the gates and only rendered mermaid at the skeleton write. Mostly fine in a
-  text medium, but it drove the softening of the diagram rule to
-  offer-at-each-phase-boundary and proactive-on-confusion (above).
-- _Put cross-seam vocabulary in a `shared.centina.ts`, not in a boundary
-  declarator file._ The checker confirmed it: wordboard's boundary files pass
-  the `boundary-dependency` rule because their contract types live in
-  `shared.centina.ts`, whereas a declarator that co-locates its types with the
-  boundary trips that rule (the founding `task-corpus` fixture does). It must
-  keep the `.centina.ts` suffix — the checker's spec-plane rules (hole
-  enumeration, `@agent:` labels) only scan files with that suffix, and a plain
-  `shared.ts` is invisible to them even though it can carry real spec content
-  (holes included). Default a session-zero skeleton to a `shared.centina.ts`
-  for the vocabulary the DAG traffics in across seams.
-- _Held internal-processing holes route to `deferred<"unimplemented">`_ — the
-  human fills them, in place, at `centina-iterate`. That correctly leaves
+- **A human user can be a boundary.** When a thin orchestrator's far side is a
+  person, model it as a `@boundary` with intent-level doors
+  (`exchangeSuggestion`, not "render a list and read a tap"). That guides the
+  eventual UI without pinning it.
+- **Put cross-seam vocabulary in a `shared.centina.ts`, not in a boundary
+  declarator file.** A declarator that co-locates its types with the boundary
+  trips the `boundary-dependency` rule. The file must keep the `.centina.ts`
+  suffix: the checker's spec-plane rules (hole enumeration, `@agent:` labels)
+  only scan files with that suffix, and a plain `shared.ts` is invisible to
+  them even though it can carry real spec content (holes included). Default a
+  session-zero skeleton to a `shared.centina.ts` for the vocabulary the DAG
+  traffics in across seams.
+- **Held internal-processing holes route to `deferred<"unimplemented">`**, and
+  the human fills them, in place, at `centina-iterate`. That correctly leaves
   `bin/centina-check` reporting them as errors until fill: the honest "work
-  remaining" signal for a pre-fill, pre-plan handoff, not a defect.\*
-
-**Test-case traces (2026-07, fit-as-jurisdiction thread).** From adversarial
-test-case traces run during this skill's own development:
-
-- _Phase 3's failure/empty/not-found question is the highest-yield step in the
-  phase._ Across crafting-recipes, url-shortener, pricing-request-handler, and
-  oauth-callback it was reliably what converted a vague seed into real contracts
-  — forcing `CraftResult`, collision/idempotency, the itemized `PricedCart`
-  breakdown, and the OAuth trust branches (state mismatch, unverified email,
-  first-login provision-vs-reject) respectively, none visible in the seed prose.
-  Ask "what happens on the empty/failure case" first at every seam, not as a
-  cleanup pass.
-
-## Passages the skill condenses, in their original wording
-
-The skill keeps a shorter form of each of these; this is the text as it stood
-before the skill was cut under the post-compaction cap.
-
-### Over-competence (under "The one sanctioned write")
-
-The failure mode this rule exists to stop is not agent incompetence — it's
-agent **over-competence**. An agent handed a scattered description will
-happily produce a clean, plausible, well-shaped architecture, and the
-cleanliness _disguises_ which parts are the human's conviction and which are
-the agent's confabulation. The human then ratifies a coherent-looking picture
-half of which they never actually decided. The entire skill is built to keep
-"decided" and "guessed" separated, continuously, so that by the skeleton write
-there is nothing left for the agent to invent. **The agent is a scribe here,
-not an architect.** Bias toward holes: an over-complete skeleton is the bug,
-not the feature.
-
-### What "complete" means (under "What a skeleton contains")
-
-"Complete" for a component means **every gap routed, not every gap resolved**.
-Centina's definition of done is "no _unrouted_ holes," not "no holes." A
-component is ready to hand to `centina-iterate` with plenty of open questions,
-as long as each is deferred to the human, delegated to a Skill, externalized,
-or quarantined behind a boundary. That's what lets a consumer be filled against
-a mocked seam in parallel with the seam's own build.
-
-### Phase 4, terminal-node closure
-
-4. **Terminal-node closure.** Confirm which nodes are edges that meet existing
-   technology — naming concrete tech is fine and useful here, because it is
-   what becomes `@external`. Confirm the DAG is _closed_: every seam
-   terminates, either at another component or at a terminal node. This is also
-   the realizability check — a door that a real database or model API cannot
-   actually satisfy is caught here, at the contract, not after both sides are
-   written. A terminal whose interface sits behind a component door is
-   _recorded, not fabricated_ (see the `@external` note above): name the concrete
-   tech if known, leave the source TBD if not, and route the unknowns as holes.
-   _Gate: the human confirms the DAG closes._
-
-### Don't recall a canonical design and present it as elicited
-
-- **Don't recall a canonical design and present it as elicited.** The more
-  famous the task — a URL shortener, a todo app, an auth flow — the more the
-  agent already _knows_ the standard architecture, and the stronger the pull to
-  name the store, the code scheme, the door shapes before the human does. A
-  _correct_ recalled answer is over-competence at its purest: it looks exactly
-  like elicitation and isn't. Scale the draw-it-out discipline _up_ on canonical
-  tasks, not down; the tell is any concrete tech or shape the agent introduced
-  that the human never said. (Surfaced by the url-shortener control trace.)
+  remaining" signal for a pre-fill, pre-plan handoff, not a defect.

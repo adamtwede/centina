@@ -33,38 +33,14 @@ name is known, and starts it with a one-line title (`# Ledger: <system>`).
 
 ## Why this format
 
-Drawn from real-world use cases, which surfaced the failure modes this format 
-exists to close. Most had no cross-reference to follow at the time the new decision 
-was recorded, so a rule that only fires when a new proposal is recorded would not 
-have caught them:
-
-1. **Unlabeled claim.** A prose line ("Bathymetry is 2.5D") had no label; a
-   proposal rejected it by name a day later, but nothing pointed back to the
-   line. It stood unstruck for eleven days, and a terrain generator was
-   designed against it.
-2. **Status change without a new proposal.** Two entries still read `OPEN`
-   after ratification, because ratification was written in a separate block.
-3. **Only one copy amended.** A fix landed in one table row; a second,
-   unstruck row making the same claim survived a doc migration and stood
-   wrong for months.
-4. **Dependency on a value, not a decision.** A spec comment quoted a figure
-   a later decision changed; nothing tied the comment to the decision, and it
-   stayed wrong for a week.
-5. **Implicit contradiction.** One proposal contradicted an earlier one
-   without naming it. Found a week later, during implementation.
-6. **Stale reference.** A cross-reference pointed to "risk 16" as its
-   successor; after renumbering, risk 16 was unrelated content.
-
-Restructuring the docs into separate current-state and history files did not
-fix case 3 — the stale line survived because carrying items forward meant
-copying their text. The problem was **duplication** (the same claim restated
-in several places), not the number of files. Hence: entries are append-only,
-status lives in exactly one place (the header), and every derived view
-(`LEDGER-INDEX.md`, `STANDING.md`) is generated, never hand-copied.
-
-The label scheme is drawn from legislative drafting (pinpoint citation,
-amendments as separate instruments, no renumbering) and IETF RFCs
-(`Obsoletes` / `Updates`, with reverse links recorded on the old document).
+In real use, a fix landed in one copy of a claim while a second copy of the
+same claim stood wrong for months. Restructuring the docs into separate
+current-state and history files did not fix it — the stale line survived
+because carrying items forward meant copying their text. The problem was
+**duplication** (the same claim restated in several places), not the number
+of files. Hence: entries are append-only, status lives in exactly one place
+(the header), and every derived view (`LEDGER-INDEX.md`, `STANDING.md`) is
+generated, never hand-copied.
 
 ## Entry format
 
@@ -117,26 +93,10 @@ file's scope. Everywhere else, including this ledger and ARCHITECTURE.md,
 always write the qualified label. Cite another system's label as
 `<system>/<scope>:<label>`.
 
-A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`
-only at `error` when its letter and number match a real entry somewhere in
-this system, under whatever scope — almost certainly a citation that lost
-its scope prefix. One that matches nothing anywhere is reported at
-`warning`: coincidental prose (a test name, a grade, a model number) that
-just happens to be letter-then-digits, which every new letter makes more
-likely. This matters because ledger bodies are append-only (see "Entry
-format"): an old line can't be edited to satisfy a check that starts firing
-on it later, so that case can never block.
-
-A match is dropped entirely — no finding, not even a `warning` — when every
-matching entry is `Date`d after the entry containing the token: a citation
-can't name something that didn't exist yet when it was written, so that's
-not just probably prose, it's provably prose, and a permanently-true
-`warning` on a line that can never be edited is pure noise once it's
-proven. (Loose lines outside any entry, and citations in files other than
-the ledger, have no containing `Date` to compare against, so they keep the
-existence-only rule above.) Same-day counts as "could have existed" and
-stays an `error`; a missing or malformed `Date` on either side does too,
-rather than guessing.
+A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`:
+an `error` when its letter and number match a real entry somewhere in this
+system, under whatever scope (almost certainly a citation that lost its scope
+prefix), and a `warning` when it matches nothing.
 
 ### Letters and statuses
 
@@ -269,10 +229,10 @@ requirements:
   `deferred`. Not a `Q`, not a `P`, not a phase's out-of-scope part, and not
   a `W` that is `done`.
 
-A member that names **nobody** is a warning. Blocking on it would push an
-author to cite whichever `W` is handy for a member no phase covers yet, and a
-citation nobody means is the thing this check exists to catch. A label that
-is **wrong** — unresolvable, not a `W`, or a `W` that closed — is an error.
+A member that names **nobody** is a warning. Don't silence it by citing
+whichever `W` is handy: a citation nobody means is the thing this check exists
+to catch. A label that is **wrong** — unresolvable, not a `W`, or a `W` that
+closed — is an error.
 
 **Rule citations** name what a guard in working code enforces: a rejected
 input, a clamp, a refusal. **The rule is always an `R`.** A `Q`, a `P` or a
@@ -304,11 +264,8 @@ however it reads, and so is any throw an unbuilt member reaches before its
 last. A guard refusing a capability because nobody built it yet
 is still a guard: give it an `R` to cite (see "Goals and standing rules").
 
-Ownership citations fail in one direction. The string never changes and the
-ledger does, so a citation turns from a pointer at whoever will build the
-thing into a note about why the member is empty, with no edit anywhere and
-nothing in an invalid state at any moment. The check therefore runs on every
-ledger write, which is when a status moves.
+An ownership citation goes stale with no edit to the code, when its `W`
+closes, so the check runs on every ledger write, which is when a status moves.
 
 ## The checker
 
@@ -473,8 +430,7 @@ apart:
   the axiom it derives from via `Premises`, so it's findable the same way
   any other dependent is when the axiom moves.
 
-Statuses: `provisional` (not yet sourced — the placeholder case that used to
-get misfiled as `Kind: limit` on an `R`), `ratified` (a sourced value in
+Statuses: `provisional` (not yet sourced), `ratified` (a sourced value in
 effect), `superseded` when the authored value changes. `retired` is for the
 rare case where the axiom stops applying at all (the thing it described was
 cut), not for a value that changed — ending at `retired` is not an axiom's
@@ -489,13 +445,10 @@ axiom cite a rule would let authored ground truth start quietly depending on
 an internal decision, the reverse of what an axiom is for.
 
 **"Depended on by" is a computed view, not a field.** Nothing hand-maintains
-a reverse pointer on the axiom itself — that would reintroduce the
-one-copy-amended drift "Why this format" exists to close, just on a new
-field, since it'd be added to incrementally by different entries at
-different times rather than written once by whoever supersedes something.
-What depends on an axiom is found by scanning for `Premises` citations that
-resolve to it, the same way `LEDGER-INDEX.md`'s "Affected work items" is
-generated from `Depends-on`/`Premises` today.
+a reverse pointer on the axiom itself. What depends on an axiom is found by
+scanning for `Premises` citations that resolve to it, the same way
+`LEDGER-INDEX.md`'s "Affected work items" is generated from
+`Depends-on`/`Premises` today.
 
 **`Tags`** groups axioms into project-defined categories (e.g. `world`,
 `vessel`) for `STANDING.md` and human readability: free text,

@@ -1,6 +1,6 @@
 ---
 name: centina-iterate
-description: Drives the interactive Centina spec-refinement loop. Runs tsc against a .centina.ts file (the interim structural-plane checker, until Centina's own checker exists), walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. When the document is clean, derives an implementation plan and writes it to PLAN.md alongside the spec. Use when the user wants to iterate on, check, fix, or resolve errors in a .centina.ts file, or references tsc/typecheck output on a spec.
+description: Drives the interactive Centina spec-refinement loop. Runs the Centina checker (tsc plus the spec-plane rules) against a .centina.ts file, walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. When the document is clean, derives an implementation plan and writes it to PLAN.md alongside the spec. Use when the user wants to iterate on, check, fix, or resolve errors in a .centina.ts file, or references tsc/typecheck output on a spec.
 ---
 
 # Centina Iterate
@@ -53,18 +53,14 @@ repeat until the document is clean and the human is satisfied. The goal of
 each loop iteration is not just a passing check — it's a more precisely
 specified `.centina.ts` document that's closer to a real implementation plan.
 
-**Current state of the checker:** Centina's own spec-plane checker is the
-`checker/` harness bundled with this plugin. `tsc` run under the generated,
-deliberately permissive `tsconfig.json` remains part of the signal — it catches
-name resolution, arity, and shape mismatches, which is real structural-plane
-signal even though it knows nothing about `deferred`, `@agent:`, or boundary
-direction. Read `tsc`'s diagnostics with that lens: some are exactly the kind
-of gap Centina exists to surface (an undefined identifier that traces back to
-a genuinely missing step), and tsc will never flag the things only a
-spec-plane rule would (an un-enumerated `deferred` hole, a boundary door with
-inferred direction that doesn't match its name). Don't mistake a clean `tsc`
-run for a clean spec — it's a necessary floor, not the ceiling this loop is
-aiming for.
+**Reading `tsc`'s part of the signal.** The checker runs `tsc` under the
+generated, deliberately permissive `tsconfig.json` alongside its spec-plane
+rules. `tsc` catches name resolution, arity and shape mismatches, and some of
+those are exactly the gap Centina exists to surface (an undefined identifier
+that traces back to a genuinely missing step). It never flags what only a
+spec-plane rule would (an un-enumerated `deferred` hole, a boundary door whose
+inferred direction doesn't match its name). Don't mistake a clean `tsc` run for
+a clean spec: it's a necessary floor, not the ceiling this loop is aiming for.
 
 ## How to interpret a Centina spec
 

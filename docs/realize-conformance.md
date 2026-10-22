@@ -1,13 +1,8 @@
 # Conformance for `centina-realize` fills
 
 The detail behind "Conformance" and the step-close checks in
-`skills/centina-realize/SKILL.md`, moved out of the skill because a skill's
-text is re-injected after every compaction cut at 20,000 characters, and
-what is cut is the end of the file. The skill keeps the rule; this file keeps
-the reasons, the failure modes and the recipes. Read it before writing the
-first conformance assertion of a session, and again when a fill is a
-free-function hole, when a contract is added, split, renamed or removed, and
-when a step closes.
+`skills/centina-realize/SKILL.md`. The skill keeps the rule; this file keeps
+the reasons, the failure modes and the recipes.
 
 ## Why `implements` is not enough, and what to write
 
@@ -64,12 +59,10 @@ Notes on using it:
   ```
 
   Write `Assert<Conforms<...>>` and nothing else.
-- **Nothing in `conformance.ts` is callable, deliberately.** An earlier
-  version exported `declare function conforms()`. It type-checked and then
-  threw `SyntaxError: Export named 'conforms' not found` the moment a test
-  imported a fill, because an ambient declaration emits no binding. The
-  type-only form cannot reach runtime at all. If a callable turns up in
-  that module again, that is the bug returning.
+- **Nothing in `conformance.ts` is callable, deliberately.** An ambient
+  `declare function` type-checks but emits no binding, so it throws the moment
+  a test imports a fill. The type-only form cannot reach runtime at all. A
+  callable in that module is a bug.
 - **Importing `conformance.ts` directly is not a breach of rule 1.** It
   exports no spec types, only the comparison. Spec types still come through
   the contracts module.
@@ -132,10 +125,6 @@ Once an assertion exists, everything it checks is the compiler's work — no
 judgment, no heuristic. The one thing that depends on the agent is whether
 the line got written at all, and a missing one fails silently: the build
 passes.
-
-No generator fixes this. Deriving pairings by scanning for `implements`
-inherits the same blind spot, and a free-function fill has no `implements`
-to scan for — naming the pairing is the work, not a by-product of it.
 
 So it is a step-close check, alongside the `--contracts` run: **every fill
 written or touched in this step has a conformance assertion.** List them in
