@@ -8,36 +8,12 @@ JSDoc tags (`@datasource`/`@datasink`/`@boundary`) on a `declare class` — see
 `specs/wordboard/algorithmic-suggester.centina.ts` (`@datasource`),
 `specs/wordboard/user.centina.ts` (`@boundary`).
 
-This document predates Centina's TypeScript pivot — it was drafted for AISL,
-the from-scratch language Centina replaced (see `CLAUDE.md`'s "History: the
-AISL pivot"). Its modeling content — affordances vs. transports, the three
-roles, the drawing guidelines, dependency direction — carried over unchanged;
-the syntax and type-rules sections below have been updated for Centina's
-actual type system, which has no `Unspecified`/`Unknown`/`Unprivileged`
-lattice (see "Type rules").
-
 ## Why boundaries exist
 
-AISL's operating principle is *AISL never manufactures data*: every concrete value
-in a document has to trace back to a small set of privileged sources — a function
-parameter, `Agent.prompt()`/`.review()`, or an `external` reference (see
-`ROADMAP.md`). That set maps perfectly onto the original worked domain
-(`prototype.aisl`, an agent-supervisor app), where nearly all data genuinely comes
-from `Agent.prompt()`.
-
-It maps badly onto most other domains. A todo web app's real data sources are *user
-input events*, a *render target*, and *persistent storage*; a CLI's are *argv /
-stdin / stdout / files*; a web server's are *the request*, *the response*, and
-*downstream services*. None of these had a first-class representation, so
-`specs/todo/todo.aisl` had to fake them — hand-rolling an input boundary out of an
-`external` listener, forcing the renderer into a stateless `string -> string`
-round-trip, and "cheating" with casts like `return payload as Todo` precisely at the
-points where data was supposed to enter the system.
-
 **A boundary is a first-class, user-declared privileged source/sink** — the
-generalization of `Agent` to data seams the author defines themselves. It is the
-fourth privileged source under "never manufactures data": a value read from a
-boundary is legitimately *produced* in the same sense an `Agent.prompt()` result is.
+generalization of `Agent` to data sources and sinks the author defines themselves. 
+A value read from a boundary is legitimately *produced* in the same sense 
+an `Agent.prompt()` result is.
 
 The reframing that makes this domain-neutral: what varies across domains is not
 syntax, it's the *boundary profile* — the set of seams where data enters and leaves.
@@ -53,7 +29,7 @@ The single most important modeling rule. A boundary is drawn around an **afforda
 — *what data you get or put, and in what shape* — never around the **technology or
 structure** that carries it.
 
-Worked example. Google and Reddit are both "webpages," but a spec that searches
+Object lesson: Google and Reddit are both "webpages," but a spec that searches
 Google and reads Reddit's front page is using two *different affordances*
 (`search(term) -> SearchResult[]` vs `front_page_posts() -> RedditPost[]`) that
 merely share a transport (HTTP + a rendered DOM). The transport is exactly the
@@ -146,10 +122,8 @@ author-declared `declare class`. Worked examples:
 
 ## Type rules
 
-Centina has no privilege lattice — `Unspecified`/`Unknown`/`Unprivileged` were
-AISL-era and did not survive the pivot (see `CLAUDE.md`'s "History: the AISL
-pivot"; the retirement is recorded in `docs/fit-validation.md`). Boundary
-doors are ordinary TypeScript on a `declare class`, checked by `tsc`:
+Centina has no privilege lattice. Boundary doors are ordinary TypeScript on 
+a `declare class`, checked by `tsc`:
 
 - **A door's declared parameter and return types are nominal** — checked like
   any other TypeScript signature. Being forced to write `suggest(word: string):
@@ -221,7 +195,7 @@ Questions to ask, and what the answer tells you:
 6. **Direction:** does this seam only *give* data, only *take* it, or both? ->
    `datasource` / `datasink` / `boundary`.
 
-The governing invariant (question 2, stated sharply):
+The governing invariant (question 2, stated concisely):
 
 > An instance may not add or change doors. Instances differ only in construction
 > config. If two things need different doors, they are different boundaries.
@@ -244,17 +218,17 @@ Smells that you've drawn the line wrong:
 - **Presentation/layout syntax (element composition, ordering, data bindings) —
   rejected.** It's the churny sub-language every framework fights over (against the
   "arrange the idea, don't wrestle the pieces" aim), it's schema-shaped (the same
-  reason per-type property lists were rejected), and it isn't where AISL has leverage.
+  reason per-type property lists were rejected), and it isn't where the leverage is.
   The ambiguity-reducing questions in a UI are about dataflow and provenance (where
-  does state live, what mutates it, what's persisted) — already AISL's wheelhouse —
-  not about layout, which a coding model handles and a comment can pin down.
+  does state live, what mutates it, what's persisted) not about layout, which a coding 
+  model handles and a comment can pin down.
 - **Domain as a checker-significant tag — rejected** in favor of boundary
-  declarations, which subsume it (`datasource ...` + `datasink ...` *is* the I/O
+  declarations, which subsume it (`@datasource ...` + `@datasink ...` *is* the I/O
   profile). An optional doc-only `domain:`/`intent:` hint may exist, with no
   semantics.
-- **Generic built-in doors (`get_data(field) -> Unspecified`) instead of
+- **Generic built-in doors (`getData(field) -> unknown`) instead of
   author-declared doors — rejected.** That refuses the one thing that makes a boundary
-  worth declaring; the language can't know your seam's doors the way it owns `Agent`'s.
+  worth declaring; the language can't know your boundary's doors the way it owns `Agent`'s.
 - **`get_`/`set_` method-name prefixes to mark direction — rejected** for structural
   return-based inference (see above).
 - **Transport-level kinds (`Webpage`) with per-instance interfaces — rejected** for
@@ -262,7 +236,7 @@ Smells that you've drawn the line wrong:
   Per-instance interface overrides are disallowed by design, and the desire for one is
   the diagnostic signal that two affordances have been conflated.
 - **Ad-hoc (undeclared) method calls on boundaries — rejected** (error, not
-  `Unspecified`); a boundary is a closed interface (see "Type rules").
+  `unknown`); a boundary is a closed interface (see "Type rules").
 - **Role on the instance vs. on the kind — moved to the kind.** An earlier step (when
   the kind was a transport like `Webpage`) put the role on the instance. Once the kind
   became the *affordance*, the affordance carries a definite direction, so the role's
@@ -273,7 +247,7 @@ Smells that you've drawn the line wrong:
 Boundaries are the right primitive for **I/O-shaped** features and a poor fit for
 **compute/transform-shaped** ones. Forcing a boundary frame onto pure computation
 reliably produces "implementation tasks dressed as doors" — the
-`create_primitive()`/`get_data()` smell — which is the signal that you've modeled the
+`createPrimitive()`/`getData()` smell — which is the signal that you've modeled the
 *act of building the feature* instead of data crossing a runtime seam.
 
 The quick diagnostic is to **count the boundary-ends** of the slice you're specifying —
@@ -294,18 +268,17 @@ The sharpest single test for any candidate boundary: **what is on the other side
 door, at runtime?** "The developer building this" means it's build-time work, not a data
 seam; "another function in the same program" means it's internal compute, not a boundary.
 
-This is one face of the deeper invariant: **"never manufactures data" is not only a
-typing rule, it is AISL's domain boundary.** It auto-recuses AISL from anything whose
-essence is manufacturing — *algorithm* (how a result is computed), *dynamics* (how
-behavior unfolds over time), *aesthetics* (how something is perceived) — and points
-healthy iteration *inward*, deeper into provenance / flow / contract, rather than
-*outward* toward general-purpose programming. The `centina-session-zero` skill
-(`skills/centina-session-zero/SKILL.md`) operationalizes this as a
-per-node routing judgment during DAG construction — structural nodes earn a
-filled spec, realization-dominated ones route behind a door (see its "Which
-nodes earn a spec" section).
+This is one face of the deeper guidance, the distinction between *structure* and *realization*.
+Spec-oriented work (`centina-session-zero` and `centina-iterate` vs `centina-realize` 
+and `centina spike`) recuse that work from anything whose essence is manufacturing — *algorithm* 
+(how a result is computed), *dynamics* (how behavior unfolds over time), *aesthetics* 
+(how something is perceived) and points healthy iteration *inward*, deeper into 
+provenance / flow / contract, rather than *outward* toward general-purpose programming. 
+The `centina-session-zero` skill operationalizes this as a per-node routing judgment during 
+DAG construction — structural nodes earn a filled spec, realization-dominated ones route behind a 
+door (see its "Which nodes earn a spec" section).
 
-## Provisional boundaries (Centina-era)
+## Provisional boundaries
 
 A boundary standing in for a system that doesn't have its own spec yet (marked,
 typically, by an `@agent:` note like "this is probably a separate spec") is
