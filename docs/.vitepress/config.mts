@@ -40,6 +40,7 @@ export default defineConfig({
         text: "Ledger and trail",
         items: [
           { text: "Ledger", link: "/ledger" },
+          { text: "Ledger mod", link: "/ledger-mod" },
           { text: "Trail", link: "/trail" },
         ],
       },
