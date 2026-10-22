@@ -1,7 +1,6 @@
 # Centina Roadmap
 
-Tracks Centina work post-pivot. The full AISL v0 roadmap/history lives at git
-tag `aisl-v0-standalone-language` — it is deliberately not carried here.
+Tracks Centina work.
 
 ## Done
 

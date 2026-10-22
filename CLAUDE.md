@@ -18,24 +18,6 @@ a recorded assumption), not prohibition — the AISL-era `Unprivileged`
 privilege system was deliberately retired after real usage overturned it (see
 `docs/fit-validation.md`).
 
-## History: the AISL pivot
-
-Centina began as AISL, a from-scratch spec language with its own
-lexer/parser/checker. In July 2026 the author pivoted: real spec-writing
-showed that TS already had every *structural* feature being reached for, while
-the genuinely novel inventions (`deferred`, `@agent:` direction, boundaries)
-needed a checker, not a grammar. `@agent:` notes may carry an author-chosen
-label — `@agent(C1): ...` — giving the note a stable name to reference later
-instead of an ephemeral line number; labels are free text the human assigns,
-except in a system with a ledger (`docs/ledger.md`), where the label is the
-note's ledger entry (`@agent(Q3)`) and the checker requires it to exist.
-**The entire AISL v0 toolchain and its docs
-are preserved at git tag `aisl-v0-standalone-language`** — consult the tag,
-not this working tree, for anything AISL-era. Do not rebuild AISL-era
-machinery (lexer, parser, `.aisl` checking); `prototype.aisl` (now at
-`specs/hill-climbing-loop/`) and `widgets.aisl` remain in-tree only as port
-references.
-
 ## Two different "agent" concepts — do not conflate
 
 - **`Agent<Model>` / `.prompt()` / `.review()`** (`centina.ts`) — domain
@@ -172,8 +154,7 @@ vocabulary, docs) — not as a new spec-writing session.
   typecheck `hooks/` against the `claude-code.d.ts` the plugin-authoring skill
   names.
 - `docs/boundaries.md` — boundary design (affordances-not-transports, the
-  three roles, direction-from-returns, drawing guidelines) carries over from
-  AISL unchanged; only its concrete syntax section is AISL-era.
+  three roles, direction-from-returns, drawing guidelines).
 - `docs/fit-validation.md` — the running design memo: goals, the
   falsifiability frame, and the findings log (including the evidence that
   drove the pivot). Read it before proposing language/checker changes.

@@ -33,7 +33,7 @@ Object lesson: Google and Reddit are both "webpages," but a spec that searches
 Google and reads Reddit's front page is using two *different affordances*
 (`search(term) -> SearchResult[]` vs `front_page_posts() -> RedditPost[]`) that
 merely share a transport (HTTP + a rendered DOM). The transport is exactly the
-"technical minutiae" AISL exists to spare the author. So they are **two boundaries,
+"technical minutiae" Centina exists to spare the author. So they are **two boundaries,
 not two instances of one** — lumping them onto a shared `Webpage` kind would assert a
 sameness that is true only at the layer the spec is trying not to think about, and
 would collapse `SearchResult[]`/`RedditPost[]` down to an uninformative
@@ -46,10 +46,10 @@ This is not new ground. The affordance/transport split is the same distinction A
 Cockburn's [Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture)
 ("Ports and Adapters") draws between a **port** — a declared interface where the
 application meets the outside world — and an **adapter** — the technology that fulfils
-it. A boundary is a port; a door is a method on that port; the transport AISL refuses to
-model is the adapter. AISL's contribution on top of that prior art is the provenance
-layer: a door read is a privileged data source under "never manufactures data," and the
-`datasource`/`datasink`/`boundary` roles make direction checkable.
+it. A boundary is a port; a door is a method on that port; the transport Centina avoids
+modeling (at spec-time, at least) is the adapter. One of Centina's contributions on top of that 
+prior art is the provenance layer: and the `@datasource`/`@datasink`/`@boundary` roles make 
+direction checkable.
 
 ## The three roles
 
