@@ -66,7 +66,6 @@ centina-plugin/
     ├── centina-check-setup.md
     ├── output-management.md
     ├── ledger.md
-    ├── measurement-methodology.md
     ├── realize-conformance.md
     ├── trail.md
     ├── session-zero-routing.md

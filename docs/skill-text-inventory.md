@@ -423,3 +423,17 @@ counted:
   already did.
 - Rule 0's tail now has the agent *suggest* breaking an onerous part out into
   its own system, since which system a part belongs to is the human's call.
+
+**Step 5, applied.** `measurement-methodology.md` is out of the bundle (the
+installer's list, the layout tree, `opencode-install.md`'s list) and stays on
+the site. Spike's setup now says the rules are in its "Measuring" section and
+the cases are in `centina-realize-design.md`, "Evidence from Chrysalis
+Underworld", in the Centina repository. The page's own opening, which said
+"Used by `centina-realize`", now says it is the full form of spike's rules and
+not bundled. Spike's "Measuring" carries every rule in it; the one thing it
+lacks is that an idea or likely outcome may be offered in conversation if
+marked as such but never recorded as fact, which realize's skill has and
+spike's doesn't. No runtime saving, as expected: the fix is that the pointer
+no longer misdirects.
+
+**All five steps are applied.**

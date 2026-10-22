@@ -17,8 +17,9 @@ question it began with. This skill exists to keep that comparison alive.
    project and `artifactsRoot`.
 2. Read `${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and
    `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. The measurement rules
-   are in this skill, condensed; `measurement-methodology.md` has the cases
-   behind them.
+   are in this skill ("Measuring"). The cases behind them are in
+   `docs/centina-realize-design.md`, "Evidence from Chrysalis Underworld", in
+   the Centina repository; it isn't bundled.
 3. This session's ID, for the `Session` header and the trail, is
    `${CLAUDE_SESSION_ID}`.
 4. Identify the system (`specs/<system>/`) and the spike's `W` entry
