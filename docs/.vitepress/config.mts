@@ -46,7 +46,6 @@ export default defineConfig({
       {
         text: "Design rationale",
         items: [
-          { text: "Fit validation", link: "/fit-validation" },
           { text: "Boundaries", link: "/boundaries" },
           { text: "Realize design", link: "/centina-realize-design" },
           { text: "Measurement methodology", link: "/measurement-methodology" },
@@ -63,10 +62,6 @@ export default defineConfig({
           { text: "Plugin file layout", link: "/plugin-file-layout" },
           { text: "Output management", link: "/output-management" },
           { text: "Plan organization", link: "/plan-organization" },
-          { text: "Realize conformance", link: "/realize-conformance" },
-          { text: "Session-zero routing", link: "/session-zero-routing" },
-          { text: "Session-zero reference", link: "/session-zero-reference" },
-          { text: "Iterate reference", link: "/iterate-reference" },
         ],
       },
       { text: "Contributing", link: "/contributing" },
