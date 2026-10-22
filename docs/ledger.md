@@ -392,6 +392,17 @@ every status change, at every gate, and before every derived-doc write.
 5. The first time you mention a label to the human in a session, say what it
    is ("sz:P4, the escalation-depth cap"). Restate that reminder whenever
    more than 10 labels of the same letter have come up since.
+6. **Write a label in full the first time you use it in each turn.** A turn is
+   everything you write between one human message and the next, tool calls
+   included. The first time a label appears in a turn, write its qualified
+   form (`terrain:W6`), even if you qualified it in an earlier turn, and even
+   in a list or a passing mention. After that, in the same turn, the short form
+   (`W6`) is fine. The next turn starts over. The ledger mod finds citations
+   only by their qualified form, so a bare first use gets no row and no ELI5
+   button, and with several scopes in context a bare `W6` can name more than
+   one entry. This is about what you say to the human; the rule for ledger
+   entries, ARCHITECTURE.md and the other documents is still to qualify every
+   label.
 
 ## Goals and standing rules
 

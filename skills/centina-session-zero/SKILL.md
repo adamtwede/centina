@@ -236,7 +236,9 @@ practices"; read it the first time one applies.
 - **Explain labels and formula terms.** The first time a ledger label comes up,
   say what it is in one clause ("sz:P4, cap escalation depth at 3 attempts");
   restate a reminder when more than 10 labels of the same letter have come up
-  since, erring toward restating. `LEDGER-LABELS.md` is the index. Spell out
+  since, erring toward restating. Write a label in full (`sz:P4`) the first
+  time it appears in each turn; only after that, in the same turn, may you
+  shorten it to `P4` (`ledger.md`, "Reading"). `LEDGER-LABELS.md` is the index. Spell out
   every symbol of a formula next to it when it first appears or when you can't
   be sure the human still holds each term, and always when it goes into
   ARCHITECTURE.md, PLAN.md or any other document.
