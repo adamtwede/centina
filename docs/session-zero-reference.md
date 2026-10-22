@@ -9,39 +9,30 @@ each section. The routing lens has its own doc, `session-zero-routing.md`.
   seconds where prose hides it for paragraphs. In a text/CLI medium prose often
   carries the gates fine, so treat the diagram as an offered aid keyed to the
   human's need, not a mandatory render at every gate.
-- **Priority elicitation on high-stakes forks.** When a fork's cost is high and
-  hard to reverse, _solicit the human's priorities before framing options_, then
-  present each option's tradeoffs against those priorities (proactively, not only
-  when asked) — including which considerations _don't_ apply. The agent supplies
-  the tradeoff map; the human's priorities and the verdict stay theirs (Rule 0
-  intact). The failure this prevents: barreling into a fork's options without
-  ever asking what the human is optimizing for — an experienced spec-writer
-  volunteers their priorities, but a less experienced one won't, and then the
-  agent frames a tradeoff the human has no basis to weigh. Surfacing what
-  _doesn't_ matter (e.g. "rendering doesn't bear on this") is as load-bearing as
-  surfacing what does.
+- **Priority elicitation on high-stakes forks.** The failure it prevents: an
+  experienced spec-writer volunteers their priorities, but a less experienced
+  one won't, and an agent that goes straight to the options frames a tradeoff
+  the human has no basis to weigh. Give each option's tradeoffs against the
+  priorities proactively, not only when asked. The agent supplies the tradeoff
+  map; the priorities and the verdict stay the human's (Rule 0 intact). Saying
+  what _doesn't_ bear on the fork ("rendering doesn't bear on this") matters as
+  much as saying what does.
 - **Encode ratified intent into the type system when the seam can carry it.**
-  Intent-as-spec is one of Centina's headline concerns, and TypeScript is the
-  grammar precisely so a decision about _meaning_ can be made load-bearing and
-  checkable instead of left to a prose note an implementer can skip. Whenever you
-  confirm a decision with the human — especially a non-trivial one about
-  intent/meaning that should flow all the way into implementation — that the spec
-  code _isn't_ currently carrying but _easily could_ (a non-empty-array
-  precondition as `[T, ...T[]]`, a discriminated-union status that makes an
+  TypeScript is the grammar so that a decision about _meaning_ can be
+  load-bearing and checkable, not a prose note an implementer can skip. When you
+  confirm a decision, especially one about intent that should flow into
+  implementation, that the spec code isn't carrying but easily could (a
+  non-empty array as `[T, ...T[]]`, a discriminated-union status that makes an
   illegal state unrepresentable, a branded identity, an exhaustive enum that
-  forces every case), **call it out when it arises**, in whatever phase. Choosing
-  the type-level form that carries an _already-ratified_ decision is _form, which
-  is the agent's job_ (Rule 0's meaning/form split — not an exception to it), so
-  session zero grants standing authority to **default to emitting the encoded form
-  into the skeleton at phase 5 without a separate confirmation**. The safeguard is
-  mandatory and cheap: mention it at the time it comes up, and leave a short
-  comment at the encoding site citing the ledger label of the decision it
-  enforces (provenance). This
-  is a bounded relaxation of "propose-only-as-a-question / mark-provisional" —
-  bounded because it applies _only_ to encoding a decision the human already made,
-  never to inventing one, and only when the type genuinely carries it (when a
-  constraint can't be typed — e.g. array homogeneity — an `@agent:` note is the
-  honest fallback, not a forced encoding).
+  forces every case), call it out. Choosing the type-level form of an
+  _already-ratified_ decision is form, which is the agent's job under Rule 0's
+  meaning/form split, not an exception to it. That is why the skill may emit
+  the encoding at phase 5 without a separate confirmation. It is a bounded
+  relaxation of "propose only as a question; record it as open": only for a
+  decision the human already made, never for inventing one. The safeguard is mandatory: mention it
+  when it comes up, and cite the decision's ledger label in a comment at the
+  encoding site. When a constraint can't be typed (array homogeneity, say), an
+  `@agent:` note is the honest fallback, not a forced encoding.
 - **A run may surface language-level conventions, not just app contracts.** Be
   warier of adopting one the more mature the language feels — a settled
   convention set is a feature, and churn is a cost.

@@ -7,26 +7,23 @@ below).
 
 ## What it is for
 
-The ledger records what was decided. It does not record what was *offered*:
-the options the agent put to the human each time it asked "what next", the
-ones not taken, and where the work forked. Those live only in chat, and are
-what the human needs to see to choose between continuing a line, backing out
-to an earlier alternative, or closing a whole branch.
-
-The trail records exactly that, and nothing the ledger already holds. It
-cites ledger labels instead of restating them (`ledger.md`, rule 5).
+The ledger records what was decided; the trail records what was *offered*: the
+options put to the human at each "what next", the ones not taken, and where the
+work forked. Otherwise those live only in chat, and they are what the human
+needs to choose between continuing a line, backing out to an earlier
+alternative, or closing a whole branch. The trail holds nothing the ledger
+already does, and cites ledger labels instead of restating them (`ledger.md`,
+rule 5).
 
 ## What it is not
 
 - **Not the work tree.** Steps and spikes are ledger `W` entries with
   `Depends-on`; the trail points at them.
-- **Not a store of weights.** Time and tokens between two decisions are
-  derived by the tracker from the session transcripts (`transcripts/`, each
-  message has a timestamp and usage), kept in reduced form in `weights/` (see
-  "The checker and the tracker"). The trail records the anchors the
-  derivation needs: when (`at`, UTC) and in which session. The agent cannot
-  see a message's id, so there is no turn field; the tracker finds the turn
-  from the timestamp.
+- **Not a store of weights.** The tracker derives the time and tokens between
+  two decisions from the session transcripts ("The checker and the tracker").
+  The trail records only the anchors: when (`at`, UTC) and in which `session`.
+  The agent cannot see a message's id, so there is no turn field; the tracker
+  finds the turn from the timestamp.
 - **Not spec content, and not the human's decisions.** The agent writes it as
   scribe, like the ledger. What it records as chosen is what the human said.
 

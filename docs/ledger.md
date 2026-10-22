@@ -1,11 +1,8 @@
 # The system ledger
 
-Working rules for `centina-session-zero`, `centina-iterate` and
-`centina-realize`. Imperative on purpose; see "Why this format" below for the
-evidence behind it. This document's intended audience is a coding
-agent running a Centina session, but a curious human is welcome to read it
-to better understand the ledger system, and make any changes they
-need.
+Working rules for `centina-session-zero`, `centina-iterate`, `centina-realize`
+and `centina-spike`. Imperative on purpose; "Why this format" below has the
+reason.
 
 ## What it is
 
@@ -393,61 +390,52 @@ every status change, at every gate, and before every derived-doc write.
 
 ## Axioms
 
-An `A` records an authored, quantitative given about the thing being
-specified — an ice-shell thickness, an ambient noise floor, a power-scaling
-law — not a rule about how the project must behave. What tells the two
-apart:
+An `A` records an authored, quantitative given about the thing being specified
+(an ice-shell thickness, an ambient noise floor, a power-scaling law), not a
+rule about how the project must behave. What tells the two apart:
 
-- **Provenance runs the opposite way from a rule's.** A rule's authority is
-  "we decided" (see above). An axiom's authority comes from outside the
-  project's own decisions — real-world science and source material, but
-  also an authored engineering given bounded by a plausible external range
-  (a hull length bounded by what fits through the ice, a sensing length
-  bounded by what's physically deliverable) — chosen from within that
-  range, not derived and not decided from scratch.
-- **A rule is categorical; an axiom is a value picked from a range.** There's
-  no "why this number and not a nearby one" for a rule beyond a design
-  tradeoff. For an axiom there always is: record the range and its source in
-  the body (as lettered parts), and whether the value was selected
-  deliberately or only inherited from an earlier axiom — later axioms are
-  constrained by ones already chosen, unless there's a strong
-  project-goal-level reason otherwise.
-- **A rule is `Enforced-by` a guard; an axiom is instantiated, not
-  enforced.** Code reads an axiom's value; nothing refuses a violation of
-  it. A guard that keeps some *derived* value inside an axiom's range is
-  itself an `R`, layered on top — the axiom being right isn't something code
-  checks.
-- **A value that's derived from an axiom, not authored, is not itself an
-  axiom** — even if it's quantitative (a detection range, a speed penalty).
-  Record it as an `F` (`predicted`/`measured`, with `Evidence`) that cites
-  the axiom it derives from via `Premises`, so it's findable the same way
-  any other dependent is when the axiom moves.
+- **An axiom's authority comes from outside the project.** A rule's is "we
+  decided". An axiom's is real-world science and source material, or an
+  authored engineering given bounded by a plausible external range (a hull
+  length bounded by what fits through the ice, a sensing length bounded by
+  what's physically deliverable). The value is chosen from within that range,
+  not derived and not decided from scratch.
+- **A rule is categorical; an axiom is a value picked from a range.** So an
+  axiom always has an answer to "why this number and not a nearby one", where a
+  rule has only a design tradeoff. Record the range and its source in the body,
+  as lettered parts, and whether the value was selected deliberately or only
+  inherited from an earlier axiom. Later axioms are constrained by ones already
+  chosen, unless there's a strong project-goal-level reason otherwise.
+- **A rule is `Enforced-by` a guard; an axiom is instantiated, not enforced.**
+  Code reads its value, and nothing refuses a violation of it. A guard that
+  keeps some *derived* value inside an axiom's range is itself an `R`, layered
+  on top; whether the axiom is right, no code checks.
+- **A value derived from an axiom, not authored, is not an axiom,** even when
+  it's quantitative (a detection range, a speed penalty). Record it as an `F`
+  (`predicted`/`measured`, with `Evidence`) whose `Premises` cite the axiom, so
+  it's found with every other dependent when the axiom moves.
 
 Statuses: `provisional` (not yet sourced), `ratified` (a sourced value in
-effect), `superseded` when the authored value changes. `retired` is for the
-rare case where the axiom stops applying at all (the thing it described was
-cut), not for a value that changed — ending at `retired` is not an axiom's
-ordinary outcome the way it is for `Kind: limit`; an axiom normally keeps
-getting superseded as the authored value moves.
+effect), `superseded` when the authored value changes, which is an axiom's
+ordinary path. `retired` is only for an axiom that stops applying at all (the
+thing it described was cut), never for a changed value; unlike a `Kind: limit`,
+an axiom doesn't normally end there.
 
-**Dependency direction is locked one way, mechanically.** An axiom's
-`Premises` may only cite other axioms — the checker rejects any other letter
-there (`ledger-malformed`). Everything else cites `Premises` freely,
-including axioms (see the `R` bullet above). This is deliberate: letting an
-axiom cite a rule would let authored ground truth start quietly depending on
-an internal decision, the reverse of what an axiom is for.
+**An axiom's `Premises` may cite only other axioms**; the checker rejects any
+other letter there (`ledger-malformed`). Everything else may cite axioms in
+`Premises` freely. Letting an axiom cite a rule would make authored ground
+truth depend on an internal decision, the reverse of what an axiom is for.
 
-**"Depended on by" is a computed view, not a field.** Nothing hand-maintains
-a reverse pointer on the axiom itself. What depends on an axiom is found by
-scanning for `Premises` citations that resolve to it, the same way
-`LEDGER-INDEX.md`'s "Affected work items" is generated from
-`Depends-on`/`Premises` today.
+**"Depended on by" is computed, not a field.** Nothing maintains a reverse
+pointer on the axiom; its dependents are the entries whose `Premises` cite it,
+found the way `LEDGER-INDEX.md`'s "Affected work items" is from
+`Depends-on`/`Premises`.
 
 **`Tags`** groups axioms into project-defined categories (e.g. `world`,
-`vessel`) for `STANDING.md` and human readability: free text,
-comma-separated, `A`-only, no fixed vocabulary, and an axiom can carry more
-than one. If a project wants axioms restricted to a single tag, record that
-as the project's own `R`; the checker doesn't enforce it.
+`vessel`) for `STANDING.md` and human readability: free text, comma-separated,
+`A`-only, no fixed vocabulary, and an axiom can carry more than one. A project
+that wants one tag per axiom records that as its own `R`; the checker doesn't
+enforce it.
 
 ## Transcripts
 

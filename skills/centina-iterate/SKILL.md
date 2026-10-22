@@ -33,19 +33,16 @@ and say so to the human so the scope name is agreed, not assumed. This
 session's ID, for the `Session` header, is `${CLAUDE_SESSION_ID}`. If there is
 no ledger, the loop works as before; don't create one unless the human asks.
 
-**If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
-existing config was found and setup just created one, or a config exists
-but nothing's been written into `specs/` yet — say so plainly and suggest
-`centina-session-zero` instead, before going any further. This skill
-refines a spec that already exists; with nothing to iterate on, running
-the check below either reports nothing or (worse) leaves the human staring
-at an empty, freshly created project with no sense of what to do next.
-`centina-session-zero` is the front of the funnel — it turns a prose idea
-into the component DAG and skeleton spec set this loop is meant to work
-against. This is a suggestion, not a hard redirect: a human iterating on a
-single spec they're about to hand-write, deliberately outside a full
-session-zero system, is a legitimate use of this skill on its own — if
-that's the intent, ask what the target file should be named and proceed.
+**If `artifactsRoot`'s `specs/` has no `.centina.ts` files** (setup just
+created the project, or nothing's been written there yet), say so plainly and
+suggest `centina-session-zero` before going further. This skill refines a spec
+that exists; on an empty project the check reports nothing and leaves the human
+with no next step. Session zero is the front of the funnel: it turns a prose
+idea into the component DAG and skeleton spec set this loop works on. It's a
+suggestion, not a hard redirect: iterating on a single spec the human is about
+to hand-write, outside a session-zero system, is a legitimate use of this
+skill; if that's the intent, ask what the target file should be named and
+proceed.
 
 This is the primary way a human refines a Centina spec: resolve diagnostics,
 surface ambiguities the pseudocode left implicit, settle them with the human,
@@ -254,14 +251,11 @@ then, in this order:
   fine (illustrating a syntax point, sketching one door), but do not produce,
   fill in, or "finish" a spec — the human is the architect. If a human asks
   you to write one, decline and redirect to iterating on what _they_ write.
-  If this seems like a bottleneck, it is, deliberately. The purpose of pushing
-  the human to make code edits to a spec — even if given step-by-step instructions
-  on exactly how in some cases — is to ensure the spec can't get away from them,
-  that each edit is done with their knowledge. This is a calculated tradeoff: more
-  time now for less risk later. If this process starts to become truly onerous,
-  it may indicate a gap in the spec large enough to justify a full skeleton spec of
-  its own, which means breaking that part out into its own system and kicking off
-  a session-zero for it.
+  If this seems like a bottleneck, it is, deliberately: the human making each
+  edit, even from your step-by-step instructions, keeps the spec from getting
+  away from them, which trades time now for less risk later. If it becomes
+  truly onerous, the gap may be large enough for a skeleton of its own, so
+  suggest breaking that part out into its own system with a session zero.
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
   Even once a fix or a routing decision is fully settled — mechanical or
   not — don't volunteer to be the one who writes it into the file. Surface

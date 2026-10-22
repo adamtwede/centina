@@ -399,3 +399,27 @@ listed, with the second copies cut to what only they carried:
   point: options are offered in prose, so capture is up to the agent.
 
 The procedure's config compression (96–114) is still open, with step 4.
+
+**Step 4, applied.** About 3.3k characters, below the estimates, because steps
+1–3 had already taken the history and the human-facing detail the estimates
+counted:
+
+| File | Saved | What |
+|---|---|---|
+| `ledger.md` | 638 | The audience note; Axioms tightened with every distinction and example kept, including "Depended on by" |
+| `trail.md` | 153 | "What it is for" and the weights bullet |
+| `session-zero-reference.md` | 681 | Priority elicitation and encoding cut to what the skill's short forms lack |
+| `iterate-reference.md` | 1,372 | The starting orders' reasons, the no-ledger reconciling, the encoding lesson |
+| iterate `SKILL.md` | 469 | Empty `specs/`; Rule 0's bottleneck case in two sentences |
+
+- The procedure's config section stays as it was. The agent edits that file
+  (`ledgerHook`, `buildRoots`), so the keys, the relative paths and "setup
+  keeps keys it does not own" all stay, and as prose they came to 74 fewer
+  characters than the JSON block, which reads better.
+- `ledger.md` now names `centina-spike` among the skills it governs, since
+  spike's setup reads it.
+- `iterate-reference.md`'s "mechanical, not new authorship" paragraph now
+  covers both the ledger and no-ledger cases, as the skill's short form
+  already did.
+- Rule 0's tail now has the agent *suggest* breaking an onerous part out into
+  its own system, since which system a part belongs to is the human's call.

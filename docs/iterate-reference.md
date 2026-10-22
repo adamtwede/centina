@@ -23,28 +23,15 @@ for that system a natural home to grow into.
 
 ## Starting from a fresh skeleton
 
-If this is the first `centina-iterate` pass on a component and its holes are
-still untouched since `centina-session-zero` emitted it (the file is
-essentially all typed seams plus `deferred`/`@agent:` holes, with no
-human-authored bodies yet), say so plainly and offer **starting-point
-suggestions** before diving into diagnostics — an empty-looking file with a
-wall of `tsc` errors is not a useful place to drop a human with no
-orientation. Suggest an order, don't pick one:
-
-- Holes with the most **downstream dependents** (other holes or components
-  that reference this one) tend to unblock the most subsequent work if
-  resolved first.
-- Holes on the **primary/most-traveled path** through the component (the
-  logic every call exercises) usually clarify the shape of everything nearby
-  faster than a rarely-hit edge case.
-- If neither is obvious, the **simplest hole** — the one with the fewest
-  unknowns — is a reasonable default just to get momentum going.
-
-This is process guidance, not meaning: naming which hole is worth tackling
-first is a structural observation the agent is allowed to make (Rule 0 is
-about deciding what a hole _resolves to_, not about suggesting an order to
-approach them in). Let the human pick the actual starting point; then proceed
-into the normal check/fix loop below.
+A fresh skeleton is essentially all typed seams plus `deferred`/`@agent:` holes,
+with no human-authored bodies yet, and an empty-looking file with a wall of
+`tsc` errors is no place to leave a human without orientation. Why each
+suggested order helps: resolving the holes with the most downstream dependents
+(other holes or components that reference them) unblocks the most later work;
+holes on the most-traveled path, the logic every call exercises, clarify the
+shape of everything nearby faster than a rarely-hit edge case; and the simplest
+hole, the one with the fewest unknowns, is a reasonable default just to get
+momentum going. Once the human picks, proceed into the normal check/fix loop.
 
 ## Reference labels and formula explanations
 
@@ -74,32 +61,23 @@ decisions were made, so ARCHITECTURE.md only needs its structure checked.
 - the labels cited, where a decision was superseded.
 
 **If the system has no ledger** (older projects), fixes made during this loop
-routinely make ARCHITECTURE.md's contract and hole ledgers stale —
-resolving a `deferred` hole's routing, pinning a provisional contract, fleshing
-out an `@agent:` stub into real structure, or extracting a boundary into its
-own file (see "Boundary declarations as extraction candidates" above) all
-change something the ledger described. **Once the spec goes clean and before
-writing PLAN.md**, reread `ARCHITECTURE.md` against the now-clean spec and
-reconcile it:
+routinely make ARCHITECTURE.md's contract and hole ledgers stale: resolving a
+`deferred` hole's routing, pinning a provisional contract, fleshing out an
+`@agent:` stub into real structure, or extracting a boundary into its own file.
+**Once the spec goes clean and before writing PLAN.md**, reread
+`ARCHITECTURE.md` against the clean spec and reconcile it. Contract entries
+touching this component's seams move from provisional to decided, or take the
+signature that changed during fill. Hole entries this component closed are
+marked resolved or routed. A terminal's `@external` source that was "TBD" and
+got pinned is filled in. An extracted boundary's new file location is noted.
+Risks are updated: resolved ones removed or marked closed, new ones added.
 
-- Contract ledger entries touching this component's seams move from
-  provisional → decided, or get their signature updated if it changed during
-  fill.
-- Hole ledger entries this component closed are marked resolved/routed, not
-  left showing as still-open.
-- Terminal-node entries get their concrete `@external` source filled in if it
-  was previously "TBD" and got pinned during fill.
-- If a boundary was extracted into its own file, note the new file location.
-- Risks/watch-items get updated — resolved risks removed or marked closed, new
-  ones surfaced during fill added.
-
-This is a mechanical reconciliation, not new authorship — every entry being
-updated reflects a decision the human already ratified earlier in this same
-loop, so the agent may write the update directly (the same standing as writing
-PLAN.md itself), but call out what changed in ARCHITECTURE.md before moving on so
-the human isn't surprised by a silently-updated file. If other components in
-the system haven't been through `centina-iterate` yet, their ARCHITECTURE.md entries are
-untouched — reconciliation only ever covers the component just finished.
+Either way this is mechanical reconciliation, not new authorship: every update
+reflects a decision the human already ratified in this loop, so you may write it
+directly (the same standing as PLAN.md), but say what changed in
+ARCHITECTURE.md before moving on so the file is never silently updated. It
+covers only the component just finished; other components' entries stay
+untouched until their own `centina-iterate` pass.
 
 ## Writing the implementation plan
 
@@ -142,19 +120,15 @@ completed status:
 
 ### Encode ratified intent into the type system — surface it, let the human apply it
 
-Intent-as-spec is one of Centina's headline concerns, and TypeScript is the
-grammar precisely so a decision about _meaning_ can be made load-bearing and
-checkable rather than left to a prose note an implementer can skip. When a
-decision the human has already settled _isn't_ carried by the spec code but
-_easily could be_ — a non-empty-array precondition as `[T, ...T[]]`, a
-discriminated union that makes an illegal status unrepresentable, a branded
-identity, an exhaustive enum — call it out and show a concrete example of the
-encoding. Then stop: per Rule 0a the human holds the pen, so surface the option
-and let _them_ decide whether to apply it. (This is the one place iterate differs
-from `centina-session-zero`, where the agent has standing authority to emit such
-an encoding into the skeleton directly — here it only proposes.) When the
-constraint genuinely can't be typed (e.g. array homogeneity), an `@agent:` note
-is the honest fallback rather than a forced encoding.
+TypeScript is the grammar so that a decision about _meaning_ can be load-bearing
+and checkable, not a prose note an implementer can skip. When a decision the
+human has already settled _isn't_ carried by the spec code but _easily could
+be_ (the skill lists the usual forms), call it out with a concrete example of
+the encoding, then stop: per Rule 0a the human holds the pen. This is the one
+place iterate differs from `centina-session-zero`, which may emit such an
+encoding into the skeleton directly; here the agent only proposes. When the
+constraint can't be typed (array homogeneity, say), an `@agent:` note is the
+honest fallback, not a forced encoding.
 
 ### Warning triage is design discussion, not cleanup
 
