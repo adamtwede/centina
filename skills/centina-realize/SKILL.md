@@ -156,17 +156,14 @@ Status is `planned` until the human confirms the plan, then the phase becomes
    When a type cannot carry what the code needs, that is a contract problem:
    raise a change request, do not work around it.
 6. **A guard in working code cites an `R`. A `Q`, `P` or `W` may sit beside
-   it; none may sit there alone.** `answered`, `ratified` and `done` mean the
-   entry finished, not that the ruling stopped holding, so a guard citing
-   only one of them can never read as stale — `R` is the only letter with
-   `retired`. An answered `Q` that leaves a guard behind needs an `R`, and so
-   does a `done` step that ruled one; keep the original entry beside the `R`
-   as the provenance of the decision. A standing rule is the human's call:
-   raise it, do not write one (rules of engagement 2). Use `Kind: limit` when
-   the guard is there because something is not built yet, and `provisional`
-   with a `Review` while the rule may not last. Name the `W` that would
-   remove the guard only when that work is actually scheduled. Put the label
-   in the guard's comment: that is the copy the checker reads.
+   it; none may sit there alone** (`ledger.md`, "Citations from build code").
+   An answered `Q` or a `done` step that leaves a guard behind needs an `R`,
+   and a standing rule is the human's call: raise it, do not write one (rules
+   of engagement 2). Use `Kind: limit` when the guard is there because
+   something is not built yet, and `provisional` with a `Review` while the
+   rule may not last. Name the `W` that would remove the guard only when that
+   work is actually scheduled. Put the label in the guard's comment: that is
+   the copy the checker reads.
 
 ## Conformance
 
@@ -299,19 +296,13 @@ such. Recording one as fact is not.
    the conformance-coverage check.
 2. Run the definition-of-done test.
 3. **Disposition every open item still carrying this phase's `Phase:`
-   field** — read this phase's group in `LEDGER-INDEX.md`'s open items (or
-   `--phase <label>`). For each one, raise it with the human and, per their
-   call: move it forward (edit its `Phase` field to a phase that will own
-   it), drop the field if nobody owns it yet, or resolve/withdraw/defer the
-   item itself. Do not leave one open under this phase on the assumption
-   that a future phase or the index will pick it up — pointing at the index
-   in the close record (step 4) is for someone reading the close later, not
-   a substitute for this. Nothing else sweeps a closing phase's own
-   backlog: an item raised here but owned elsewhere still needs its `Phase`
-   moved, even though it was never really this phase's to finish. The
-   checker enforces this (`ledger-phase-closed`): it refuses an open item
-   whose `Phase` points at a `done`/`withdrawn`/`superseded` phase, so step 5
-   will fail if this step is skipped.
+   field** (`ledger.md`, "Rules for writing", 7) — read this phase's group in
+   `LEDGER-INDEX.md`'s open items (or `--phase <label>`). Raise each with the
+   human and, per their call, move its `Phase` to a phase that will own it,
+   drop the field if nobody owns it yet, or resolve/withdraw/defer the item.
+   An item raised here but owned elsewhere still needs its `Phase` moved. The
+   checker refuses any left behind (`ledger-phase-closed`), so step 5 fails
+   if this is skipped.
 4. Record the close as an `F` entry, `Status: measured`, with the
    definition-of-done run as `Evidence`. Its body states:
    - what the slice proves;

@@ -301,14 +301,10 @@ entry per system:
 }
 ```
 
-`hostRoot` and `artifactsRoot` are relative to the directory holding
-`.centina/` (which is the artifacts root), so the committed file is right on
-every machine; `hostRoot` is the host project root, `..` when artifacts live in
-a `centina/` folder at its top. An absolute path still works on the machine that
-has it and draws a warning; one that machine lacks is an error when the system
-names `buildRoots` (they cannot be found, so build code is not being checked).
-The checker keys systems from where the config sits and does not read
-`artifactsRoot`.
+`hostRoot` and `artifactsRoot` are set up by `plugin-setup-procedure.md` ("The
+config"). An absolute `hostRoot` draws a warning, and one this machine lacks is
+an error when the system names `buildRoots` (they cannot be found, so build
+code is not being checked).
 
 A system is keyed by its directory's path relative to the artifacts root, not by
 its name: a system lives wherever a `LEDGER.md` sits, spec trees nest, and two
@@ -379,15 +375,12 @@ every status change, at every gate, and before every derived-doc write.
   itself, but it means the existing stale-citation check catches it
   automatically the moment one of those cited entries is later superseded —
   the rule's claimed context stops being silently taken for granted.
-- **A guard in build code cites an `R`. Whatever settled the rule may sit
-  beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
-  all mean the entry finished, not that the ruling stopped holding, so a
-  guard citing only a `Q`, a `P` or a `W` can never read as stale. `R` is the
-  only letter with `retired`. So an answered `Q` that leaves a guard behind
-  produces an `R`, and so does a `done` step that ruled one; keep the
-  original entry beside the `R` as the provenance of the decision. A guard
-  citing a phase's out-of-scope part is the same case with less to recommend
-  it, since phase scope expires with the phase.
+- **A guard in build code cites an `R`** ("Citations from build code"). So an
+  answered `Q` that leaves a guard behind produces an `R`, and so does a
+  `done` step that ruled one; keep the original entry beside the `R` as the
+  provenance of the decision. A guard citing a phase's out-of-scope part is
+  the same case with less to recommend it, since phase scope expires with the
+  phase.
 - A rule that may not survive is `provisional` with a `Review`, which is a
   fine thing for a guard to cite. Only `retired` and `superseded` make a
   citation stale.

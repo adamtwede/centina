@@ -3,49 +3,12 @@
 Detail `centina-session-zero` reads on demand. The skill keeps a short form of
 each section. The routing lens has its own doc, `session-zero-routing.md`.
 
-## The `@external` cases
-
-- **`@external "<source>"` declarations** — where the system meets existing
-  technology. Two cases land differently: a utility _called directly in visible
-  spec code_ (a `randomUUID`, a `timestamp`) is declared in the skeleton at its
-  call site; a _terminal behind a component door_ (the database behind a store,
-  the model API behind a suggester) has an interface that lives _behind the
-  door_ — don't fabricate it, because that is reaching through the door. Record
-  it in ARCHITECTURE.md's terminal nodes section and a boundary comment; its concrete
-  `@external` declaration is made at fill, where the held logic that calls it is
-  written. Call this distinction out during the session whenever a terminal's
-  interface turns out to be behind a door.
-
-## Phase 6, handoff in full
-
-6. **Handoff.** The agent recuses from the pen. The human owns every spec file
-   from here; the ledger's open questions are live; each component is ready for
-   `centina-iterate`. A node whose fit was genuinely in doubt has already been
-   routed by the check above (structural → filled component; realization →
-   behind a door) before it's handed on. Close by asking the human directly
-   whether they want to start a `centina-iterate` session on one of the
-   components **right now**, or would rather fill spec content in on their own
-   time and come back to `centina-iterate` later — name both as legitimate;
-   the skeleton and ARCHITECTURE.md don't go stale waiting. If several
-   components came out of this session, ask which one they want to start
-   with. If they say "later," the handoff is still complete — don't treat a
-   deferred start as unfinished business.
-
 ## Cross-cutting practices
 
 - **Diagram as falsification.** A picture surfaces "that's not what I meant" in
-  seconds where prose hides it for paragraphs. Offer to render the DAG the human
-  has described at each phase boundary, before advancing — and offer it
-  _proactively_ if they show persistent confusion over a few exchanges about how
-  the pieces relate. (Note: Make sure to always generate the DAG code in a Markdown
-  document, _not_ in the session window, and once a DAG is generated, don't delete
-  it when revisions are needed or when new ones are generated. Instead, name the DAG
-  files with a simple "version" convention so their evolution over time can be easily
-  tracked by both the agent and the human.)
-  In a text/CLI medium prose often carries the gates fine, so
-  treat this as an offered aid keyed to the human's need, not a mandatory render
-  at every gate. When you do render, the diagram must show only nodes and edges
-  the human stated — never invent a component to make the picture tidier.
+  seconds where prose hides it for paragraphs. In a text/CLI medium prose often
+  carries the gates fine, so treat the diagram as an offered aid keyed to the
+  human's need, not a mandatory render at every gate.
 - **Priority elicitation on high-stakes forks.** When a fork's cost is high and
   hard to reverse, _solicit the human's priorities before framing options_, then
   present each option's tradeoffs against those priorities (proactively, not only
@@ -79,60 +42,9 @@ each section. The routing lens has its own doc, `session-zero-routing.md`.
   never to inventing one, and only when the type genuinely carries it (when a
   constraint can't be typed — e.g. array homogeneity — an `@agent:` note is the
   honest fallback, not a forced encoding).
-- **A run may surface language-level conventions, not just app contracts.**
-  Occasionally the elicitation kicks up a reusable Centina convention (a
-  boundary-door naming scheme, a rule for a recurring door shape) rather than a
-  system-specific decision. Surface it _to the human as a candidate_; if they
-  adopt it, apply it in the skeleton marked under-test — never fold it into the
-  language or this skill unilaterally. Guard two things: don't let this become a
-  lever that relaxes the skill's own strictures (Rule 0, scribe-not-architect,
-  bias-toward-holes), and be warier the more mature the language feels — a
-  settled convention set is a feature, and churn is a cost.
-- **Propose only as a question; record it as open.** When you must float a
-  candidate component or contract to keep moving, float it _as a question_ and
-  record it as a `sz:P` entry with `Status: open` until the human ratifies or
-  rejects it at the next gate. A proposal still open at the skeleton write
-  ships as a hole citing its label.
-- **Memory discipline.** This is a long session that will likely cross context
-  windows. The ledger is the load-bearing state: the decided/guessed
-  distinction lives in entry statuses, so it survives compaction. Write
-  entries when decisions happen, not at the end of a phase. Prose can be
-  re-derived; entries cannot.
-- **Where the ledger and SESSION-ZERO-STATE.md go.** Both in the same
-  `specs/<system>/` location as `ARCHITECTURE.md`, never directly in `specs/`,
-  and never at the repo root. `SESSION-ZERO-STATE.md` is only a run frame
-  (see `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). `<system>` is the
-  name of the system this session is about: if the human has already named
-  it, use that; if not, ask before the first write to disk rather than
-  guessing at a phase gate.
-- **Keep the ledger current.** Follow `ledger.md`'s "When a status changes"
-  on every change, and its "Sweeps" at every gate. A superseded entry that
-  nothing marks stale is the failure the ledger exists to prevent.
-- **Transcripts and concurrency.** Never open a session transcript without
-  asking first, and warn the human about concurrent sessions, per
-  `ledger.md`.
-- **Fit check.** When facing a high-stakes, hard-to-reverse fork with complex
-  tradeoffs, request a **fit check** (invoke with "fit check" or "fit check on X")
-  to get a structured costs/benefits analysis: each option's merits and costs,
-  alignment against stated priorities, and alignment against established patterns
-  (uniform reducer, event-sourcing, boundaries-as-affordances, etc.). The agent
-  supplies the tradeoff matrix; the verdict stays yours (Rule 0 intact).
-- **Long-session output management.** Follow
-  `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. Ledger length is not a
-  reason to split it; split only when the human asks.
-- **Label references get explained, not just cited.** Labels are ledger labels
-  (`sz:P4`). The first time one comes up in conversation, say what it is and
-  give a one-clause summary ("sz:P4, cap escalation depth at 3 attempts," not
-  "sz:P4"). When re-citing one, restate a brief reminder if more than 10 labels
-  of the same letter have come up since. Err toward restating when unsure. The
-  label index is `LEDGER-LABELS.md`; don't keep a separate one.
-- **Explain formula terms on introduction.** When a mathematical or scientific
-  formula appears for the first time in a session, or reappears in a long
-  session where you can't be confident the human still has each term in mind,
-  spell out every symbol in plain language next to the formula. Do the same
-  unconditionally whenever a formula goes into ARCHITECTURE.md, PLAN.md, or any
-  other document — never rely on a formula being self-explanatory or defined
-  earlier in the conversation.
+- **A run may surface language-level conventions, not just app contracts.** Be
+  warier of adopting one the more mature the language feels — a settled
+  convention set is a feature, and churn is a cost.
 
 ## Handoff: ARCHITECTURE.md and the skeleton set
 
@@ -169,16 +81,6 @@ the plan" in `iterate-reference.md`).
 ARCHITECTURE.md is a system-level companion to the per-component PLAN.md
 lineage — a plan-per-boundary-set is derivable from a frozen contract
 ledger, and drifts exactly when the ledger drifts.
-
-## Don't manufacture seams, in full
-
-- **Don't manufacture seams — and don't refuse either.** If routing the
-  realization out leaves one node with little or nothing to freeze, the task is
-  one algorithm, not a system. Two opposite failures bracket the right move:
-  inventing seams to fake a DAG (over-competence), or bouncing the human with a
-  "bad fit" verdict (the retired recuse reflex). The correct output is the
-  honest minimal skeleton — signature pinned, body held, labeled "this is one
-  node, not a system." Emit that; don't pad and don't refuse.
 
 ## Lessons from use
 

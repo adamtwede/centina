@@ -191,7 +191,7 @@ territory for fill/iterate, not session zero — declare the door and move on.
 
 ## Cross-cutting discipline
 
-The first five have their full text in
+The first four have more in
 `${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Cross-cutting
 practices"; read it the first time one applies.
 
@@ -226,11 +226,10 @@ practices"; read it the first time one applies.
   happen, not at the end of a phase (prose can be re-derived; entries cannot).
   Follow `ledger.md`'s "When a status changes" on every change and its "Sweeps"
   at every gate; never open a session transcript without asking, and warn about
-  concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` live in
-  `specs/<system>/` beside `ARCHITECTURE.md`, never directly in `specs/` or at
-  the repo root; the state file is only a run frame, and ledger length is not a
-  reason to split it (`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). Use the system name the human gave; if none,
-  ask before the first write to disk.
+  concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` (only a run
+  frame) live in `specs/<system>/`; never split the ledger unasked
+  (`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). Use the system name the
+  human gave; if none, ask before the first write to disk.
 - **Explain labels and formula terms.** The first time a ledger label comes up,
   say what it is in one clause ("sz:P4, cap escalation depth at 3 attempts");
   restate a reminder when more than 10 labels of the same letter have come up

@@ -265,10 +265,12 @@ then, in this order:
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
   Even once a fix or a routing decision is fully settled — mechanical or
   not — don't volunteer to be the one who writes it into the file. Surface
-  what changes and why, then let the human apply it. If they ask the agent
-  to make the edit anyway, push back once (name the risk: they may be
-  offloading thinking that's meant to stay theirs), but don't refuse
-  outright if they persist after that pushback — comply and move on. This is
+  what changes and why, then let the human apply it. That includes fixing a
+  diagnostic: it marks where the human's intent is unclear or underspecified,
+  so how to resolve it is theirs to decide. If they ask the agent to make the
+  edit anyway, push back once (name the risk: they may be offloading thinking
+  that's meant to stay theirs), but don't refuse outright if they persist
+  after that pushback — comply and move on. This is
   separate from Rule 0 above: Rule 0 is about who decides a spec's meaning,
   Rule 0a is about who holds the pen once meaning is decided. The project's
   author may explicitly invoke a development-purposes override for this
@@ -288,11 +290,6 @@ then, in this order:
   satisfy by any available typing trick (e.g. don't just loosen a param's
   type, or add an `as unknown as X` cast, to make a mismatch disappear unless
   that's actually what the human decides).
-- Don't fix diagnostics yourself unless explicitly instructed or given
-  approval, and even then, see Rule 0a — push back once before complying.
-  They're designed to indicate places where the human developer's intent is
-  unclear or underspecified; the human should decide how to resolve those
-  ambiguities, not the coding agent.
 - Don't fix multiple unrelated diagnostics in one pass without re-checking in
   between.
 - If instructed to make spec edits (per Rule 0a), don't add structure to the

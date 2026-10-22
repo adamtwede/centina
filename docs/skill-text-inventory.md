@@ -357,3 +357,18 @@ removed passage carried a rule, the rule stayed:
   the reason (appended steps are each admitted on their own merits and never
   checked against the question). Its "Lessons from use", which held only those
   open questions, went with them.
+
+**Step 2, applied.** About 10.5k characters. Each duplicate kept its home as
+listed, with the second copies cut to what only they carried:
+
+- `session-zero-reference.md` keeps, of its long forms, only the text-medium
+  point about diagrams and "be warier the more mature the language feels".
+  The skill's pointer now says the first four cross-cutting practices have
+  more there, since fit check no longer does.
+- `iterate-reference.md` keeps why the extraction checks apply to every inline
+  boundary, the meaning of the no-ledger label letters, and re-explaining a
+  formula that comes back in a long session (iterate's skill lacks that
+  clause; session zero's has it).
+- Session zero's ledger-location sentence was trimmed rather than replaced by
+  its pointer. Session zero never directs a read of `output-management.md`,
+  so the skill's copy is the one its agents actually see.

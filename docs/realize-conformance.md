@@ -25,18 +25,9 @@ assignable, and the call sites keep compiling because they are typed against
 the fill class (`new BodyRegistryImpl()`), never against the contract.
 
 So pair each contract with its fill, in the fill's own file, next to the
-fill. The pairing is **type-only, in both imports** — `conformance.ts`
-emits nothing, and neither does a spec file:
-
-```ts
-import type { Assert, Conforms } from "<conformance.ts, path in the run frame>"
-import type { BodyRegistry } from "<contracts module>"
-
-export class BodyRegistryImpl implements BodyRegistry { ... }
-
-export type BodyRegistryConforms =
-  Assert<Conforms<BodyRegistry, BodyRegistryImpl>>
-```
+fill, as in the skill's "Conformance" example. The pairing is **type-only,
+in both imports** — `conformance.ts` emits nothing, and neither does a spec
+file.
 
 A divergence fails the ordinary typecheck and names the member:
 

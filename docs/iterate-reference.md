@@ -5,31 +5,14 @@ section.
 
 ## Boundary declarations as extraction candidates
 
-Any `@datasource`/`@datasink`/`@boundary` declared inline in a spec file is a
-candidate for extraction into its own provisional file (e.g.
-`task-matcher.centina.ts`) — this is not gated on the author having left an
-`@agent:` note about it; every inline boundary carries the same reinvention
-and dependency-direction risk regardless of whether it was flagged. Writing
-it inline first is fine and expected — a spec writer should be able to stand
-an idea up quickly without a detour to a second file. Two things to check
-during a normal iteration pass:
+The two checks are in the skill. Both apply to every inline boundary, flagged
+or not, because each carries the same reinvention and dependency-direction
+risk: a door typed against its caller's own types is backwards from how a real
+external system would typecheck. Extraction itself is mechanical, but it's a
+cross-file move, so state it plainly to the human; it doesn't need a full stop.
 
-- **Dependency direction.** A boundary door's parameters/return types must
-  not resolve to a type declared in the _consuming_ spec (a local interface,
-  or an object-shaped type alias) — that's the boundary depending on its own
-  caller, backwards from how a real external system would typecheck.
-  Primitives, `unknown`, opaque `Unshaped<...>` brands, and closed enums are
-  fine, since they carry no shape for the boundary to depend on. If a door
-  needs a real structured payload, prefer `unknown` at the door over
-  importing the caller's own record type.
-- **Whether it's ready to move out.** If the boundary looks stable and
-  reusable — a real seam other future specs would also want, not something
-  still being shaped — offer to extract it into its own file. Extraction
-  itself is mechanical (relocating already-written declarations, adding an
-  import), but it's a cross-file move and worth stating plainly to the human
-  rather than doing silently, even though it doesn't require a full stop.
-
-A provisional boundary file gets a clear header marking it as such (e.g.
+A provisional boundary file (e.g. `task-matcher.centina.ts`) gets a clear
+header marking it as such (e.g.
 `// PROVISIONAL BOUNDARY DECLARATOR — declarations only, no implementation.`)
 and contains only `declare class`/`type`/`interface` declarations plus, if
 the boundary is naturally a shared singleton, one instantiation (e.g. `export
@@ -65,26 +48,13 @@ into the normal check/fix loop below.
 
 ## Reference labels and formula explanations
 
-Both apply throughout this loop, not just in a fresh session-zero handoff:
+The skill carries both rules. What it leaves to this doc:
 
-- **Label references get explained, not just cited.** With a ledger, labels
-  are ledger labels (`task-matcher:F7`); without one, short session labels
-  (`P<n>` proposal, `Q<n>` question, `F<n>` finding, `O<n>` option). The first
-  time a label comes up, give a one-clause summary ("task-matcher:F7, the
-  scope-crossing identifier in `matchTasks`," not the bare tag). When
-  re-citing one, restate a brief reminder if more than 10 labels of the same
-  letter have come up since. Err toward restating when unsure. With a ledger,
-  the label index is `LEDGER-LABELS.md`; without one, keep a compact label
-  index in the state file.
-- **Transcripts and concurrency.** Never open a session transcript without
-  asking first, and warn the human about concurrent sessions, per `ledger.md`.
-- **Explain formula terms on introduction.** When a mathematical or scientific
-  formula appears for the first time in a session, or reappears in a long
-  session where you can't be confident the human still has each term in mind,
-  spell out every symbol in plain language next to the formula. Do the same
-  unconditionally whenever a formula goes into PLAN.md, ARCHITECTURE.md, or any
-  other document — never rely on a formula being self-explanatory or defined
-  earlier in the conversation.
+- **Without a ledger**, labels are short session labels: `P<n>` proposal,
+  `Q<n>` question, `F<n>` finding, `O<n>` option. Explain and re-cite them the
+  same way as ledger labels, and keep a compact label index in the state file.
+- **A formula that reappears** in a long session, where you can't be confident
+  the human still has each term in mind, gets every symbol spelled out again.
 
 ## Reconciling ARCHITECTURE.md before the plan
 
