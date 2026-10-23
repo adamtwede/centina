@@ -33,7 +33,7 @@ This copies the plugin to `~/.claude/skills/centina/`, which Claude Code loads i
 - A [worked example](https://adamtwede.github.io/centina/using-it#a-walkthrough-one-seam-from-prose-to-spec-complete) from the documentation.
 - The foundational example, the [hill-climbing-loop](https://github.com/adamtwede/centina/blob/main/specs/hill-climbing-loop/hill-climbing-loop.centina.ts). (While this might look like regular code, it is not! All function bodies are type-checked *psuedocode*.)
 - A complete skeleton spec for a simple mobile app called [Woodboard](https://github.com/adamtwede/centina/tree/main/specs/wordboard) to help you remember new words you encounter. No function bodies, just the DAG in code. Start with [ARCHITECTURE.md](https://github.com/adamtwede/centina/blob/main/specs/wordboard/ARCHITECTURE.md).
-- An in-progress `session-zero` for a [turn-based strategy video game](https://github.com/adamtwede/centina/tree/main/specs/turnball), no skeleton spec yet. Demonstrates the recursive nature of software design and document/session management strategy.
+- An in-progress `session-zero` for a [turn-based strategy video game](https://github.com/adamtwede/centina/tree/main/specs/turnball), no skeleton spec yet. Demonstrates the recursive nature of software design and some of the basic document/session management principles. (This example predates the current ledger system, so the layout in a new project would differ in some respects, but the overall effect is the same.)
 
 ## Contributing
 
