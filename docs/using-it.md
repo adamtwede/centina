@@ -135,7 +135,7 @@ The first block is `tsc`'s own error; the second is Centina's spec-plane rules.
 
 That's the handoff. The interfaces are there and concrete, and one decision is being held.
 
-**You fill it in, then run `centina-iterate`.** Later, you settle the part of the held question that matters to the contract: a cancelled order has to look visibly different from a live one. You write that into the spec yourself, because the agent doesn't hold the pen past the skeleton. Then you open `centina-iterate`, and the checker brings up what's left, one item at a time:
+**You fill it in, then run `centina-iterate`.** Later, you settle the part of the held question that matters to the contract: a cancelled order has to look visibly different from a live one. You write that into the spec yourself, because the agent doesn't hold the pen past the skeleton. The agent invokes the checker, bringing up what's left, one item at a time:
 
 - `DashboardView` is referenced but never defined, so you add its shape.
 - The `deferred` hole's routing is still owed (a warning). *How* a cancelled
@@ -143,7 +143,11 @@ That's the handoff. The interfaces are there and concrete, and one decision is b
   a rendering call, not a contract, so you commit the hole to
   `deferred<"open", …>` and leave it to the implementer.
 
-Re-check: clean. The spec is **spec-complete**, with every gap deliberate, typed, and routed. `PLAN.md` now follows almost deterministically, and the three decisions the prose would have buried are on the record, made by the person who should have made them.
+Re-check: clean. The spec is **complete**, with every gap deliberate, typed, and routed. `PLAN.md` now follows, and the three decisions the prose would have buried are on the record, made by the person who should have made them.
+
+#### The other two skills
+
+It isn't practical to expect anything but the simplest projects to go straight from spec to implementation. Gaps still lurk in the territory of the unknown unknowns. To find these, direct the agent to use the `centina-realize` skill to push against your spec in any areas of concern. The agent will not modify the spec itself (the `.centina.ts` files), but it will spin up a [ledger](/ledger) and begin building working code against the spec in whatever language you choose. It will ask questions, raise concerns, run experiments (using the dedicated `centina-spike` skill), and make suggestions, including spec changes, which it will hand back to you. This is how you iterate on your idea in practice, by feeding the agent your intent, seeing what works and what doesn't, incorporating changes back into the design, and watching the idea come to life without risk of it speeding past your ability to keep up.
 
 > [!TIP]
 > The whole mental model: **you decide *what*; the agent, with your express
