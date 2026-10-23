@@ -60,13 +60,15 @@ If your organization restricts which models Claude Code may use, a button whose 
 
 ### ELI5
 
-The small one. It takes the entry's own text from the markdown ledger, plus the titles of up to eight other entries it mentions, and asks Haiku to explain it as if to a five-year-old. The length is a guide that grows with the entry, between 150 and 450 words. If you cited a part (`P12(b)`), it's asked to say what that part decides. Use it when a label comes up and you've lost the thread.
+Takes the entry's own text from the markdown ledger, plus the titles of up to eight other entries it mentions, and asks Haiku to explain it as if to a five-year-old. The length is a guide that grows with the entry, between 150 and 450 words. If you cited a part (`P12(b)`), it's asked to say what that part decides. Use it when a label comes up and you've lost the thread.
 
 ### Break it down
 
 This one works on the whole latest reply rather than a single entry, and it's the button for "I've read this twice and still don't follow." It returns up to three parts, each only when the reply gives occasion for it. The **Gist** is what the reply says and what it asks of you. **Terms** glosses any jargon you wouldn't know, including everyday words used in a project-specific sense. **Options** appears when the reply puts a choice to you: for each option, what choosing it means, the benefits, tradeoffs and risks, weighed against the active phase and the project's goals, and which one the agent itself leaned toward.
 
-The model sees the reply, the active phase, the active goals and the entries the reply cites, in that order of priority. The entries get their full text until a 20,000-character budget runs out, and only titles after that. Unlike the other buttons it also shows for a reply that cites nothing, so long as the mod has found a ledger.
+The model sees the reply, the active phase, the active goals and the entries the reply cites, in that order of priority. The entries get their full text until a 20,000-character budget runs out, and only titles after that. Unlike the other buttons it also shows for a reply that cites nothing, so long as the mod has found a ledger. 
+
+Other than "Second opinion," "Break it down" is the button I reach for most often.
 
 ### Phase progress
 
@@ -80,11 +82,15 @@ Phase progress shows each entry's oldest few thousand characters, which is the w
 
 It reports on one work item, chosen in this order: the one you pinned with `/track-item` (below), else the first active work item the latest reply cites, else the end of the active `Depends-on` chain (an active item no other active item depends on). The model gets the item's start, one shortened line per paragraph of the middle so no stage of the work drops out, and the end in full, plus the titles of the entries that cite it as a premise, what it depends on, its phase and the goals. You get **Original question** (what it set out to settle, and whether it ever stated a closing test), **Path so far**, **Progress** (closer, level or further, in the item's own numbers where it gives them), and **Options**: continue, back out to a named earlier point, or park.
 
+**Note:** Both the "Phase progress" and "Item progress" buttons are to be considered experimental at this stage. They usually work fine within smaller scopes, but tend to produce unhelpful output for anything even moderately complex, which is exactly when they would be most useful, so they need some additional work if they're to earn their keep. More useful than either is the work item tracker, documented below.
+
 ### Second opinion
 
-The expensive one. It sends Opus your last typed request, the latest reply and the same ledger context as Break it down, and asks for a review in three parts: **Errors and flaws**, **Gaps and risks**, **Improvements**, most serious first, with "None found." where a part is empty.
+If there's one button I'd consider indispensable, it's this one, and it more than pays for its token cost. It sends Opus your last typed request, the latest reply and the same ledger context as Break it down, and asks for a review in three parts: **Errors and flaws**, **Gaps and risks**, **Improvements**, most serious first, with "None found." where a part is empty.
 
-Two things to keep in mind. The reviewer can't see your code, so it can argue with the reasoning and the fit against the ledger but not with a claim about what the code does; it's told to say what would need checking instead of asserting. And the answer isn't sent anywhere on its own. It sits in the pane until you decide, and **Send to session** hands it to the main agent as a message from the plugin (not as your own words), prefaced with a note that the reviewer had partial context and the agent should weigh the review, not adopt it. The button disappears once pressed, so an answer goes in once.
+Two things to keep in mind. The reviewer can't see your code, so it can argue with the reasoning and the fit against the ledger but not with a claim about what the code does; it's told to say what would need checking instead of asserting. This is intentional. Rather than loading the second opinion agent up with the entire session context (even in summary), it evaluates the most recent exchange on its own terms to avoid being swayed by the primary session agent's reasoning. In my experience, only very rarely does it not find something worth another look.
+
+Important to note: The answer isn't sent anywhere on its own. It sits in the pane until you decide, and **Send to session** hands it to the main agent as a message from the plugin (not as your own words), prefaced with a note that the reviewer had partial context and the agent should weigh the review, not adopt it. The button disappears once pressed, so an answer goes in only once.
 
 ## The drift line
 
