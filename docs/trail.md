@@ -1,43 +1,35 @@
-# The trail (step 3 of the work-item progress tracking)
+# The trail
 
-Agreed by the author (what counts as a decision, agent-drafted gates ruled by
-the human over several turns, JSONL, one file per system). `centina-check trail <system-dir>`
-validates it and writes `TRACKER.html` (see "The checker
-and the tracker" below). `skills/centina-spike/SKILL.md` writes it, by
-appending lines in the formats below.
+The format of a system's trail file. `skills/centina-spike/SKILL.md` writes
+it, by appending lines in the formats below. `centina-check trail <system-dir>`
+validates it and writes `TRACKER.html` (see "The checker and the tracker"
+below).
 
 ## What it is for
 
-The ledger records what was decided. It does not record what was *offered*:
-the options the agent put to the human each time it asked "what next", the
-ones not taken, and where the work forked. Those live only in chat, and are
-what the human needs to see to choose between continuing a line, backing out
-to an earlier alternative, or closing a whole branch.
-
-The trail records exactly that, and nothing the ledger already holds. It
-cites ledger labels instead of restating them (`ledger.md`, rule 5).
+The ledger records what was decided; the trail records what was *offered*: the
+options put to the human at each "what next", the ones not taken, and where the
+work forked. Otherwise those live only in chat, and they are what the human
+needs to choose between continuing a line, backing out to an earlier
+alternative, or closing a whole branch. The trail holds nothing the ledger
+already does, and cites ledger labels instead of restating them (`ledger.md`,
+rule 5).
 
 ## What it is not
 
 - **Not the work tree.** Steps and spikes are ledger `W` entries with
-  `Depends-on`; the trail points at them. (`centina-realize` already asks for
-  one `W` entry per step and for no unplanned work; `terrain:W43` kept about
-  twenty sub-steps as paragraphs of one entry instead. Making that rule bite
-  is step 4's job, not the trail's.)
-- **Not a store of weights.** Time and tokens between two decisions are
-  derived by the tracker from the session transcripts (`transcripts/`, each
-  message has a timestamp and usage), kept in reduced form in `weights/` (see
-  "The checker and the tracker"). The trail records the anchors the
-  derivation needs: when (`at`, UTC) and in which session. The agent cannot
-  see a message's id, so there is no turn field; the tracker finds the turn
-  from the timestamp.
+  `Depends-on`; the trail points at them.
+- **Not a store of weights.** The tracker derives the time and tokens between
+  two decisions from the session transcripts ("The checker and the tracker").
+  The trail records only the anchors: when (`at`, UTC) and in which `session`.
+  The agent cannot see a message's id, so there is no turn field; the tracker
+  finds the turn from the timestamp.
 - **Not spec content, and not the human's decisions.** The agent writes it as
   scribe, like the ledger. What it records as chosen is what the human said.
 
 ## Shape
 
-One file per system, `TRAIL.jsonl` beside `LEDGER.md` (its place follows the
-ledger folder refactor, ROADMAP "Open"). JSON Lines: append-only, one record
+One file per system, `TRAIL.jsonl` beside `LEDGER.md`. JSON Lines: append-only, one record
 per line, so two sessions merge cleanly and a half-written record damages one
 line. Never edit a line. A `decision` or `gate` is corrected by a later record with
 a new id and `"corrects":"<old id>"` (the old one is then hidden); for a
@@ -82,9 +74,7 @@ diamond.
 - `cites`: ledger labels the option rests on or would produce, for the
   tracker's links and the checker's resolution test.
 - `options` may be omitted on a record written after the fact
-  (`"backfilled":true`), when only the choice is known. This is what
-  `terrain:W43` looks like: the ledger quotes the human's pick
-  (`"route option 1"`) and the unchosen options are gone.
+  (`"backfilled":true`), when only the choice is known.
 
 ### `choice`: written when the human answers
 
@@ -183,12 +173,9 @@ spike that starts later is checked in full.
 `TRAIL.jsonl` and the ledger, prints findings, and writes `TRACKER.html` beside
 the trail (generated; never edit it). `--check` validates without writing.
 `--item` opens the page on that work item; without it the page opens on the
-item with the latest decision. The page names its item at the top, and its
-numbers (tiles, gates, standing alternatives, table) are that item's; the menu
-switches to another item or to all of them. A
-system with no trail is not an error. Run it at a checkpoint, when closing a
-spike, and whenever the human wants the picture; the page is one
-self-contained file for a browser.
+item with the latest decision. A system with no trail is not an error. Run it
+at a checkpoint, when closing a spike, and whenever the human wants the
+picture; the page is one self-contained file for a browser.
 
 **Findings** (`checker/trail/check.ts`):
 
@@ -206,57 +193,15 @@ self-contained file for a browser.
 | `trail-missing-decision` | warning | an active spike with two or more findings has no decision: capture was dropped |
 | `trail-waive` | error with no `quote`; warning when it matches nothing | a `waive` record is not ruled by the human, or has gone stale |
 
-`trail-missing-decision` is the check for the weak point named below. It cannot
-see a plan confirmed with no decision record (that needs the ledger's history),
-so it catches the pattern, not the instance.
+`trail-missing-decision` is the only backstop for dropped capture: options are
+offered in prose, so nothing can hook them, and recording them is up to the
+agent. It cannot see a plan confirmed with no decision record (that needs the
+ledger's history), so it catches the pattern, not the instance.
 
-**The page** shows, per decision, what was taken (the line) and what was
-offered and not (stubs: grey, orange for a stop or return, blue when taken up
-later, dashed with a label when parked, struck through when abandoned, a tick
-when done); a diamond for a checkpoint; a ring for a decision still awaiting an
-answer; a purple arrow from a decision to the decision whose option it follows,
-when that is not simply the decision just above it (dashed: the work went back
-to an earlier option; dotted: one arrow from each of several consecutive
-decisions asked together from the same option, the first included; hover one for what it follows,
-and it thickens along with its target); each decision's id (`d14`, its options `d14.1`) beside its node, so
-the ids in a hover can be found; and the cited
-ledger entries as links that open in VS Code. Segment length is the weight of
-the work after a decision, switchable between active time and output tokens.
-Collapsed below it: **standing alternatives** (options offered and never taken,
-merged across decisions by `revives` or by their words, with how often, when,
-how much work has gone by since the first offer, and their state) and **gates**
-(each gate's readings against its tolerance, and whether the latest moved
-toward or away from it). The tiles include "steps that read a gate" and "steps
-since a gate was last read".
-
-**Weights** come from the session transcripts the ledger hook copies to
-`<system-dir>/transcripts/<session-id>.jsonl`, for the sessions the trail names.
-The checker reads only each message's time and output-token count, never its
-text: an assistant message is counted once, and a gap of over ten minutes is the
-human away. The work after a decision runs from the human's answer to their
-answer to the next. With neither a transcript copy nor stored weights the page
-says so and draws unweighted segments.
-
-**Stored weights.** The transcript copies are large (Underworld's are 127 MB)
-and gitignored. So each time the command writes the page, it also writes
-`<system-dir>/weights/<session-id>.json` for every session the trail names: just
-the `[time, output tokens]` of each message, about 190 KB for all of
-Underworld. These are committed, and the page is regenerated from them when the
-transcripts are gone, for a fresh clone or for work resumed long after. A
-session's file is replaced only when its transcript holds more messages, so it
-never shrinks. `--check` writes nothing. A resumed item needs no special
-handling: its new decisions append to the same trail, and the page, built from
-the whole trail and all stored weights, shows its full history.
-
-## Known weak points
-
-1. **Capture depends on the agent.** Options are offered in prose, so there is
-   nothing to hook. The rule goes in `centina-realize`, and the checker's
-   warning is the only backstop. If it drops records in long sessions, the
-   fallback is the mod extracting offered options from the reply with a cheap
-   model call, which is a cost and an accuracy trade, not a free fix.
-2. **Backfilling is partial.** For existing work the ledger gives the chosen
-   path and rough anchors, not the unchosen options.
-3. **A gate is a number, and not every step has one.** That is stated, not
-   hidden, but a line whose goal is not a threshold needs a different kind of
-   `gate` (a qualitative statement with `verdict` only); not designed yet.
+**Weights** come from the session transcripts in `<system-dir>/transcripts/`
+(gitignored) and are kept in reduced form in `<system-dir>/weights/`
+(committed), which the command updates each time it writes the page; with the
+transcripts gone, the page is regenerated from those. A resumed item needs no
+special handling: its new decisions append to the same trail, and the page
+shows its full history. What the page draws and how the weights are derived
+are in `ledger-mod.md`, "The work item tracker", for the human.

@@ -17,8 +17,9 @@ question it began with. This skill exists to keep that comparison alive.
    project and `artifactsRoot`.
 2. Read `${CLAUDE_PLUGIN_ROOT}/docs/ledger.md` and
    `${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`. The measurement rules
-   are in this skill, condensed; `measurement-methodology.md` has the cases
-   behind them.
+   are in this skill ("Measuring"). The cases behind them are in
+   `docs/centina-realize-design.md`, "Evidence from Chrysalis Underworld", in
+   the Centina repository; it isn't bundled.
 3. This session's ID, for the `Session` header and the trail, is
    `${CLAUDE_SESSION_ID}`.
 4. Identify the system (`specs/<system>/`) and the spike's `W` entry
@@ -84,9 +85,8 @@ step, sort it:
 
 A step not in the confirmed plan is unplanned work (`centina-realize`,
 "Revising the plan"): a `W` entry and the human's confirmation first, never a
-paragraph appended to this entry. Appending is how one entry grew to hundreds
-of kilobytes and twenty steps, each admitted on its own merits and none
-checked against the original question.
+paragraph appended to this entry, where each step gets admitted on its own
+merits and none is checked against the original question.
 
 **A fired return condition ends the line.** Propose the return; do not
 diagnose why it fired and carry on. Continuing is a new plan with its own
@@ -203,7 +203,9 @@ since a disagreement with it is the finding.
 with `Evidence` (harness file, command, commit); the prediction's text stays.
 For `measured-false`, record which premise or inference failed. Follow
 `ledger.md`, "When a status changes". Quote every number with its conditions.
-Say `measured` only with the evidence in hand.
+Say `measured` only with the evidence in hand. Offering an idea or a likely
+outcome in conversation is fine when marked as such. Recording one as fact is
+not.
 
 **A diagnosis is a claim.** "The cause is X" is a hypothesis until measured:
 check it before reporting it as the cause or building a fix on it.
@@ -237,10 +239,3 @@ check it before reporting it as the cause or building a fix on it.
   files.
 - Don't change `ledgerHook`, and don't open a transcript without asking
   (`ledger.md`).
-
-## Lessons from use
-
-_Accumulate here as the skill is exercised. Open: the starting values of N = 2
-and of "two steps" at checkpoints are guesses; whether recording a decision
-every turn holds up over a long session or drops records; whether a
-qualitative gate needs more than a stated test and a verdict._

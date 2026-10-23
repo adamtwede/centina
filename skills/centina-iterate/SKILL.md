@@ -1,6 +1,6 @@
 ---
 name: centina-iterate
-description: Drives the interactive Centina spec-refinement loop. Runs tsc against a .centina.ts file (the interim structural-plane checker, until Centina's own checker exists), walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. When the document is clean, derives an implementation plan and writes it to PLAN.md alongside the spec. Use when the user wants to iterate on, check, fix, or resolve errors in a .centina.ts file, or references tsc/typecheck output on a spec.
+description: Drives the interactive Centina spec-refinement loop. Runs the Centina checker (tsc plus the spec-plane rules) against a .centina.ts file, walks the human through each diagnostic, distinguishes mechanical fixes from genuine design ambiguities, applies agreed fixes, and re-checks until clean. When the document is clean, derives an implementation plan and writes it to PLAN.md alongside the spec. Use when the user wants to iterate on, check, fix, or resolve errors in a .centina.ts file, or references tsc/typecheck output on a spec.
 ---
 
 # Centina Iterate
@@ -33,19 +33,16 @@ and say so to the human so the scope name is agreed, not assumed. This
 session's ID, for the `Session` header, is `${CLAUDE_SESSION_ID}`. If there is
 no ledger, the loop works as before; don't create one unless the human asks.
 
-**If `artifactsRoot`'s `specs/` has no `.centina.ts` files in it** — no
-existing config was found and setup just created one, or a config exists
-but nothing's been written into `specs/` yet — say so plainly and suggest
-`centina-session-zero` instead, before going any further. This skill
-refines a spec that already exists; with nothing to iterate on, running
-the check below either reports nothing or (worse) leaves the human staring
-at an empty, freshly created project with no sense of what to do next.
-`centina-session-zero` is the front of the funnel — it turns a prose idea
-into the component DAG and skeleton spec set this loop is meant to work
-against. This is a suggestion, not a hard redirect: a human iterating on a
-single spec they're about to hand-write, deliberately outside a full
-session-zero system, is a legitimate use of this skill on its own — if
-that's the intent, ask what the target file should be named and proceed.
+**If `artifactsRoot`'s `specs/` has no `.centina.ts` files** (setup just
+created the project, or nothing's been written there yet), say so plainly and
+suggest `centina-session-zero` before going further. This skill refines a spec
+that exists; on an empty project the check reports nothing and leaves the human
+with no next step. Session zero is the front of the funnel: it turns a prose
+idea into the component DAG and skeleton spec set this loop works on. It's a
+suggestion, not a hard redirect: iterating on a single spec the human is about
+to hand-write, outside a session-zero system, is a legitimate use of this
+skill; if that's the intent, ask what the target file should be named and
+proceed.
 
 This is the primary way a human refines a Centina spec: resolve diagnostics,
 surface ambiguities the pseudocode left implicit, settle them with the human,
@@ -53,18 +50,14 @@ repeat until the document is clean and the human is satisfied. The goal of
 each loop iteration is not just a passing check — it's a more precisely
 specified `.centina.ts` document that's closer to a real implementation plan.
 
-**Current state of the checker:** Centina's own spec-plane checker is the
-`checker/` harness bundled with this plugin. `tsc` run under the generated,
-deliberately permissive `tsconfig.json` remains part of the signal — it catches
-name resolution, arity, and shape mismatches, which is real structural-plane
-signal even though it knows nothing about `deferred`, `@agent:`, or boundary
-direction. Read `tsc`'s diagnostics with that lens: some are exactly the kind
-of gap Centina exists to surface (an undefined identifier that traces back to
-a genuinely missing step), and tsc will never flag the things only a
-spec-plane rule would (an un-enumerated `deferred` hole, a boundary door with
-inferred direction that doesn't match its name). Don't mistake a clean `tsc`
-run for a clean spec — it's a necessary floor, not the ceiling this loop is
-aiming for.
+**Reading `tsc`'s part of the signal.** The checker runs `tsc` under the
+generated, deliberately permissive `tsconfig.json` alongside its spec-plane
+rules. `tsc` catches name resolution, arity and shape mismatches, and some of
+those are exactly the gap Centina exists to surface (an undefined identifier
+that traces back to a genuinely missing step). It never flags what only a
+spec-plane rule would (an un-enumerated `deferred` hole, a boundary door whose
+inferred direction doesn't match its name). Don't mistake a clean `tsc` run for
+a clean spec: it's a necessary floor, not the ceiling this loop is aiming for.
 
 ## How to interpret a Centina spec
 
@@ -258,21 +251,20 @@ then, in this order:
   fine (illustrating a syntax point, sketching one door), but do not produce,
   fill in, or "finish" a spec — the human is the architect. If a human asks
   you to write one, decline and redirect to iterating on what _they_ write.
-  If this seems like a bottleneck, it is, deliberately. The purpose of pushing
-  the human to make code edits to a spec — even if given step-by-step instructions
-  on exactly how in some cases — is to ensure the spec can't get away from them,
-  that each edit is done with their knowledge. This is a calculated tradeoff: more
-  time now for less risk later. If this process starts to become truly onerous,
-  it may indicate a gap in the spec large enough to justify a full skeleton spec of
-  its own, which means breaking that part out into its own system and kicking off
-  a session-zero for it.
+  If this seems like a bottleneck, it is, deliberately: the human making each
+  edit, even from your step-by-step instructions, keeps the spec from getting
+  away from them, which trades time now for less risk later. If it becomes
+  truly onerous, the gap may be large enough for a skeleton of its own, so
+  suggest breaking that part out into its own system with a session zero.
 - **Rule 0a: don't offer to make spec-file edits, and push back when asked.**
   Even once a fix or a routing decision is fully settled — mechanical or
   not — don't volunteer to be the one who writes it into the file. Surface
-  what changes and why, then let the human apply it. If they ask the agent
-  to make the edit anyway, push back once (name the risk: they may be
-  offloading thinking that's meant to stay theirs), but don't refuse
-  outright if they persist after that pushback — comply and move on. This is
+  what changes and why, then let the human apply it. That includes fixing a
+  diagnostic: it marks where the human's intent is unclear or underspecified,
+  so how to resolve it is theirs to decide. If they ask the agent to make the
+  edit anyway, push back once (name the risk: they may be offloading thinking
+  that's meant to stay theirs), but don't refuse outright if they persist
+  after that pushback — comply and move on. This is
   separate from Rule 0 above: Rule 0 is about who decides a spec's meaning,
   Rule 0a is about who holds the pen once meaning is decided. The project's
   author may explicitly invoke a development-purposes override for this
@@ -292,11 +284,6 @@ then, in this order:
   satisfy by any available typing trick (e.g. don't just loosen a param's
   type, or add an `as unknown as X` cast, to make a mismatch disappear unless
   that's actually what the human decides).
-- Don't fix diagnostics yourself unless explicitly instructed or given
-  approval, and even then, see Rule 0a — push back once before complying.
-  They're designed to indicate places where the human developer's intent is
-  unclear or underspecified; the human should decide how to resolve those
-  ambiguities, not the coding agent.
 - Don't fix multiple unrelated diagnostics in one pass without re-checking in
   between.
 - If instructed to make spec edits (per Rule 0a), don't add structure to the

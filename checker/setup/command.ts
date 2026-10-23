@@ -47,7 +47,7 @@ export function runSetupCommand(argv: string[]): number {
   if (!pluginData || (!find && !pluginRoot)) {
     console.error(
       `setup: ${!pluginData ? "CLAUDE_PLUGIN_DATA" : "CLAUDE_PLUGIN_ROOT"} is not set. Claude Code sets both inside a ` +
-        "session; in a plain shell, export them first (docs/plugin-setup-procedure.md).",
+        "session; in a plain shell, export them first (docs/centina-check-setup.md).",
     )
     return 1
   }

@@ -28,9 +28,9 @@ export const BUNDLE = {
   files: ["centina.ts", "conformance.ts", "tsconfig.template.json"],
   docs: [
     "plugin-setup-procedure.md",
+    "centina-check-setup.md",
     "output-management.md",
     "ledger.md",
-    "measurement-methodology.md",
     "realize-conformance.md",
     "trail.md",
     "session-zero-routing.md",
@@ -44,7 +44,9 @@ export const BUNDLE = {
 // install-time artifacts the SessionStart hook regenerates in
 // CLAUDE_PLUGIN_DATA on first use — don't ship a stale copy. The engine lays
 // dev types into .claude-plugin/types for tsconfig.hooks.json; not the bundle.
-const EXCLUDED = new Set([".claude-plugin/types", "checker/package-lock.json"])
+// scripts/context-audit analyzes this machine's session transcripts for
+// docs/context-audit.md; it's a development tool, not something a plugin user runs.
+const EXCLUDED = new Set([".claude-plugin/types", "checker/package-lock.json", "scripts/context-audit"])
 
 /** Written beside the installed plugin by scripts/session-start-install.mjs; read by hooks/register.tsx. */
 const DATA_POINTER = ".centina-data"
@@ -205,7 +207,7 @@ async function main() {
   console.log()
   console.log("Claude Code skills invoke the checker via ${CLAUDE_PLUGIN_ROOT} — nothing to")
   console.log("do there. To run it yourself from a terminal it needs CLAUDE_PLUGIN_ROOT and")
-  console.log("CLAUDE_PLUGIN_DATA set, which only Claude Code sets; see docs/plugin-setup-procedure.md,")
+  console.log("CLAUDE_PLUGIN_DATA set, which only Claude Code sets; see docs/centina-check-setup.md,")
   console.log("\"Running it without a session\".")
   return 0
 }

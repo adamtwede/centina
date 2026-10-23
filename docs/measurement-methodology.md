@@ -1,8 +1,10 @@
 # Measurement methodology
 
-Used by `centina-realize`. Imperative on purpose. Every rule below comes from
-a failure in a real project; see `docs/centina-realize-design.md` in the
-Centina repository (not bundled) for the cases.
+The measurement rules in full. They ship condensed in `centina-spike`'s
+"Measuring" section, and this page is not bundled with the plugin. Imperative
+on purpose. Every rule below comes from a failure in a real project; see
+`centina-realize-design.md`, "Evidence from Chrysalis Underworld", for the
+cases.
 
 ## When it applies
 

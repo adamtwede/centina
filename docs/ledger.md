@@ -1,11 +1,8 @@
 # The system ledger
 
-Working rules for `centina-session-zero`, `centina-iterate` and
-`centina-realize`. Imperative on purpose; see "Why this format" below for the
-evidence behind it. This document's intended audience is a coding
-agent running a Centina session, but a curious human is welcome to read it
-to better understand the ledger system, and make any changes they
-need.
+Working rules for `centina-session-zero`, `centina-iterate`, `centina-realize`
+and `centina-spike`. Imperative on purpose; "Why this format" below has the
+reason.
 
 ## What it is
 
@@ -33,38 +30,14 @@ name is known, and starts it with a one-line title (`# Ledger: <system>`).
 
 ## Why this format
 
-Drawn from real-world use cases, which surfaced the failure modes this format 
-exists to close. Most had no cross-reference to follow at the time the new decision 
-was recorded, so a rule that only fires when a new proposal is recorded would not 
-have caught them:
-
-1. **Unlabeled claim.** A prose line ("Bathymetry is 2.5D") had no label; a
-   proposal rejected it by name a day later, but nothing pointed back to the
-   line. It stood unstruck for eleven days, and a terrain generator was
-   designed against it.
-2. **Status change without a new proposal.** Two entries still read `OPEN`
-   after ratification, because ratification was written in a separate block.
-3. **Only one copy amended.** A fix landed in one table row; a second,
-   unstruck row making the same claim survived a doc migration and stood
-   wrong for months.
-4. **Dependency on a value, not a decision.** A spec comment quoted a figure
-   a later decision changed; nothing tied the comment to the decision, and it
-   stayed wrong for a week.
-5. **Implicit contradiction.** One proposal contradicted an earlier one
-   without naming it. Found a week later, during implementation.
-6. **Stale reference.** A cross-reference pointed to "risk 16" as its
-   successor; after renumbering, risk 16 was unrelated content.
-
-Restructuring the docs into separate current-state and history files did not
-fix case 3 — the stale line survived because carrying items forward meant
-copying their text. The problem was **duplication** (the same claim restated
-in several places), not the number of files. Hence: entries are append-only,
-status lives in exactly one place (the header), and every derived view
-(`LEDGER-INDEX.md`, `STANDING.md`) is generated, never hand-copied.
-
-The label scheme is drawn from legislative drafting (pinpoint citation,
-amendments as separate instruments, no renumbering) and IETF RFCs
-(`Obsoletes` / `Updates`, with reverse links recorded on the old document).
+In real use, a fix landed in one copy of a claim while a second copy of the
+same claim stood wrong for months. Restructuring the docs into separate
+current-state and history files did not fix it — the stale line survived
+because carrying items forward meant copying their text. The problem was
+**duplication** (the same claim restated in several places), not the number
+of files. Hence: entries are append-only, status lives in exactly one place
+(the header), and every derived view (`LEDGER-INDEX.md`, `STANDING.md`) is
+generated, never hand-copied.
 
 ## Entry format
 
@@ -117,26 +90,10 @@ file's scope. Everywhere else, including this ledger and ARCHITECTURE.md,
 always write the qualified label. Cite another system's label as
 `<system>/<scope>:<label>`.
 
-A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`
-only at `error` when its letter and number match a real entry somewhere in
-this system, under whatever scope — almost certainly a citation that lost
-its scope prefix. One that matches nothing anywhere is reported at
-`warning`: coincidental prose (a test name, a grade, a model number) that
-just happens to be letter-then-digits, which every new letter makes more
-likely. This matters because ledger bodies are append-only (see "Entry
-format"): an old line can't be edited to satisfy a check that starts firing
-on it later, so that case can never block.
-
-A match is dropped entirely — no finding, not even a `warning` — when every
-matching entry is `Date`d after the entry containing the token: a citation
-can't name something that didn't exist yet when it was written, so that's
-not just probably prose, it's provably prose, and a permanently-true
-`warning` on a line that can never be edited is pure noise once it's
-proven. (Loose lines outside any entry, and citations in files other than
-the ledger, have no containing `Date` to compare against, so they keep the
-existence-only rule above.) Same-day counts as "could have existed" and
-stays an `error`; a missing or malformed `Date` on either side does too,
-rather than guessing.
+A bare-looking token (`A2`, `R1`, ...) found in prose is `ledger-bare-label`:
+an `error` when its letter and number match a real entry somewhere in this
+system, under whatever scope (almost certainly a citation that lost its scope
+prefix), and a `warning` when it matches nothing.
 
 ### Letters and statuses
 
@@ -269,10 +226,10 @@ requirements:
   `deferred`. Not a `Q`, not a `P`, not a phase's out-of-scope part, and not
   a `W` that is `done`.
 
-A member that names **nobody** is a warning. Blocking on it would push an
-author to cite whichever `W` is handy for a member no phase covers yet, and a
-citation nobody means is the thing this check exists to catch. A label that
-is **wrong** — unresolvable, not a `W`, or a `W` that closed — is an error.
+A member that names **nobody** is a warning. Don't silence it by citing
+whichever `W` is handy: a citation nobody means is the thing this check exists
+to catch. A label that is **wrong** — unresolvable, not a `W`, or a `W` that
+closed — is an error.
 
 **Rule citations** name what a guard in working code enforces: a rejected
 input, a clamp, a refusal. **The rule is always an `R`.** A `Q`, a `P` or a
@@ -304,11 +261,8 @@ however it reads, and so is any throw an unbuilt member reaches before its
 last. A guard refusing a capability because nobody built it yet
 is still a guard: give it an `R` to cite (see "Goals and standing rules").
 
-Ownership citations fail in one direction. The string never changes and the
-ledger does, so a citation turns from a pointer at whoever will build the
-thing into a note about why the member is empty, with no edit anywhere and
-nothing in an invalid state at any moment. The check therefore runs on every
-ledger write, which is when a status moves.
+An ownership citation goes stale with no edit to the code, when its `W`
+closes, so the check runs on every ledger write, which is when a status moves.
 
 ## The checker
 
@@ -344,14 +298,10 @@ entry per system:
 }
 ```
 
-`hostRoot` and `artifactsRoot` are relative to the directory holding
-`.centina/` (which is the artifacts root), so the committed file is right on
-every machine; `hostRoot` is the host project root, `..` when artifacts live in
-a `centina/` folder at its top. An absolute path still works on the machine that
-has it and draws a warning; one that machine lacks is an error when the system
-names `buildRoots` (they cannot be found, so build code is not being checked).
-The checker keys systems from where the config sits and does not read
-`artifactsRoot`.
+`hostRoot` and `artifactsRoot` are set up by `plugin-setup-procedure.md` ("The
+config"). An absolute `hostRoot` draws a warning, and one this machine lacks is
+an error when the system names `buildRoots` (they cannot be found, so build
+code is not being checked).
 
 A system is keyed by its directory's path relative to the artifacts root, not by
 its name: a system lives wherever a `LEDGER.md` sits, spec trees nest, and two
@@ -422,15 +372,12 @@ every status change, at every gate, and before every derived-doc write.
   itself, but it means the existing stale-citation check catches it
   automatically the moment one of those cited entries is later superseded —
   the rule's claimed context stops being silently taken for granted.
-- **A guard in build code cites an `R`. Whatever settled the rule may sit
-  beside it; nothing may sit there alone.** `answered`, `ratified` and `done`
-  all mean the entry finished, not that the ruling stopped holding, so a
-  guard citing only a `Q`, a `P` or a `W` can never read as stale. `R` is the
-  only letter with `retired`. So an answered `Q` that leaves a guard behind
-  produces an `R`, and so does a `done` step that ruled one; keep the
-  original entry beside the `R` as the provenance of the decision. A guard
-  citing a phase's out-of-scope part is the same case with less to recommend
-  it, since phase scope expires with the phase.
+- **A guard in build code cites an `R`** ("Citations from build code"). So an
+  answered `Q` that leaves a guard behind produces an `R`, and so does a
+  `done` step that ruled one; keep the original entry beside the `R` as the
+  provenance of the decision. A guard citing a phase's out-of-scope part is
+  the same case with less to recommend it, since phase scope expires with the
+  phase.
 - A rule that may not survive is `provisional` with a `Review`, which is a
   fine thing for a guard to cite. Only `retired` and `superseded` make a
   citation stale.
@@ -443,65 +390,52 @@ every status change, at every gate, and before every derived-doc write.
 
 ## Axioms
 
-An `A` records an authored, quantitative given about the thing being
-specified — an ice-shell thickness, an ambient noise floor, a power-scaling
-law — not a rule about how the project must behave. What tells the two
-apart:
+An `A` records an authored, quantitative given about the thing being specified
+(an ice-shell thickness, an ambient noise floor, a power-scaling law), not a
+rule about how the project must behave. What tells the two apart:
 
-- **Provenance runs the opposite way from a rule's.** A rule's authority is
-  "we decided" (see above). An axiom's authority comes from outside the
-  project's own decisions — real-world science and source material, but
-  also an authored engineering given bounded by a plausible external range
-  (a hull length bounded by what fits through the ice, a sensing length
-  bounded by what's physically deliverable) — chosen from within that
-  range, not derived and not decided from scratch.
-- **A rule is categorical; an axiom is a value picked from a range.** There's
-  no "why this number and not a nearby one" for a rule beyond a design
-  tradeoff. For an axiom there always is: record the range and its source in
-  the body (as lettered parts), and whether the value was selected
-  deliberately or only inherited from an earlier axiom — later axioms are
-  constrained by ones already chosen, unless there's a strong
-  project-goal-level reason otherwise.
-- **A rule is `Enforced-by` a guard; an axiom is instantiated, not
-  enforced.** Code reads an axiom's value; nothing refuses a violation of
-  it. A guard that keeps some *derived* value inside an axiom's range is
-  itself an `R`, layered on top — the axiom being right isn't something code
-  checks.
-- **A value that's derived from an axiom, not authored, is not itself an
-  axiom** — even if it's quantitative (a detection range, a speed penalty).
-  Record it as an `F` (`predicted`/`measured`, with `Evidence`) that cites
-  the axiom it derives from via `Premises`, so it's findable the same way
-  any other dependent is when the axiom moves.
+- **An axiom's authority comes from outside the project.** A rule's is "we
+  decided". An axiom's is real-world science and source material, or an
+  authored engineering given bounded by a plausible external range (a hull
+  length bounded by what fits through the ice, a sensing length bounded by
+  what's physically deliverable). The value is chosen from within that range,
+  not derived and not decided from scratch.
+- **A rule is categorical; an axiom is a value picked from a range.** So an
+  axiom always has an answer to "why this number and not a nearby one", where a
+  rule has only a design tradeoff. Record the range and its source in the body,
+  as lettered parts, and whether the value was selected deliberately or only
+  inherited from an earlier axiom. Later axioms are constrained by ones already
+  chosen, unless there's a strong project-goal-level reason otherwise.
+- **A rule is `Enforced-by` a guard; an axiom is instantiated, not enforced.**
+  Code reads its value, and nothing refuses a violation of it. A guard that
+  keeps some *derived* value inside an axiom's range is itself an `R`, layered
+  on top; whether the axiom is right, no code checks.
+- **A value derived from an axiom, not authored, is not an axiom,** even when
+  it's quantitative (a detection range, a speed penalty). Record it as an `F`
+  (`predicted`/`measured`, with `Evidence`) whose `Premises` cite the axiom, so
+  it's found with every other dependent when the axiom moves.
 
-Statuses: `provisional` (not yet sourced — the placeholder case that used to
-get misfiled as `Kind: limit` on an `R`), `ratified` (a sourced value in
-effect), `superseded` when the authored value changes. `retired` is for the
-rare case where the axiom stops applying at all (the thing it described was
-cut), not for a value that changed — ending at `retired` is not an axiom's
-ordinary outcome the way it is for `Kind: limit`; an axiom normally keeps
-getting superseded as the authored value moves.
+Statuses: `provisional` (not yet sourced), `ratified` (a sourced value in
+effect), `superseded` when the authored value changes, which is an axiom's
+ordinary path. `retired` is only for an axiom that stops applying at all (the
+thing it described was cut), never for a changed value; unlike a `Kind: limit`,
+an axiom doesn't normally end there.
 
-**Dependency direction is locked one way, mechanically.** An axiom's
-`Premises` may only cite other axioms — the checker rejects any other letter
-there (`ledger-malformed`). Everything else cites `Premises` freely,
-including axioms (see the `R` bullet above). This is deliberate: letting an
-axiom cite a rule would let authored ground truth start quietly depending on
-an internal decision, the reverse of what an axiom is for.
+**An axiom's `Premises` may cite only other axioms**; the checker rejects any
+other letter there (`ledger-malformed`). Everything else may cite axioms in
+`Premises` freely. Letting an axiom cite a rule would make authored ground
+truth depend on an internal decision, the reverse of what an axiom is for.
 
-**"Depended on by" is a computed view, not a field.** Nothing hand-maintains
-a reverse pointer on the axiom itself — that would reintroduce the
-one-copy-amended drift "Why this format" exists to close, just on a new
-field, since it'd be added to incrementally by different entries at
-different times rather than written once by whoever supersedes something.
-What depends on an axiom is found by scanning for `Premises` citations that
-resolve to it, the same way `LEDGER-INDEX.md`'s "Affected work items" is
-generated from `Depends-on`/`Premises` today.
+**"Depended on by" is computed, not a field.** Nothing maintains a reverse
+pointer on the axiom; its dependents are the entries whose `Premises` cite it,
+found the way `LEDGER-INDEX.md`'s "Affected work items" is from
+`Depends-on`/`Premises`.
 
 **`Tags`** groups axioms into project-defined categories (e.g. `world`,
-`vessel`) for `STANDING.md` and human readability: free text,
-comma-separated, `A`-only, no fixed vocabulary, and an axiom can carry more
-than one. If a project wants axioms restricted to a single tag, record that
-as the project's own `R`; the checker doesn't enforce it.
+`vessel`) for `STANDING.md` and human readability: free text, comma-separated,
+`A`-only, no fixed vocabulary, and an axiom can carry more than one. A project
+that wants one tag per axiom records that as its own `R`; the checker doesn't
+enforce it.
 
 ## Transcripts
 

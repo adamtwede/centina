@@ -115,6 +115,22 @@ The page names its item at the top, then shows tiles for what the work has cost 
 
 If the checker can't run, it opens the last page it generated and says why in a toast. The very first time, the mod needs one session start to learn where the checker lives, because the install hook records that location for it. If the trail has errors, the page is still written and the toast tells you to read them.
 
+### What the page shows
+
+The page is about one work item, named at the top, and its numbers (the tiles, the gates, the standing alternatives, the table) are that item's. The menu switches to another item, or to all of them.
+
+The main picture is the tree of decisions. At each one, the option you took continues the line, and the ones you didn't take hang off it as stubs. A stub is grey, orange when it was a stop or a return, blue when you took it up later, dashed and labeled when it's parked, struck through when it was abandoned, and ticked when it's done. A diamond marks a checkpoint, and a ring marks a decision still waiting on your answer. Each node has its decision's id beside it (`d14`, with its options `d14.1` and so on), so an id you see in a hover can be found on the page. The ledger entries a decision cites are links that open in VS Code.
+
+Usually a decision follows from the one just above it. When it doesn't, a purple arrow runs from it to the decision whose option it follows. A dashed arrow means the work went back to an earlier option. A dotted one means several consecutive decisions were asked together from the same option, and each of them, the first included, gets its own arrow. Hover an arrow to see what it follows, and it thickens along with its target.
+
+A segment's length is the weight of the work after that decision, and you can switch it between active time and output tokens. Two panels sit collapsed below the tree. **Standing alternatives** lists the options that were offered and never taken, merged across decisions by `revives` or by their words, with how often and when each was offered, how much work has gone by since the first offer, and its state. **Gates** shows each gate's readings against its tolerance, and whether the latest one moved toward it or away. Among the tiles are "steps that read a gate" and "steps since a gate was last read".
+
+### Where the weights come from
+
+The weights come from your session transcripts. A plugin hook copies each session's transcript to `<system-dir>/transcripts/<session-id>.jsonl`, and the tracker reads the ones for the sessions the trail names. It reads only each message's time and output-token count, never the text. An assistant message is counted once, and a gap of more than ten minutes counts as you being away. The work after a decision runs from your answer to it until your answer to the next one.
+
+The transcript copies are big (Underworld's come to 127 MB), so they're gitignored. Each time `centina-check trail` writes the page, it also writes `<system-dir>/weights/<session-id>.json` for every session the trail names, holding just the time and output tokens of each message. For all of Underworld that's about 190 KB. Those files are committed, and the page is rebuilt from them when the transcripts are gone, on a fresh clone or when you come back to the work long after. A session's file is replaced only when its transcript holds more messages, so it never shrinks. With neither a transcript copy nor stored weights, the page says so and draws the segments unweighted.
+
 ## Setup
 
 There isn't any beyond installing the plugin. The mod is declared in the plugin's `hooks/hooks.json` and loads with it, so [installing Centina](/install-claude-code) is enough. Mods are a Claude Code feature; if your build doesn't load them, you simply won't see the band.

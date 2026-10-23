@@ -26,9 +26,7 @@ to iterate: the human has a _system_ in mind and needs it turned into a
 in. The lineage: **ARCHITECTURE.md + skeleton spec set** (here) →
 **`<component>.centina.ts`** filled in (`centina-iterate`) → **PLAN.md** per
 boundary-set. The job is to make the _shape_ right early, by resolving the
-seam contracts first. Why, in full:
-`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Why session zero
-exists".
+seam contracts first.
 
 ## The one sanctioned write, and its single governing rule
 
@@ -193,7 +191,7 @@ territory for fill/iterate, not session zero — declare the door and move on.
 
 ## Cross-cutting discipline
 
-The first five have their full text in
+The first four have more in
 `${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Cross-cutting
 practices"; read it the first time one applies.
 
@@ -228,11 +226,10 @@ practices"; read it the first time one applies.
   happen, not at the end of a phase (prose can be re-derived; entries cannot).
   Follow `ledger.md`'s "When a status changes" on every change and its "Sweeps"
   at every gate; never open a session transcript without asking, and warn about
-  concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` live in
-  `specs/<system>/` beside `ARCHITECTURE.md`, never directly in `specs/` or at
-  the repo root; the state file is only a run frame, and ledger length is not a
-  reason to split it (`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). Use the system name the human gave; if none,
-  ask before the first write to disk.
+  concurrent sessions. The ledger and `SESSION-ZERO-STATE.md` (only a run
+  frame) live in `specs/<system>/`; never split the ledger unasked
+  (`${CLAUDE_PLUGIN_ROOT}/docs/output-management.md`). Use the system name the
+  human gave; if none, ask before the first write to disk.
 - **Explain labels and formula terms.** The first time a ledger label comes up,
   say what it is in one clause ("sz:P4, cap escalation depth at 3 attempts");
   restate a reminder when more than 10 labels of the same letter have come up
@@ -313,8 +310,8 @@ or terminal source changes.
 
 ## Lessons from use
 
-Accumulated in `${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`,
-"Lessons from use" (the first run, Wordboard, and the 2026-07 test-case
-traces). The one that bears on every run: phase 3's _what happens on the
+Directives earned in use are in
+`${CLAUDE_PLUGIN_ROOT}/docs/session-zero-reference.md`, "Lessons from use".
+The one that bears on every run: phase 3's _what happens on the
 empty / not-found / failure case?_ is the highest-yield question in the phase.
 Ask it first at every seam, not as a cleanup pass.
