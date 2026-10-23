@@ -169,6 +169,41 @@ accepting a payload is.
 This constrains *direction* (a provenance concern, on-principle) rather than *shape*
 (a schema concern — the thing deliberately kept out of `type` declarations).
 
+### Ambiguous cases
+
+Often, it may be desirable to model a boundary door as swinging both ways — that is, as needing (or appearing) to do both a write and a read. Here is an example:
+
+```typescript
+/**
+ * @boundary
+ * The user, as WordboardMain's far side. Read doors capture user intent, write
+ * doors present to the user, exchange doors prompt-and-return.
+ */
+export declare class User {
+  // ...
+  // Present the available formats; return the user's pick.
+  exchangeExportFormat(formats: ExportFormat[]): ExportFormat
+  // ...
+}
+```
+
+Centina will not object to this, but it offers the temptation to thoughtlessly misuse the latitude given by the checker every time an ambiguous case such as this arises. Instead, resist the temptation, and ask yourself: What am I *saying* about this part of the boundary? What is the affordance? An exchange? A transformation? A verification step? In the example above, I consider `exchangeExportFormat` to be an example of an "exchange" door, in which we hand some information through the boundary door with an expectation that we will receive something back in return — a trade. However, what about:
+
+```typescript
+/**
+ * @datasource
+ * Read door: `suggest`, candidate words for a spelling attempt. An empty array
+ * means no matches were found (ratified empty-case).
+ */
+export declare class AlgorithmicSuggester {
+  suggest(word: string): Suggestion[]
+}
+```
+
+Is this the same thing? Perhaps. Perhaps not. This is a prime example of where an agent would likely fail to find the intent behind your design without your guidance. In Centina, semantics matter at least as much as design and data flow.
+
+The point is, it's important to be intentional about the *meaning* behind the names you use because such doors introduce extra ambiguity. If the case doesn't seem straightforward, it may indicate the presence of hidden affordances that should be drawn out explicitly into the boundary rather than spanned with a single two-way door.
+
 ## Guidelines: drawing accurate boundaries
 
 The hard part for a human writing something that feels like code is leaning *away*
