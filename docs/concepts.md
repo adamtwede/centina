@@ -42,7 +42,7 @@ The second is Centina's own spec-plane checker (`checker/`, run with `npm run ch
 
 A Centina spec is a durable piece of software in its own right, not a throwaway prompt. Once a spec is clean, the implementation plan (`PLAN.md`) should follow from it *pseudo*deterministically (the *details* might differ, but the *meaning* is the same). Hand the same frozen spec to two different agents and they should come back with substantially the same plan, because the meaning has already been pinned down. All that's left is carrying it out, and even that part is well-defined, tightly controlled, and clearly marked.
 
-It helps to think of a Centina spec as "code" for a coding-agent "runtime." The spec is the program, the agent is the interpreter, and PLAN.md and the eventual implementation are the output. Like the n-body integrator in [Why](/why#the-error-floor), this puts a re-grounding checkpoint between intent and implementation, a structured place where accumulated ambiguity gets forced to the surface and corrected before it compounds into code. Every iteration on the spec is one short, verified step.
+It helps to think of a Centina spec as "code" for a coding-agent "runtime." The spec is the program, the agent is the interpreter, and PLAN.md and the eventual implementation are the output. Like the forecast cycle in [Why](/why#the-error-floor), this puts a re-grounding checkpoint between intent and implementation, a structured place where accumulated ambiguity gets forced to the surface and corrected before it compounds into code. Every iteration on the spec is one short, verified step.
 
 ### Keeping the agent in its lane
 
