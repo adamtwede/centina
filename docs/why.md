@@ -4,15 +4,19 @@
 
 ### The error floor
 
-Start with what an AI model actually is. A coding agent is a pattern-recognizer trained on an enormous amount of noisy, chaotic data. That training is what makes it powerful. It's also what makes it, formally, a chaotic system: its outputs are extremely sensitive to conditions we can feasibly neither fully specify nor fully observe. Chaotic systems have a property that no amount of engineering removes. There's a floor on how much error you can get rid of. However sophisticated the model gets, some error will always remain in what it produces, in the aggregate.
+Start with what a coding agent actually does when you hand it a task. It reads what you wrote and produces the most plausible program it can that fits. The trouble is that prose almost never pins down a single program. Every sentence admits several readings that are all consistent with everything you said, and some of the questions it raises are ones you haven't answered yet, even in your own head. The agent has to pick anyway, and change a word of the prompt and it may well pick differently. It can't tell a decision you made from one you never got around to, because the difference isn't in the text.
+
+That's where the floor comes from. A better model makes better guesses, but a guess at a decision nobody made is still a guess, and no amount of capability recovers information that was never in the input. However sophisticated the model gets, some error will always remain in what it produces. Not because the model is weak, but because the job, as posed, is underdetermined.
 
 Two related things follow, forming a deleterious feedback loop:
 
 1. As the outputs get more sophisticated, the errors get harder to spot. A crude mistake announces itself. A subtle one doesn't. A plausible assumption, an edge case that's quietly wrong, an interface that's *almost* right: these hide inside work that otherwise reads as correct. Perversely, the better the model, the more its errors look like competence.
 
-2. These uncaught errors compound, invisibly, until they cross some threshold where the failure is finally obvious. The failure is obvious by then, but where it came from is not. It may be impossible in practice to trace where the error started, and every attempt to fix it, by hand or with an agent, risks adding more. At that point you aren't debugging, you're sifting a mountain of accumulated drift.
+2. These uncaught errors compound. Each guess becomes context for the next one, so later work gets built on top of decisions nobody checked, invisibly, until it crosses some threshold where the failure is finally obvious. The failure is obvious by then, but where it came from is not. It may be impossible in practice to trace where the error started, and every attempt to fix it, by hand or with an agent, risks adding more. At that point you aren't debugging, you're sifting a mountain of accumulated drift.
 
-So how do you live with that? Nobody has a complete answer yet, but other fields that deal with chaotic systems offer a clue. Consider the n-body problem in astrophysics, which asks how a group of bodies move under each other's gravity. For three or more bodies there's no general analytical solution, no formula that gets you to the answer in one leap. Instead the problem is worked numerically. It's solved over and over across short intervals of time, and the trajectory is re-grounded at every step so error never has room to grow before it's corrected. There's no shortcut. There's only the discipline of taking small, verified steps.
+So how do you live with that? Other fields have been living with a version of this problem for a long time, and weather forecasting is the clearest example. In the 1960s Edward Lorenz found that even a simple model of the atmosphere is chaotic: tiny differences in the starting conditions grow until, a week or two out, the forecast is worthless. A better model pushes that horizon back, but it can't remove it. So forecasters don't try for one perfect run. Every few hours they fold fresh observations of the real atmosphere back into the model (the field calls this data assimilation) and pull the forecast back toward what's actually happening before the error has room to grow.
+
+Notice what does the correcting. It isn't another model run. Running the same model many times tells you how uncertain you are, but every run shares the same blind spots, so none of them can pull the others back toward the truth. Only a reading from the real thing can do that.
 
 <p align="center">
   <picture>
@@ -22,7 +26,7 @@ So how do you live with that? Nobody has a complete answer yet, but other fields
   </picture>
 </p>
 
-Centina is a bet that coding with agents needs some version of that same discipline. Not one heroic prompt that leaps from idea to implementation, or unleashing an army of agents in the hopes they can keep each other out of trouble, but frequent, structured re-grounding of what you meant against something that can be checked, before the errors have room to grow beyond the dragons at the edge of the map.
+Centina is a bet that coding with agents needs that same discipline, and that the real thing, here, is you. Your intent is the only place where what you meant actually lives. Not one heroic prompt that leaps from idea to implementation, or an army of agents in the hopes they can keep each other out of trouble (they're all missing the same information, so the best they can do is ground each other against their own drift), but frequent, structured readings of what you meant, taken against something that can be checked, before the errors have room to grow beyond the dragons at the edge of the map.
 
 ### The practical failure: over-competence
 
@@ -63,6 +67,6 @@ A good planning conversation and a Centina spec are after the same thing: gettin
 | **What it leaves behind** | A transcript in your scrollback. It evaporates.                     | A durable, versioned, mechanically checked artifact that a fresh agent can pick up cold.                |
 | **Who decides meaning**   | The agent can slip a decision into fluent prose and nobody notices. | Anything the human didn't decide shows up as a visible hole, and the checker won't pass it as resolved. |
 | **Deferral**              | "We'll figure it out later" becomes a dropped thread.               | A typed hole with an explicit route, meticulously tracked in a ledger until it's closed.                |
-| **Re-grounding**          | Depends on remembering to be careful.                               | Built into the structure. It's the n-body discipline: correct before error compounds.                   |
+| **Re-grounding**          | Depends on remembering to be careful.                               | Built into the structure. It's the forecaster's discipline: take a fresh reading before error compounds.                   |
 
 For an experienced developer, this isn't overhead. It's leverage. It's a way to keep a powerful coding model on a short leash while still using everything it's good at, and blows the ceiling off what you can build.
