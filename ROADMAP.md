@@ -573,10 +573,14 @@ Tracks Centina work.
   the rule is caught either way, since that one is triggered by a ledger edit.
   Left alone until it bites.
 
-- **Head-to-head validation** (from `docs/fit-validation.md`): prose vs.
-  Centina on the same anchor task, both handed to a fresh agent, comparing the
-  implementation plans (goal-3 evidence). The planned third arm (from-scratch
-  AISL) was mooted by the pivot.
+- **Head-to-head validation** (`docs/head-to-head.md`): three arms (prose,
+  an ablation that keeps Centina's elicitation but writes markdown, and
+  Centina) on six distilled tasks, with an agent playing the human against a
+  written intent. One task (flow) is carried through to implementation, as a
+  2×2 of markdown/Centina × flow in comments/flow as code. A separate probe
+  measures authoring error on the hill-climbing loop itself, with the author
+  as the human. Frame drafted 2026-10-23; open author decisions are marked in
+  the doc. Supersedes the two-arm plan in `docs/fit-validation.md`.
 - **Ledger provenance** (`docs/ledger.md`): supersession
   tracking, scoped labels with structured entry headers, a lint mode for
   `bin/centina-check`, and session-transcript capture. Agreed and built
@@ -592,6 +596,18 @@ Tracks Centina work.
   test: Underworld.
 - Exhaustiveness on `switch` over spec enums — tsc doesn't require it; decide
   whether the checker should (AISL's match rule said yes).
+- **Real-word name mismatches.** `hill-climbing-loop.centina.ts` has
+  `const autonomous = anonymousMode()`, where the header's prose says
+  "autonomous mode". Nothing flags it: `namingConsistency` watches only
+  `Unshaped` brands, `@external` sources and `@agent` labels, and
+  `anonymousMode` resolves and is spelled the same at every use, so it is a
+  real word in the wrong place, not drift. Decide first whether Centina should
+  claim to catch this class at all. Candidate mechanisms: a narrow checker
+  heuristic (a binding name that is a near-miss of the callee it's assigned
+  from), or a `centina-iterate` pass where the agent checks identifiers
+  against the spec's own prose. Leave the instance unfixed until the
+  hill-climbing probe in `docs/head-to-head.md` has run, since the probe uses
+  the spec as ratified.
 - The remaining fit-validation candidate set (monorepo dependency-impact tool,
   game systems, synthetic seam cases) — paused during the pivot; resume once
   the checker can participate.
