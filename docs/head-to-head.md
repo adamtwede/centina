@@ -47,6 +47,13 @@ ledger), and the sample sizes below are sized for that, not for significance.
 - **C — Centina.** The plugin as shipped: skills, checker, ledger. Ends in
   `PLAN.md`.
 
+**The treatment is frozen at a git tag** (settled 2026-10-24). Arm C's
+plugin, the C-nofill instruction and the ablation skill are all built from one
+tag, cut from `main` once the ablation skill and the C-nofill instruction are
+written, and before any code for behavioral obligations
+(`behavioral-obligations.md`) lands. Development after the tag never reaches
+the runs. Obligations get their own arm in a later round.
+
 B isolates the claim only Centina makes: that a typed artifact the checker
 holds to account catches what disciplined conversation alone misses. If B
 matches C, the effect is elicitation, and the skills' conversation rules are
@@ -434,6 +441,7 @@ Read in this order. An instrument failure is not a result.
 
 0. **Frame** — this document.
 1. **Build** — the list above, plus the trace suite's positive control.
+   Ends by cutting the tag the treatment is frozen at (see "Arms").
 2. **Calibrate** — persona against the author; judge against the author.
 3. **Run.**
 4. **Synthesize** — findings in the log below; what changes, in `ROADMAP.md`.

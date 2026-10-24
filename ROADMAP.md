@@ -580,7 +580,16 @@ Tracks Centina work.
   2×2 of markdown/Centina × flow in comments/flow as code. A separate probe
   measures authoring error on the hill-climbing loop itself, with the author
   as the human. Frame drafted 2026-10-23; open author decisions are marked in
-  the doc. Supersedes the two-arm plan in `docs/fit-validation.md`.
+  the doc. Supersedes the two-arm plan in `docs/fit-validation.md`. The
+  treatment is frozen at a git tag, cut before any obligation code lands.
+- **Behavioral obligations** (`docs/behavioral-obligations.md`): a hole for
+  behavior. An `obligation(...)` primitive names a door or hole (so tsc
+  resolves it) and routes a property its signature can't express: unrouted,
+  `spec`, `open`, `test` (realize owes a test citing it with `@verifies`) or
+  `assumed` (only on `@external` doors). Door questions in session-zero and
+  iterate record unanswered ones as unrouted obligations. Designed
+  2026-10-24, signature prototyped, not built. Traces wait for the
+  hill-climbing probe.
 - **Ledger provenance** (`docs/ledger.md`): supersession
   tracking, scoped labels with structured entry headers, a lint mode for
   `bin/centina-check`, and session-transcript capture. Agreed and built
