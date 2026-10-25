@@ -267,6 +267,26 @@ counts as an unauthorized decision, even though the outcome matches intent:
 it is the same over-competence Centina exists to catch, and it was right only
 by luck.
 
+**The trace seam** (settled 2026-10-25). An executable suite needs one fixed
+interface to call, and implementers working from different sources would
+otherwise produce differently shaped programs. Every implementer, in every
+cell and in the probe, is given the same minimal I/O contract word for word: a
+language, an entry point, and the external calls the flow may make (prompting
+an engine, the reviewer's verdict, the memory lookup, the human hand-off,
+writing the record), each with its signature. It names what can happen at the
+system's edge, never when, how often or in what order. The mocks script those
+calls and log every one, so a trace is a mock script, the expected call log,
+and the expected final record. The call names and the record's shape are
+chosen so they reveal no more of the flow than the prose header does.
+
+The contract hands the prose source structure it wouldn't otherwise have, and
+the prose source gains most from it. That cuts against the ratified
+predictions, so the bias is conservative. It is also close to what an author
+would hand an agent in a prose-only workflow anyway. The alternatives are
+weaker: an adapter agent wiring each implementation to the suite could quietly
+fix the bugs being measured, and a judge walking traces through code loses
+the objective pass rate.
+
 **Positive control for the trace suite.** Before any run, the suite runs
 against a reference implementation (must pass) and against a deliberately
 broken one, for example one where a recursive retry returns into an outer loop
@@ -332,18 +352,26 @@ depth and a filename in `iterate-reference.md`; neither gives away the flow.
    user `CLAUDE.md`, memory or other plugins load. Only that run's input
    directory is mounted, built fresh from a manifest, with no `.git`. Arm C's
    image carries the plugin as bundled; the others carry none.
-2. **Network blocked except the Anthropic API.** This is the control that
-   holds, since `Bash` can reach the network whatever the tool settings say.
-   `WebFetch` and `WebSearch` are also denied in settings, as a second layer.
-   The checker's dependencies are installed when the image is built.
+2. **Network blocked except the Anthropic API.** Each run container sits on
+   an internal Docker network whose only exit is a proxy container with an
+   allowlist; the allowlist is the smallest set of hosts a logged pilot run
+   needed (see "Authentication"). This is the control that holds for
+   anything run in the container, since `Bash` can reach the network
+   whatever the tool settings say, and it stops `WebFetch`, which runs in the
+   container. It does not stop `WebSearch`, which runs on Anthropic's side
+   over the allowed API host: for search, the settings denial is the only
+   control, and the tool-call audit below is its check. The checker's
+   dependencies are installed when the image is built.
 3. **Each role in its own container.** The persona's intent exists only in the
    persona's container. The operator sees only what the relay passes it. The
    judge sees the intent and the normalized plans, never the specs. The relay
    runs on the host.
 4. **Hidden materials stay out of the public repo:** intent documents,
-   traces, tiebreaker sheets, reference implementations, the trace suite. A
-   private repo or a gitignored directory. Anything public can be fetched if
-   control 2 fails, and can reach a later model's training data.
+   traces, tiebreaker sheets, reference implementations, the trace suite.
+   They live in a separate private repo (settled 2026-10-25). Anything public
+   can be fetched if control 2 fails, and can reach a later model's training
+   data. The harness itself isn't hidden and lives in this repo, in
+   `experiments/head-to-head/`, which `install.mjs` never bundles.
 5. **Record each run's model and its training cutoff.** The hill-climbing
    spec appears to postdate Opus 5.5's cutoff, so it is clean now. A rerun on
    a later model may not be.
@@ -358,6 +386,21 @@ positive control like any other check:
 - audit every tool call for a path outside the mount or a network attempt.
 
 A run that leaked is discarded, and the leak is logged.
+
+**Authentication** (settled 2026-10-25). The runs use the author's Claude
+subscription, not an API key. A long-lived token from `claude setup-token`,
+created and held by the author outside every repo, is passed into each
+container; no agent in the experiment, including the one building it, sees
+its value, and every transcript is scrubbed for it. `--bare` is unavailable,
+since it accepts only an API key; the fresh home directory does its job.
+Which hosts subscription authentication needs besides the API is found by one
+pilot run with the proxy logging every request, and the allowlist is cut to
+that set. The remaining risk, accepted: whatever the allowed host can carry.
+
+**Usage limits.** Every role runs Opus on one subscription, so the runs are
+scheduled around the plan's usage windows rather than run in one sitting. A
+run cut off by a limit is discarded or resumed cleanly, never scored as
+finished; the runner detects it. Cost is reported in tokens.
 
 ## Sample and stopping rule
 
@@ -519,4 +562,8 @@ and serve as a pilot for T5's trace tooling and for the isolation controls.
 
 ## Log
 
-*(Empty until Phase 1.)*
+- **2026-10-25 — Phase 1 begun, with the probe.** The probe needs only
+  single headless runs, so it goes first and pilots the isolation controls
+  and the trace tooling for T5. Settled the same day: the trace seam, the
+  private repo for hidden materials, `experiments/head-to-head/` for the
+  harness, and subscription authentication.
