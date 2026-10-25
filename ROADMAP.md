@@ -581,7 +581,8 @@ Tracks Centina work.
   measures authoring error on the hill-climbing loop itself, with the author
   as the human. Frame drafted 2026-10-23; open author decisions are marked in
   the doc. Supersedes the two-arm plan in `docs/fit-validation.md`. The
-  treatment is frozen at a git tag, cut before any obligation code lands.
+  treatment is frozen at a git tag, cut before any obligation or
+  grounding-check code lands.
 - **Behavioral obligations** (`docs/behavioral-obligations.md`): a hole for
   behavior. An `obligation(...)` primitive names a door or hole (so tsc
   resolves it) and routes a property its signature can't express: unrouted,
@@ -590,6 +591,19 @@ Tracks Centina work.
   iterate record unanswered ones as unrouted obligations. Designed
   2026-10-24, signature prototyped, not built. Traces wait for the
   hill-climbing probe.
+- **Grounding check** (`docs/grounding-check.md`): Rule 0a's candidate
+  replacement, gating spec edits on demonstrated understanding instead of on
+  who holds the pen. Any addition, removal or change of a Centina JSDoc tag,
+  a modification of spec content (comment edits, pure renames and pure moves
+  are diff-confirmed instead, except hole comments and the purpose header),
+  an agent's draft of a body, or an addition that appears to contradict a
+  recorded decision gets a check in
+  its own session, handed off as a `grounding-check` work item; ledger churn
+  never triggers one. In the check, the
+  human states the motive (wrong, out of date, never decided), reconciles it
+  against the ledger, and predicts a distinguishing case. Skipped checks are
+  recorded as `Unconfirmed`. Designed 2026-10-24, not built; Rule 0a stays
+  live until it passes its own head-to-head round.
 - **Ledger provenance** (`docs/ledger.md`): supersession
   tracking, scoped labels with structured entry headers, a lint mode for
   `bin/centina-check`, and session-transcript capture. Agreed and built

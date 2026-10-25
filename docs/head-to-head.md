@@ -51,8 +51,9 @@ ledger), and the sample sizes below are sized for that, not for significance.
 plugin, the C-nofill instruction and the ablation skill are all built from one
 tag, cut from `main` once the ablation skill and the C-nofill instruction are
 written, and before any code for behavioral obligations
-(`behavioral-obligations.md`) lands. Development after the tag never reaches
-the runs. Obligations get their own arm in a later round.
+(`behavioral-obligations.md`) or the grounding check (`grounding-check.md`)
+lands. Development after the tag never reaches the runs. Obligations and the
+grounding check each get their own arm in a later round.
 
 B isolates the claim only Centina makes: that a typed artifact the checker
 holds to account catches what disciplined conversation alone misses. If B
@@ -127,6 +128,9 @@ any arm:
 3. Rejects a proposal contradicting a decided item only when the proposal
    states the contradiction; doesn't trace implications.
 4. In C, applies spec edits it is handed verbatim (Rule 0a's cost lands here).
+   Only the cost: Rule 0a's benefit lives in a human's attention while
+   typing, which a persona pasting an edit doesn't have, so this experiment
+   can't measure it (`grounding-check.md`, "Testing").
    In B, writes the markdown itself. In every arm, writes any function bodies
    or flow itself (Rule 0); in C-nofill, as comments on open holes.
 5. **In T4 only, forgets.** The persona sees its intent document and only

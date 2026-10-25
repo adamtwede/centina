@@ -62,6 +62,19 @@ it is measured inside every deep-dive of a provenance-heavy task. The
 `Unprivileged`-enforcement decision (enforce consistently / rethink) is an
 *output* of this exercise, not an input.
 
+## Rule 0a is a hypothesis, too
+
+*(Added 2026-10-24.)* Rule 0a (the human holds the pen on spec edits) is a
+means, not an axiom, in the same way provenance was. It successfully prevents
+invisible agent edits. What it was meant to secure, that the human understands
+what an edit means for their intent, it secures only by proxy, and "hand edits
+over verbatim" weakens the proxy, since applying a verbatim edit is a
+copy-paste. Its candidate replacement is the grounding check
+(`grounding-check.md`), which gates on demonstrated understanding instead of on
+who types. Rule 0a stays live until the grounding check is built and passes its
+own head-to-head round; the head-to-head as frozen measures only Rule 0a's
+cost.
+
 ## Falsifiability frame
 
 Fixed before looking, so the exercise can't rubber-stamp itself.
