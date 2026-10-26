@@ -542,6 +542,15 @@ open question.
    Opus 5.5 implements the loop from each, given only that source (with its
    sibling specs `shared`, `task-matcher` and `task-corpus` for the two spec
    sources), under the isolation below. Five runs per source.
+
+   The header's opening provenance note ("ported 1:1 … iterated on in
+   centina-iterate sessions") is dropped from all three (settled
+   2026-10-25), so every source's header starts at "loop:". The sources are
+   built by `experiments/head-to-head/probe/sources.mjs`, which reads every
+   file from git at the freeze commit (96264f6) and the contract at its own
+   commit, never from the working tree. Each source carries the I/O contract,
+   and each spec source's loop file is named `hill-climbing-loop.centina.ts`,
+   so no filename says which source it is.
 4. **Scoring.** T5's three stages and trace classes, and its divergence
    flags. The same trace suite, with model calls mocked, and the same
    positive control.
@@ -610,3 +619,14 @@ and serve as a pilot for T5's trace tooling and for the isolation controls.
   is frozen too". The I/O contract
   (`experiments/head-to-head/probe/contract.ts`) and traces draft 3 (private
   repo) were settled the same day.
+- **2026-10-25 — The probe's sources and trace suite built.** The three
+  sources drop the provenance note and are generated from the freeze commit
+  (`probe/sources.mjs`). The trace suite (private repo) runs every trace in a
+  container with no network. Its positive control passes: the reference
+  implementation passes every required check, 25 mutants each fail the
+  traces they name (the double-run among them), and every required check is
+  failed by at least one mutant. The first control run found 12 required
+  checks that nothing failed, and eight mutants were added to cover them.
+  Building it also fixed three trace scenarios that couldn't run as written;
+  one of them (H19) contradicted H13. Still open before any run: how an
+  implementer raises a doubt, which the divergence flags count.

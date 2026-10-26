@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "96264f6a422bbe429767a64ab9c1b721d9df9195",
+  "contractCommit": "da977b53025a4f52494e0d36eb9d0058b7e9d887",
+  "files": [
+    {
+      "from": "files/centina.ts",
+      "to": "centina.ts"
+    },
+    {
+      "from": "files/contract.ts",
+      "to": "contract.ts"
+    },
+    {
+      "from": "files/specs/hill-climbing-loop/hill-climbing-loop.centina.ts",
+      "to": "specs/hill-climbing-loop/hill-climbing-loop.centina.ts"
+    },
+    {
+      "from": "files/specs/hill-climbing-loop/shared.centina.ts",
+      "to": "specs/hill-climbing-loop/shared.centina.ts"
+    },
+    {
+      "from": "files/specs/hill-climbing-loop/task-corpus.centina.ts",
+      "to": "specs/hill-climbing-loop/task-corpus.centina.ts"
+    },
+    {
+      "from": "files/specs/hill-climbing-loop/task-matcher.centina.ts",
+      "to": "specs/hill-climbing-loop/task-matcher.centina.ts"
+    }
+  ]
+}

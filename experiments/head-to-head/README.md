@@ -70,3 +70,6 @@ reaches for the network or the host, recorded for a human to read.
 | `run.mjs` | One headless run from a manifest and a prompt |
 | `audit.mjs` | The tool-call audit and canary scan for one run |
 | `pilot/` | The pilot task |
+| `probe/contract.ts` | The hill-climbing probe's I/O contract, given word for word to every implementer |
+| `probe/sources.mjs` | Builds the probe's three sources and their manifests from the freeze commit; `--check` verifies them |
+| `probe/sources/` | The built sources (prose, no-fill, filled), each with a `manifest.json` for `run.mjs` |
