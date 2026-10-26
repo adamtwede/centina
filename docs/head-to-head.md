@@ -524,7 +524,14 @@ open question.
    to either form.
 2. **A no-fill version.** The author writes the C-nofill form of the loop:
    the same header and skeleton, each body a `deferred<"open">` hole with the
-   flow in its comment.
+   flow in its comment. The comments describe the loop as the author would
+   have before writing the fill, not as the author understands it now
+   (settled 2026-10-25). Written that way, the no-fill and filled sources
+   start from the same knowledge, and only the form differs, which is what
+   the claim needs. The clarifications the author made while writing the
+   traces go in neither, so both pass those traces only by inference. The
+   version is `specs/hill-climbing-loop/hill-climbing-loop.nofill.centina.ts`,
+   frozen at 96264f6 (see below).
 3. **Three nested sources, fresh implementers.** Each source adds exactly one
    layer to the one before it, so each comparison isolates one layer:
    1. **prose** — the header comment alone, extracted to its own file;
@@ -543,10 +550,36 @@ open question.
 all, so it isn't fixed until the probe has run. The probe uses it from a tag
 or a pinned commit.
 
+**The no-fill version is frozen too,** at 96264f6, so the two spec sources
+are treated alike: errors found while drafting a source are fixed, and
+anything found after its freeze stays, as the double-run did. Before the
+freeze, the no-fill draft had one agent review, against the header and the
+traces. The rule for what it could fix:
+
+- **a comment that contradicted the header was fixed,** since the header
+  predates the fill. One did: `escalate`'s comment had the autonomous and
+  non-autonomous cases reversed. Separately, the draft had moved the header
+  into `implementationLoop`'s comment, which broke the one-layer-per-source
+  nesting, so the header was restored at the top, line for line;
+- **a gap that only knowledge of the defect would close was left.**
+  `implementationLoop`'s comment says it repeats "until the implementation
+  step is marked complete", and nothing says a step that was broken down or
+  escalated counts as complete once its sub-steps, or the more capable model,
+  finish it. Read literally, with 5b's recursive call, that re-attempts the
+  parent step: the double-run, in prose. The ambiguity is already in the
+  header, so the prose source carries it too. Left open, it lets the probe
+  ask whether the defect comes from how the intent was described or only
+  from the act of filling.
+
 **Bias, stated.** One author, one flow. The author now knows the defect and
-has spent many sessions with the loop, so the no-fill version is written with
-more understanding than the filled one was. That favors no-fill: a no-fill win
-is weaker evidence than a filled win.
+has spent many sessions with the loop. Writing the no-fill comments as the
+author would have before the fill narrows that gap but can't close it: the
+reconstruction can't be checked, and small fixes (the reversed condition,
+the clarified wording) drew on what the author knows now. Whatever leaks in
+favors no-fill, by an unknown amount, so a no-fill win is still weaker
+evidence than a filled win. The no-fill draft also had a review the filled
+spec's bodies didn't have in that form, though the filled spec had many
+iterate sessions of its own.
 
 **What it answers.** For this author on this loop: whether the no-fill form
 carries the flow as well as the filled one; whether the filled form's defect
@@ -567,3 +600,13 @@ and serve as a pilot for T5's trace tooling and for the isolation controls.
   and the trace tooling for T5. Settled the same day: the trace seam, the
   private repo for hidden materials, `experiments/head-to-head/` for the
   harness, and subscription authentication.
+- **2026-10-25 — The probe's no-fill version written and frozen** (96264f6).
+  The author wrote the flow comments into an agent-made skeleton (header,
+  imports, types and signatures copied; each body an empty open hole). The
+  author first meant the comments to describe the loop as now understood,
+  then settled on as it would have been described before the fill, so the two
+  spec sources share a knowledge state. One agent review before the freeze;
+  what it fixed and what it deliberately left is under "The no-fill version
+  is frozen too". The I/O contract
+  (`experiments/head-to-head/probe/contract.ts`) and traces draft 3 (private
+  repo) were settled the same day.
