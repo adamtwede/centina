@@ -553,7 +553,7 @@ open question.
    so no filename says which source it is.
 4. **Scoring.** T5's three stages and trace classes, and its divergence
    flags. The same trace suite, with model calls mocked, and the same
-   positive control.
+   positive control. How a doubt is raised and counted is below.
 
 **The filled spec is frozen as ratified.** It is the treatment, defect and
 all, so it isn't fixed until the probe has run. The probe uses it from a tag
@@ -579,6 +579,35 @@ traces. The rule for what it could fix:
   header, so the prose source carries it too. Left open, it lets the probe
   ask whether the defect comes from how the intent was described or only
   from the act of filling.
+
+**How an implementer raises a doubt** (settled 2026-10-26). Every implementer
+gets the same prompt (`experiments/head-to-head/probe/prompt.md`), whatever
+its source. It says to write anything in the source that is unclear,
+contradicts itself or looks wrong to `/work/NOTES.md` before deciding how to
+handle it, saying where it is, what the problem is, which choice was made and
+why, and then to make that choice and carry on: there is no one to ask. The
+prompt says nothing about an experiment, traces or scoring, and never names
+the source.
+
+It asks for doubts about the source, not about the contract. The filled
+source's shapes differ from the contract's in many places (its
+`taskMatcher(step, model)` against `lookup(step)`, for one), and the contract
+already settles those: it wins on shape, the source on behavior. Asking for
+contract conflicts would fill the filled source's notes with shape mismatches
+and inflate its count for reasons that have nothing to do with the flow.
+
+The divergence flags count a note only if both hold:
+
+- **it is about what the loop does.** A note about names, types or how a call
+  is split doesn't count, since some implementers will log shape mismatches
+  anyway;
+- **it was written before the code it covers.** The run directory keeps the
+  transcript and `/work`, so the order of the writes to `NOTES.md` and
+  `loop.ts` can be checked. A note added after the matching code was written
+  records a decision already made rather than raising a doubt.
+
+A doubt voiced only in the transcript or in a code comment isn't raised:
+the prompt names one channel, and the count holds every source to it.
 
 **Bias, stated.** One author, one flow. The author now knows the defect and
 has spent many sessions with the loop. Writing the no-fill comments as the
@@ -630,3 +659,8 @@ and serve as a pilot for T5's trace tooling and for the isolation controls.
   Building it also fixed three trace scenarios that couldn't run as written;
   one of them (H19) contradicted H13. Still open before any run: how an
   implementer raises a doubt, which the divergence flags count.
+- **2026-10-26 — The probe's implementer prompt written.** One prompt for all
+  three sources (`probe/prompt.md`). Doubts go to `/work/NOTES.md`, written
+  before deciding; the flags count only notes about what the loop does,
+  written before the code they cover. See "How an implementer raises a
+  doubt".

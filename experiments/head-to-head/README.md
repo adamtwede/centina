@@ -73,3 +73,4 @@ reaches for the network or the host, recorded for a human to read.
 | `probe/contract.ts` | The hill-climbing probe's I/O contract, given word for word to every implementer |
 | `probe/sources.mjs` | Builds the probe's three sources and their manifests from the freeze commit; `--check` verifies them |
 | `probe/sources/` | The built sources (prose, no-fill, filled), each with a `manifest.json` for `run.mjs` |
+| `probe/prompt.md` | The one implementer prompt, for every source: build `loop.ts`, raise doubts in `/work/NOTES.md` |
